@@ -21,6 +21,7 @@ class Events(commands.Cog):
       if "<@942716917821632572>" in msg or "<@!942716917821632572>" in msg:
         await ctx.reply(f"My prefix is `{prefix}` \nThis is a test bot for Second Serving to test new features!")
 
+
   @commands.check
   async def check_commands(self, ctx):
     channels = [947474270991310891, 937221627622592593]
@@ -28,6 +29,16 @@ class Events(commands.Cog):
       return True
     else:
       return False
+
+  @commands.command()
+  async def test(self, ctx):
+    await ctx.reply("Hi!", mention_author = False)
+  
+  @commands.after_invoke
+  async def after_invoke(self, ctx):
+    print("d")
+    await bot.save_db()
+    print("a")
 
 def setup(bot):
   bot.add_cog(Events(bot))

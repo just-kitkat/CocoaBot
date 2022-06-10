@@ -1,13 +1,14 @@
-import discord, os
+import discord, os, sys
 from vars import *
 from discord.ext import commands
 
-class Dev(commands.Cog):
+class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
   def __init__(self, bot):
     self.bot = bot
 
   @commands.command()
+  @commands.is_owner()
   async def reload(self, ctx, name = None):
     if name is None:
       message = ""
@@ -17,7 +18,7 @@ class Dev(commands.Cog):
             self.bot.reload_extension(f"cogs.{file[:-3]}")
             message += f"{tick} Loaded {file}! \n"
           except Exception as e:
-            messgae += f"{cross} Failed to load {file} \nERROR: {e} \n"
+            message += f"{cross} Failed to load {file} \nERROR: {e} \n"
 
     elif f"{name}.py" in os.listdir("./cogs"):
         self.bot.reload_extension(f"cogs.{name}")
@@ -39,6 +40,10 @@ class Dev(commands.Cog):
       #await update_status(True)
       await msg.edit(content=f"Killing {bot_name}...")
       await self.bot.close()
+
+    elif arg1 == "restart":
+      await ctx.send("Restarting bot... `This might take a few seconds`")
+      os.execv(sys.executable, ['python'] + sys.argv)
 
     
 def setup(bot):
