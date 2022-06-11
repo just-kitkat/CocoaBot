@@ -76,7 +76,7 @@ class Info(commands.Cog, name = "Statistics Commands"):
       )
     await ctx.reply(embed = embed, mention_author = False)
 
-#  @balance.error
+  @balance.error
   async def bal_error(self, ctx, error):
     embed = discord.Embed(
       title = bot_name,
@@ -161,7 +161,7 @@ class Info(commands.Cog, name = "Statistics Commands"):
       )
     await ctx.reply(embed = embed, mention_author = False)
   
-#  @stats.error
+  @stats.error
   async def stats_error(self, ctx, error):
     embed = discord.Embed(
       title = bot_name,

@@ -16,9 +16,9 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         if file.endswith(".py"):
           try:
             self.bot.reload_extension(f"cogs.{file[:-3]}")
-            message += f"{tick} Loaded {file}! \n"
+            message += f"{tick} Reloaded {file}! \n"
           except Exception as e:
-            message += f"{cross} Failed to load {file} \nERROR: {e} \n"
+            message += f"{cross} Failed to reload {file} \nERROR: {e} \n"
 
     elif f"{name}.py" in os.listdir("./cogs"):
         self.bot.reload_extension(f"cogs.{name}")
@@ -27,6 +27,34 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     else:
       message = f"{cross} Cog not found!"
 
+    await self.bot.emby(ctx, "Developer Tools", message, discord.Color.blurple())
+
+  @commands.command()
+  @commands.is_owner()
+  async def load(self, ctx, name = None):
+    if name is None:
+      message = "Please specify cog to load!"
+    else:
+      file = name + ".py"
+      try:
+        self.bot.load_extension(f"cogs.{file[:-3]}")
+        message = f"{tick} Loaded {file}! \n"
+      except Exception as e:
+        message = f"{cross} Failed to load {file} \nERROR: {e} \n"
+    await self.bot.emby(ctx, "Developer Tools", message, discord.Color.blurple())
+        
+  @commands.command()
+  @commands.is_owner()
+  async def unload(self, ctx, name = None):
+    if name is None:
+      message = "Please specify cog to unload!"
+    else:
+      file = name + ".py"
+      try:
+        self.bot.load_extension(f"cogs.{file[:-3]}")
+        message = f"{tick} Unloaded {file}! \n"
+      except Exception as e:
+        message = f"{cross} Failed to unload {file} \nERROR: {e} \n"
     await self.bot.emby(ctx, "Developer Tools", message, discord.Color.blurple())
 
 

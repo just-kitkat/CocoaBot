@@ -189,7 +189,7 @@ class MyBot(commands.Bot):
       else:
         guild_mult = 1
       updated_xp = round(xp + amt * (xp_mult + guild_mult))
-      await guild_xp(ctx, round(amt * (xp_mult + guild_mult)))
+      await bot.guild_xp(ctx, round(amt * (xp_mult + guild_mult)))
       xp_needed = bot.db["economy"]["users"][str(user)]["levels"]["xp_needed"]
       xp = updated_xp
       if updated_xp >= xp_needed:

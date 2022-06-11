@@ -30,11 +30,6 @@ class Events(commands.Cog):
     else:
       return False
 
-  @commands.command()
-  async def test(self, ctx):
-    await ctx.reply("Hi!", mention_author = False)
-  
-
 
 def setup(bot):
   bot.add_cog(Events(bot))
