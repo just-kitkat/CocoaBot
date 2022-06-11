@@ -268,7 +268,7 @@ class MyBot(commands.Bot):
           await user.send(embed = embed)
 
     async def save_db(self):
-      collection.replace_one({"_id" : 11}, {"_id" : 11, "economy" : db["economy"]})
+      collection.replace_one({"_id" : 11}, {"_id" : 11, "economy" : bot.db["economy"]})
 
     async def login(self, token: str, *, bot: bool = True) -> None:
       await super().login(os.getenv("TOKEN"), bot = bot)
@@ -287,15 +287,14 @@ bot = MyBot(
 )
 bot.db = {}
 bot.help_command = Help()
-mongo_connection_string = os.getenv("mcs")
-cluster = pymongo.MongoClient(mongo_connection_string)
-database = cluster["SecondServng"]
+mcs = os.getenv("mcs")
+cluster = pymongo.MongoClient(mcs)
+database = cluster["SecondServingBeta"]
 collection = database["db"]
 
 results = collection.find({"_id" : 11})
 for result in results:
   bot.db = result
-
 
 
 
@@ -307,5 +306,8 @@ for file in os.listdir("./cogs"):
     except Exception as e:
       print(f"{cross} Failed to load {file} \nERROR: {e}")
 
+@bot.after_invoke
+async def after_invoke(ctx):
+  await bot.save_db()
 
 bot.run(os.getenv("TOKEN"))

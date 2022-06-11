@@ -3,7 +3,7 @@ from vars import *
 from datetime import timedelta, date, datetime
 from discord.ext import commands
 
-class Info(commands.Cog):
+class Info(commands.Cog, name = "Statistics Commands"):
 
   def __init__(self, bot):
     self.bot = bot

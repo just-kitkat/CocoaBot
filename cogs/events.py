@@ -34,11 +34,7 @@ class Events(commands.Cog):
   async def test(self, ctx):
     await ctx.reply("Hi!", mention_author = False)
   
-  @commands.after_invoke
-  async def after_invoke(self, ctx):
-    print("d")
-    await bot.save_db()
-    print("a")
+
 
 def setup(bot):
   bot.add_cog(Events(bot))
