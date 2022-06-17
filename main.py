@@ -1,18 +1,18 @@
-import os
+import os, asyncio, time, random
 from vars import *
 import pymongo, dns
 from pymongo import MongoClient
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 import keep_alive
 keep_alive.keep_alive()
 
 intents = discord.Intents.default()
 intents.members = True
-activity = discord.Game(name=f"Welcome to {bot_name}! | Ping for help!")
+activity = discord.Game(name=f"This is {bot_name} Beta! | Ping for help!")
 
-class Help(commands.MinimalHelpCommand):
+class HelpCmd(commands.MinimalHelpCommand):
   async def send_pages(self):
       destination = self.get_destination()
       for page in self.paginator.pages:
@@ -24,7 +24,6 @@ class Help(commands.MinimalHelpCommand):
 class MyBot(commands.Bot):
     def __init__(self, *args, **kwargs):
       super().__init__(*args, **kwargs)
-      self.db = {}
 
     # Functions
     async def emby(self, ctx, title, description, color):
@@ -33,18 +32,18 @@ class MyBot(commands.Bot):
 
     # Updates the bot status channel
     async def update_status(self, down = None):
-      guild = self.bot.get_guild(936983441516396554)
+      guild = bot.get_guild(936983441516396554)
       status_channel = guild.get_channel(953971108443488286)
       status_msg = await status_channel.fetch_message(955673312602759208)
       if down is None:
-        current_time = int(_time.time())
-        hour = (current_time - online_since) // 3600
-        min = (current_time - online_since) % 3600//60
-        sec = (current_time - online_since) % 60
+        currenttime = int(time.time())
+        hour = (currenttime - online_since) // 3600
+        min = (currenttime - online_since) % 3600//60
+        sec = (currenttime - online_since) % 60
         uptime = f"{hour} hours {min} minutes {sec} seconds"
-        title, message, color = f"{bot_name} is online  :green_circle:", f"Last pinged: <t:{int(_time.time())}:R> \nUptime: **{uptime}**", discord.Color.green()
+        title, message, color = f"{bot_name} is online  :green_circle:", f"Last pinged: <t:{int(time.time())}:R> \nUptime: **{uptime}**", discord.Color.green()
       else:
-        title, message, color = f"{bot_name} is offline  :red_circle:", f"Last pinged: <t:{int(_time.time())}:R> \n{bot_name} will be offline for maintenence", discord.Color.red()
+        title, message, color = f"{bot_name} is offline  :red_circle:", f"Last pinged: <t:{int(time.time())}:R> \n{bot_name} will be offline for maintenence", discord.Color.red()
       embed = discord.Embed(
         title = title,
         description = message,
@@ -72,7 +71,7 @@ class MyBot(commands.Bot):
     async def log_action(self, ctx, type, message):
       title, color = "Action Log", green
       if type.lower() == "guild":
-        channel = self.bot.get_guild(936983441516396554).get_channel(957566232029188096)
+        channel = bot.get_channel(957566232029188096)
         title = "Guild Action"
       else:
         return
@@ -163,15 +162,16 @@ class MyBot(commands.Bot):
         return "{:,.0f}".format(db["economy"]["users"][str(user)][type])
     
     async def notify_user(self, ctx, user, color, message):
-      color = discord.Color.green() if color == "green" else red
+      red, green = discord.Color.red(), discord.Color.green()
+      color = green if color == "green" else red
         
-      user = self.bot.get_user(int(user))
+      user = bot.get_user(int(user))
       embed = discord.Embed(
         title = f"New Notification!",
         description = message,
         color = color
       )
-      embed.set_footer(text = f"Unsubscribe from all notifications using **{prefix}notify**")
+      embed.set_footer(text = f"Unsubscribe from all notifications using **{bot.prefix}notify**")
       try:
         await user.send(embed = embed)
       except:
@@ -256,15 +256,15 @@ class MyBot(commands.Bot):
         bot.db["economy"]["users"][user]["stats"][type] += 1
     
     async def check_blacklists(self):
-      for user in list(db["economy"]["user_blacklist"]):
-        if bot.db["economy"]["user_blacklist"][user]["time"] <= int(_time.time()):
+      for user in list(bot.db["economy"]["user_blacklist"]):
+        if bot.db["economy"]["user_blacklist"][user]["time"] <= int(time.time()):
           bot.db["economy"]["user_blacklist"].pop(user)
           embed = discord.Embed(
             title = bot_name, 
             description = f"You have been unblacklisted. \nPlease note that breaking the rules again will lead to a **harsher** punishment!",
             color = discord.Color.green()
           )
-          user = self.bot.get_user(int(user))
+          user = bot.get_user(int(user))
           await user.send(embed = embed)
 
     async def save_db(self):
@@ -272,21 +272,29 @@ class MyBot(commands.Bot):
 
     async def login(self, token: str, *, bot: bool = True) -> None:
       await super().login(os.getenv("TOKEN"), bot = bot)
-      
-      
-
 
       print("Setup!") # Task here
 
+def get_prefix(bot, message):
+  id = message.guild.id
+  if str(id) in bot.db["economy"]["prefix"]:
+    bot.prefix = bot.db["economy"]["prefix"][str(id)]
+  else:
+    bot.prefix = ","
+  return bot.prefix.lower(), bot.prefix.upper()
       
 bot = MyBot(
-  command_prefix = ",", 
+  command_prefix = get_prefix, 
   intents=intents, 
   case_insensitive = True, 
   activity = activity
 )
 bot.db = {}
-bot.help_command = Help()
+
+bot.giving_income = False
+bot.help_command = HelpCmd()
+
+# MC Connection
 mcs = os.getenv("mcs")
 cluster = pymongo.MongoClient(mcs)
 database = cluster["SecondServingBeta"]
@@ -296,7 +304,16 @@ results = collection.find({"_id" : 11})
 for result in results:
   bot.db = result
 
+bot.active_customer = bot.db["economy"]["active_customer"]
 
+# Command cooldowns
+default_cooldown = commands.Cooldown(5, 10, commands.BucketType.user)
+for command in bot.commands:
+  print(command)
+  if command == "leaderboard":
+    command._buckets._cooldown = commands.Cooldown(4, 30, commands.BucketType.user)
+  else:
+    command._buckets._cooldown = default_cooldown
 
 for file in os.listdir("./cogs"):
   if file.endswith(".py"):
@@ -306,8 +323,34 @@ for file in os.listdir("./cogs"):
     except Exception as e:
       print(f"{cross} Failed to load {file} \nERROR: {e}")
 
+@bot.check
+async def check_commands(ctx):
+  if bot.db["economy"]["maintenance"] and ctx.author.id != 915156033192734760:
+    embed = discord.Embed(
+      title = bot_name,
+      description = f"{bot_name} is currently in maintenance mode. \nFor more information, join the support server [here]({sinvite}).",
+      color = discord.Color.red()
+    )
+    await ctx.reply(embed = embed)
+  elif str(ctx.guild.id) in bot.db["economy"]["guild_config"] and ctx.channel.id in bot.db["economy"]["guild_config"][str(ctx.guild.id)]["blacklist"]:
+    if bot.db["economy"]["guild_config"][str(ctx.guild.id)]["notify"]:
+      embed = discord.Embed(
+        title = bot_name,
+        description = f"{cross} You are not allowed to use bot commands in this channel!",
+        color = discord.Color.red()
+      )
+      msg = await ctx.reply(embed = embed)
+      await asyncio.sleep(3)
+      await msg.delete()
+    return False
+  else:
+    return True
+
+
 @bot.after_invoke
 async def after_invoke(ctx):
   await bot.save_db()
+
+
 
 bot.run(os.getenv("TOKEN"))

@@ -1,7 +1,6 @@
 import time, discord
 
 bot_name = "Second Serving"
-prefix = ","
 
 cross = "❌"
 tick = "✅"

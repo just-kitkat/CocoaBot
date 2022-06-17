@@ -71,7 +71,7 @@ class Info(commands.Cog, name = "Statistics Commands"):
         name = member.name
       embed = discord.Embed(
         title = bot_name,
-        description = f"{cross} {name} do not own a dessert shop. Use `{prefix}build` to build one",
+        description = f"{cross} {name} do not own a dessert shop. Use `{self.bot.prefix}build` to build one",
         color = discord.Color.red()
       )
     await ctx.reply(embed = embed, mention_author = False)
@@ -117,7 +117,7 @@ class Info(commands.Cog, name = "Statistics Commands"):
         emoji += no_xp_emoji
       warning = ""
       if happiness < 50:
-        warning = f"\n`Your customer happiness is very low and it will affect your hourly income! Use {prefix}clean to clean your shop!`"
+        warning = f"\n`Your customer happiness is very low and it will affect your hourly income! Use {self.bot.prefix}clean to clean your shop!`"
         happiness_emoji = " :pensive:"
       elif happiness > 80:
         happiness_emoji = " :grin:"
@@ -156,7 +156,7 @@ class Info(commands.Cog, name = "Statistics Commands"):
         msg = "That user does not"
       embed = discord.Embed(
         title = bot_name,
-        description = f"{cross} {msg} own a dessert shop. Use `{prefix}build` to build one!",
+        description = f"{cross} {msg} own a dessert shop. Use `{self.bot.prefix}build` to build one!",
       color = discord.Color.red()
       )
     await ctx.reply(embed = embed, mention_author = False)

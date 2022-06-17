@@ -21,7 +21,7 @@ class Economy(commands.Cog, name = "General Commands"):
         balance = self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"]
         happiness = self.bot.db["economy"]["users"][str(ctx.author.id)]["happiness"]
         if happiness < 25:
-          notify = f"\nYour customers' happiness is at **{happiness}%**. This will affect your income significantly! Please clean your shop using `{prefix}clean`"
+          notify = f"\nYour customers' happiness is at **{happiness}%**. This will affect your income significantly! Please clean your shop using `{self.bot.prefix}clean`"
         else:
           notify = ""
         xp = random.randint(1,3)
@@ -47,7 +47,7 @@ class Economy(commands.Cog, name = "General Commands"):
     else:
       embed = discord.Embed(
        title =  bot_name,
-       description = f"{cross} You do not own a dessert shop. Do `{prefix}build` to build one!",
+       description = f"{cross} You do not own a dessert shop. Do `{self.bot.prefix}build` to build one!",
        color = discord.Color.red()
       )
     await ctx.reply(embed = embed, mention_author = False)
@@ -86,7 +86,7 @@ class Economy(commands.Cog, name = "General Commands"):
     else:
       embed = discord.Embed(
        title =  bot_name,
-       description = f"{cross} You do not own a dessert shop. Do `{prefix}build` to build one!",
+       description = f"{cross} You do not own a dessert shop. Do `{self.bot.prefix}build` to build one!",
        color = discord.Color.red()
       )
     await ctx.reply(embed = embed, mention_author = False)                                          
@@ -121,7 +121,7 @@ class Economy(commands.Cog, name = "General Commands"):
       elif cleaners < 1:
         embed = discord.Embed(
           title =  bot_name,
-          description = f"{cross} You did not employ any cleaners! Use `{prefix}hire` to hire them!",
+          description = f"{cross} You did not employ any cleaners! Use `{self.bot.prefix}hire` to hire them!",
           color = discord.Color.red()
           )
       else:
@@ -139,7 +139,7 @@ class Economy(commands.Cog, name = "General Commands"):
     else:
       embed = discord.Embed(
        title =  bot_name,
-       description = f"{cross} You do not own a dessert shop. Do `{prefix}build` to build one!",
+       description = f"{cross} You do not own a dessert shop. Do `{self.bot.prefix}build` to build one!",
        color = discord.Color.red()
       )
     await ctx.reply(embed = embed, mention_author = False)
@@ -167,12 +167,12 @@ class Economy(commands.Cog, name = "General Commands"):
         else:
           title, message, color = "Self praise is a national disgrace!", f"Try praising someone else!", red   
       else:
-        title, message, color = "Praise someone!", f"Praise someone and help them earn reputation stars! Use `{prefix}praise <user>` to praise them!", green
+        title, message, color = "Praise someone!", f"Praise someone and help them earn reputation stars! Use `{self.bot.prefix}praise <user>` to praise them!", green
       embed = discord.Embed(title = title, description = message, color = color)
     else:
       embed = discord.Embed(
        title =  bot_name,
-       description = f"{cross} You do not own a dessert shop. Do `{prefix}build` to build one!",
+       description = f"{cross} You do not own a dessert shop. Do `{self.bot.prefix}build` to build one!",
        color = discord.Color.red()
       )
     await ctx.reply(embed = embed, mention_author = False)
