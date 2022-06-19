@@ -8,6 +8,60 @@ class Economy(commands.Cog, name = "General Commands"):
   def __init__(self, bot):
     self.bot = bot
 
+  @commands.command()
+  async def build(self, ctx):
+    if str(ctx.author.id) not in self.bot.db["economy"]["users"]:
+      self.bot.db["economy"]["users"][str(ctx.author.id)] = {
+"balance" : 1000, "income" : 500, "tips" : 200, "account_created" : int(_time.time()), "happiness" : 100, "daily_streak" : 0, "rush_hour" : 0, "guild" : "", "rep" : 0.00, "rep_cooldowns" : {}, #{user_id : time}
+"stats" : {"work" : 0, "tip" : 0, "clean" : 0, "praise" : 0, "overtime" : 0},
+"achievements" : {"work" : False, "tip" : False, "clean" : False, "million" : False, "praise" : False, "manager" : False, "leaderboard" : False, "guild" : False}, 
+"levels" : {"xp" : 0, "xp_mult" : 1, "level" : 1, "xp_needed" : 20}, 
+"cooldowns" : {"work" : 1, "tip" : 1, "clean" : 1, "daily" : 1, "weekly" : 1, "monthly" : 1}, 
+"hire" : {"waiter" : 0, "chef" : 1, "head_chef" : 0, "cashier" : 0, "manager" : 0, "cleaner" : 0}, 
+"upgrade" : {"tipjar" : 0, "sign" : 0, "paint" : 0, "fan" : 1, "aircon" : 0, "light" : 0}, 
+"boost" : {"band" : 0, "pianist" : 0, "guitarist" : 0, "singer" : 0, "magician" : 0}
+      }
+      embed = discord.Embed(
+        title = bot_name,
+        description = f"{tick} You have successfully built a dessert shop! \nCheck your DMs for a quick guide! \n`View the tutorial using {self.bot.prefix}tutorial`",
+        color = discord.Color.green()
+      )
+      dm_embed = discord.Embed(
+        title = f"{cake} Your brand new **Dessert Shop** is now in business! {cake}",
+        description = f"""
+You are the owner of your dessert shop and will recieve a hourly income to pay for things!
+  
+➼ You can increase your income by purchasing **Upgrades**, hiring **Employees**, purchasing **Advertisment** and much more!
+➼ You can also **work** and collect **tips** for extra income! (Work: `{self.bot.prefix}work`, Collect tips: `{self.bot.prefix}tips`)
+➼ Make sure to **clean** your shop once every 6 hours to keep your customers happy to maximise income!
+➼ Become the most successful shop and climb up the leaderboards!
+  
+To join the **Support Server**, you can click the link below!
+Benefits of joining the server:
+➼ Participate in lotteries and giveaways.
+➼ Make friends and be part of the community!
+➼ Get help and updates regarding the development of the bot!
+  
+**To get started, you can use the `{self.bot.prefix}tutorial` command! Good luck!**
+""",
+  color = discord.Color.green()
+      )
+      user = bot.get_user(ctx.author.id)
+      try:
+        await user.send(embed = dm_embed)
+        await user.send(f"Join the support server here: {sinvite}")
+      except:
+        error_embed = discord.Embed(title = "Something went wrong!", description = f"{cross} Something went wrong while trying to message you. You might have your DMs closed or have Second Serving blocked! To view the tutorial, use `{self.bot.prefix}tutorial`", color = red)
+      await ctx.reply(embed = error_embed)
+    else:
+      embed = discord.Embed(
+        title = bot_name,
+        description = f"{cross} You already own a dessert shop!",
+        color = discord.Color.red()
+      )
+    await ctx.reply(embed = embed, mention_author = False)
+
+  
   @commands.command(aliases = ["w"])
   async def work(self, ctx):
     if str(ctx.author.id) in self.bot.db["economy"]["users"]:
@@ -183,5 +237,5 @@ class Economy(commands.Cog, name = "General Commands"):
     await ctx.reply(embed = embed, mention_author = False)
 
 
-def setup(bot):
-  bot.add_cog(Economy(bot))
+async def setup(bot):
+  await bot.add_cog(Economy(bot))

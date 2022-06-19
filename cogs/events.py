@@ -10,6 +10,7 @@ class Events(commands.Cog):
   @commands.Cog.listener()
   async def on_ready(self):
     print("We have logged in as {0.user}".format(self.bot))
+    
     await self.tasksloop.start()
 
   @commands.Cog.listener()
@@ -76,5 +77,6 @@ class Events(commands.Cog):
       self.bot.giving_income = False
 
 
-def setup(bot):
-  bot.add_cog(Events(bot))
+async def setup(bot):
+  await bot.add_cog(Events(bot))
+

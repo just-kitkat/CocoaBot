@@ -170,5 +170,5 @@ class Info(commands.Cog, name = "Statistics Commands"):
     )
     await ctx.reply(embed = embed, mention_author = False)
 
-def setup(bot):
-  bot.add_cog(Info(bot))
+async def setup(bot):
+  await bot.add_cog(Info(bot))

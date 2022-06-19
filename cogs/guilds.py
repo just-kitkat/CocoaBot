@@ -9,7 +9,7 @@ class Guilds(commands.Cog, name = "Guild Commands"):
     self.bot = bot
 
   def admin_check():
-    def predicate(ctx):
+    def pred(ctx):
       try:
         user = ctx.author.id
         guild_name = ctx.bot.db["economy"]["users"][str(user)]["guild"]
@@ -18,12 +18,12 @@ class Guilds(commands.Cog, name = "Guild Commands"):
         return user_rank in guild_admins
       except: 
         return False
-    return commands.check(predicate)
+    return commands.check(pred)
 
   def shop_check():
-    def predicate(ctx):
+    def pred(ctx):
       return str(ctx.author.id) in ctx.bot.db["economy"]["users"]
-    return commands.check(predicate)
+    return commands.check(pred)
 
   @commands.group(aliases = ["g", "guilds"], invoke_without_command = True)
   @shop_check()
@@ -323,5 +323,5 @@ Level: **{guild_level}** \n{emoji} `({guild_xp} / {guild_xpneeded})`
     embed = discord.Embed(title = "Guild Donation", description = message, color = color)
     await ctx.reply(embed = embed, mention_author = False)
 
-def setup(bot):
-  bot.add_cog(Guilds(bot))
+async def setup(bot):
+  await bot.add_cog(Guilds(bot))

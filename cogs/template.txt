@@ -15,5 +15,5 @@ class Dev(commands.Cog):
   async def on_x(self):
     pass
 
-def setup(bot):
-  bot.add_cog(Dev(bot))
+async def setup(bot):
+  await bot.add_cog(Dev(bot))

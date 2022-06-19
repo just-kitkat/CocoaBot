@@ -96,5 +96,5 @@ class Admin(commands.Cog, name = "Admin Commands"):
     embed = discord.Embed(title = title, description = message, color = color)
     await ctx.reply(embed = embed, mention_author = False)
 
-def setup(bot):
-  bot.add_cog(Admin(bot))
+async def setup(bot):
+  await bot.add_cog(Admin(bot))

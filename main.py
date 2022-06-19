@@ -1,4 +1,5 @@
 import os, asyncio, time, random
+os.system("pip install git+https://github.com/Rapptz/discord.py")
 from vars import *
 import pymongo, dns
 from pymongo import MongoClient
@@ -10,14 +11,8 @@ keep_alive.keep_alive()
 
 intents = discord.Intents.default()
 intents.members = True
+intents.message_content = True
 activity = discord.Game(name=f"This is {bot_name} Beta! | Ping for help!")
-
-class HelpCmd(commands.MinimalHelpCommand):
-  async def send_pages(self):
-      destination = self.get_destination()
-      for page in self.paginator.pages:
-          emby = discord.Embed(description=page, color = discord.Color.blurple())
-          await destination.send(embed=emby)
 
 
 
@@ -270,10 +265,8 @@ class MyBot(commands.Bot):
     async def save_db(self):
       collection.replace_one({"_id" : 11}, {"_id" : 11, "economy" : bot.db["economy"]})
 
-    async def login(self, token: str, *, bot: bool = True) -> None:
-      await super().login(os.getenv("TOKEN"), bot = bot)
-
-      print("Setup!") # Task here
+  #  async def setup_hook(self):
+      
 
 def get_prefix(bot, message):
   id = message.guild.id
@@ -292,7 +285,7 @@ bot = MyBot(
 bot.db = {}
 
 bot.giving_income = False
-bot.help_command = HelpCmd()
+
 
 # MC Connection
 mcs = os.getenv("mcs")
@@ -307,7 +300,7 @@ for result in results:
 bot.active_customer = bot.db["economy"]["active_customer"]
 
 # Command cooldowns
-default_cooldown = commands.Cooldown(5, 10, commands.BucketType.user)
+default_cooldown = commands.CooldownMapping.from_cooldown(5, 10, commands.BucketType.user)
 for command in bot.commands:
   print(command)
   if command == "leaderboard":
@@ -315,13 +308,7 @@ for command in bot.commands:
   else:
     command._buckets._cooldown = default_cooldown
 
-for file in os.listdir("./cogs"):
-  if file.endswith(".py"):
-    try:
-      bot.load_extension(f"cogs.{file[:-3]}")
-      print(f"{tick} Loaded {file}")
-    except Exception as e:
-      print(f"{cross} Failed to load {file} \nERROR: {e}")
+
 
 @bot.check
 async def check_commands(ctx):
@@ -351,6 +338,16 @@ async def check_commands(ctx):
 async def after_invoke(ctx):
   await bot.save_db()
 
+async def main():
+  async with bot:
+    for file in os.listdir("./cogs"):
+      if file.endswith(".py"):
+        try:
+          await bot.load_extension(f"cogs.{file[:-3]}")
+          print(f"{tick} Loaded {file}")
+        except Exception as e:
+          print(f"{cross} Failed to load {file} \nERROR: {e}")
+    await bot.start(os.getenv("TOKEN"))
 
-
-bot.run(os.getenv("TOKEN"))
+if __name__ == "__main__":
+  asyncio.run(main())

@@ -12,16 +12,18 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   async def reload(self, ctx, name = None):
     if name is None:
       message = ""
-      for file in os.listdir("./cogs"):
-        if file.endswith(".py"):
-          try:
-            self.bot.reload_extension(f"cogs.{file[:-3]}")
-            message += f"{tick} Reloaded {file}! \n"
-          except Exception as e:
-            message += f"{cross} Failed to reload {file} \nERROR: {e} \n"
+      async with self.bot:
+        for file in os.listdir("./cogs"):
+          if file.endswith(".py"):
+            try:
+              await self.bot.reload_extension(f"cogs.{file[:-3]}")
+              message += f"{tick} Reloaded {file}! \n"
+            except Exception as e:
+              message += f"{cross} Failed to reload {file} \nERROR: {e} \n"
 
     elif f"{name}.py" in os.listdir("./cogs"):
-        self.bot.reload_extension(f"cogs.{name}")
+      async with self.bot:
+        await self.bot.reload_extension(f"cogs.{name}")
         message = f"{tick} Cog reloaded!"
       
     else:
@@ -37,8 +39,9 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     else:
       file = name + ".py"
       try:
-        self.bot.load_extension(f"cogs.{file[:-3]}")
-        message = f"{tick} Loaded {file}! \n"
+        async with self.bot:
+          await self.bot.load_extension(f"cogs.{file[:-3]}")
+          message = f"{tick} Loaded {file}! \n"
       except Exception as e:
         message = f"{cross} Failed to load {file} \nERROR: {e} \n"
     await self.bot.emby(ctx, "Developer Tools", message, discord.Color.blurple())
@@ -51,8 +54,9 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     else:
       file = name + ".py"
       try:
-        self.bot.load_extension(f"cogs.{file[:-3]}")
-        message = f"{tick} Unloaded {file}! \n"
+        async with self.bot:
+          await self.bot.unload_extension(f"cogs.{file[:-3]}")
+          message = f"{tick} Unloaded {file}! \n"
       except Exception as e:
         message = f"{cross} Failed to unload {file} \nERROR: {e} \n"
     await self.bot.emby(ctx, "Developer Tools", message, discord.Color.blurple())
@@ -74,5 +78,5 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       os.execv(sys.executable, ['python'] + sys.argv)
 
     
-def setup(bot):
-  bot.add_cog(Dev(bot))
+async def setup(bot):
+  await bot.add_cog(Dev(bot))
