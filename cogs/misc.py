@@ -9,7 +9,7 @@ class Misc(commands.Cog, name = "Miscellaneous Commands"):
 
   @commands.command(aliases = ["lb", "leaderboards"])
   @commands.cooldown(4, 60, commands.BucketType.user)
-  async def leaderboard(self, ctx, arg = None):
+  async def leaderboard(self, ctx, arg = ""):
     lb_dump = {}
     try:
       arg = arg.lower()
@@ -22,6 +22,9 @@ class Misc(commands.Cog, name = "Miscellaneous Commands"):
       elif arg in ("level", "levels"):
         lb_dump[user] = self.bot.db["economy"]["users"][user]["levels"]["level"]
         emoji = "⚡"
+      elif arg in ("income", "incomes"):
+        lb_dump[user] = self.bot.db["economy"]["users"][user]["income"]
+        emoji = f"{coin} / hr"
       else:
         lb_dump[user] = self.bot.db["economy"]["users"][user]["balance"]
         emoji = coin
@@ -103,6 +106,138 @@ Level 30: **1,000,000 {coin} Reward**
       color = color
     )
     await ctx.reply(embed = embed, mention_author = False)
+
+  @commands.command(aliases = ["c", "cooldown"])
+  async def cooldowns(self, ctx):
+    if str(ctx.author.id) in self.bot.db["economy"]["users"]:
+      balance = self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"]
+      balance_f = await get_data("balance", ctx.author.id)
+      daily = self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["daily"]
+      work = self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["work"]
+      tip = self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["tip"]
+      clean = self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["clean"]
+      monthly = self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["monthly"]
+      current_time = int(_time.time())
+      if int(_time.time()) - work > 600:
+        work = tick + " **READY**"
+      else:
+        last = self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["work"]
+        min = str(math.floor((10 - ((current_time - last) % 3600) / 60)))
+        sec = str(math.floor((60 - ((current_time - last) % 3600) % 60)))
+        work = cross + f" {min} minutes {sec} seconds"
+      if int(_time.time()) - tip > 300:
+        tip = tick + " **READY**"
+      else:
+        last = self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["tip"]
+        min = str(math.floor((5 - ((current_time - last) % 3600) / 60)))
+        sec = str(math.floor((60 - ((current_time - last) % 3600) % 60)))
+        tip = cross + f" {min} minutes {sec} seconds"
+      if int(_time.time()) - clean > 21600:
+        clean = tick + " **READY**"
+      else:
+        td = timedelta(seconds=43200-current_time+clean)
+        hour = td.seconds // 3600
+        min = (td.seconds % 3600) // 60
+        sec = td.seconds % 60
+        clean = cross + f" {hour} hours {min} minutes {sec} seconds"
+      if int(_time.time()) - daily > 86400:
+        daily = tick + " **READY**"
+      else:
+        td = timedelta(seconds=86400-current_time+daily)
+        hour = td.seconds // 3600
+        min = (td.seconds % 3600) // 60
+        sec = td.seconds % 60
+        daily = cross + f" {hour} hours {min} minutes {sec} seconds"
+      if int(_time.time()) - monthly > 86400*30:
+        monthly = tick + " **READY**"
+      else:
+        td = timedelta(seconds=86400*30-current_time+monthly)
+        days = td.days
+        hour = td.seconds // 3600
+        min = (td.seconds % 3600) // 60
+        sec = td.seconds % 60
+        monthly = cross + f" {days} days {hour} hours {min} minutes {sec} seconds"
+        
+      embed = discord.Embed(
+       title = f"⏱️ Cooldowns | {bot_name}",
+       description = f"""
+  **Tip:** 
+  {tip} 
+  
+  **Work:** 
+  {work} 
+  
+  **Clean:** 
+  {clean}
+  
+  **Daily:** 
+  {daily}
+  
+  **Monthly:** 
+  {monthly}
+  
+  **Vote:**
+  ⛔︎ **DISABLED**
+  **\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_**
+  Balance: **{balance_f} {coin}**
+  """,
+       color = discord.Color.gold()
+      )
+    else:
+      embed = discord.Embed(
+       title =  bot_name,
+       description = f"{cross} You do not own a dessert shop. Do `{self.bot.prefix}build` to build one!",
+       color = discord.Color.red()
+      )
+    await ctx.reply(embed = embed, mention_author = False)
+
+  @commands.command(aliases = ["achievement", "achieve"])
+  async def achievements(self, ctx, user = None):
+    if str(ctx.author.id) in self.bot.db["economy"]["users"]:
+      user_stats = self.bot.db["economy"]["users"][str(ctx.author.id)]["stats"]
+      achievements = self.bot.db["economy"]["users"][str(ctx.author.id)]["achievements"]
+      millionaire = tick if self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"] >= 1000000 else cross
+      work = tick if user_stats["work"] >= 100 else cross
+      tip = tick if user_stats["tip"] >= 100 else cross
+      clean = tick if user_stats["praise"] >= 25 else cross
+      praise = tick if user_stats["praise"] >= 100 else cross
+      manager = tick if self.bot.db["economy"]["users"][str(ctx.author.id)]["hire"]["manager"] >= 1 else cross
+      leaderboard = tick if self.bot.db["economy"]["users"][str(ctx.author.id)]["achievements"]["leaderboard"] else cross
+      million = tick if self.bot.db["economy"]["users"][str(ctx.author.id)]["achievements"]["million"] else cross
+      guild = tick if achievements["guild"] else cross
+      
+      title, color = "Achivements", discord.Color.teal()
+      message = f"""
+  Millionaire: **Reach 1,000,000 {coin}** 
+  Reward: **Massive sums of XP** | Status: {million}
+      
+  Workaholic: **Work 100 Times**
+  Reward: **1,000,000 {coin}** | Status: {work}
+      
+  How Wonderfully Delicious: **Collect Tips 100 Times** 
+  Reward: **5 {erep}** | Status: {tip}
+      
+  Encourager: **Praise Others a Total of 100 Times** 
+  Reward: **100,000 {coin}** | Status: {praise}
+      
+  What a clean place: **Clean Your Shop 25 Times**
+  Reward: **2,000 {coin}** | Status: {clean}
+      
+  I'm not the manager?: **Hire a Manager** 
+  Reward: **10,000 {coin}** | Status: {manager}
+      
+  Top of the world: **Get First Place on the Leaderboard** 
+  Reward: **10 {erep}** | Status: {leaderboard}
+      
+  A Place To Call Home: **Join a Guild** 
+  Reward: **0.25x XP Multiplier** | Status: {guild}
+  """
+    else:
+      title, message, color = bot_name, f"{cross} You do not own a dessert shop. Use `{prefix}build` to build one!",discord.Color.red()
+    embed = discord.Embed(title = title, description = message, color = color)
+    embed.set_footer(text = "This command is still in beta and might not fully work yet!")
+    await ctx.reply(embed = embed, mention_author = False)
+
 
 async def setup(bot):
   await bot.add_cog(Misc(bot))

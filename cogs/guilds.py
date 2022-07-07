@@ -103,6 +103,8 @@ Level: **{guild_level}** \n{emoji} `({guild_xp} / {guild_xpneeded})`
   async def create(self, ctx, name = None, *, space = None):
     "Create a guild using `guild create [name]`"
     user = ctx.author.id
+    income = await self.bot.get_income(user)
+    guild_income_req, guild_balance_req = 20000, 1000000
     if self.bot.db["economy"]["users"][str(user)]["guild"] == "":
       if income >= guild_income_req and balance >= guild_bal_req:
         if name is not None and len(name) < 15 and space is None:

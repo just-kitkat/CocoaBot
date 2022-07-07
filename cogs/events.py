@@ -26,10 +26,9 @@ class Events(commands.Cog):
   @tasks.loop(seconds = 30.0, reconnect = True)
   async def tasksloop(self):
     guild = self.bot.get_guild(936983441516396554)
-    
+    await self.bot.check_blacklists()
     last_income = self.bot.db["economy"]["last_income"]
     if int(time.time()) - last_income >= 3600:
-      await self.bot.check_blacklists()
       
       income_channel = self.bot.get_channel(937479769384177664)
       logs_channel = self.bot.get_channel(955604665431621662)
@@ -76,6 +75,31 @@ class Events(commands.Cog):
         await self.bot.save_db()
       self.bot.giving_income = False
 
+  async def bot_check(self, ctx):
+    if str(ctx.author.id) not in self.bot.db["economy"]["user_blacklist"]:
+      if self.bot.db["economy"]["maintenance"] and ctx.author.id != 915156033192734760:
+        embed = discord.Embed(
+          title = bot_name,
+          description = f"{bot_name} is currently in maintenance mode. \nFor more information, join the support server [here]({sinvite}).",
+          color = discord.Color.red()
+        )
+        await ctx.reply(embed = embed)
+      elif str(ctx.guild.id) in self.bot.db["economy"]["guild_config"] and ctx.channel.id in self.bot.db["economy"]["guild_config"][str(ctx.guild.id)]["blacklist"]:
+        if self.bot.db["economy"]["guild_config"][str(ctx.guild.id)]["notify"]:
+          embed = discord.Embed(
+            title = bot_name,
+            description = f"{cross} You are not allowed to use bot commands in this channel!",
+            color = discord.Color.red()
+          )
+          msg = await ctx.reply(embed = embed)
+          await asyncio.sleep(3)
+          await msg.delete()
+        return False
+      else:
+        return True
+    else:
+      return False
+
 #  @commands.Cog.listener()
   async def on_command_error(self, ctx, error):
     if isinstance(error, commands.CommandNotFound):
@@ -118,6 +142,8 @@ class Events(commands.Cog):
     except:
       return
     self.bot.db["economy"]["error"]["error_count"] += 1
+
+  
 
 async def setup(bot):
   await bot.add_cog(Events(bot))
