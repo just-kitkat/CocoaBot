@@ -20,6 +20,16 @@ class Guilds(commands.Cog, name = "Guild Commands"):
         return False
     return commands.check(pred)
 
+  def guild_check():
+    def pred(ctx):
+      try:
+        user = ctx.author.id
+        guild_name = ctx.bot.db["economy"]["users"][str(user)]["guild"]
+        return guild_name != ""
+      except: 
+        return False
+    return commands.check(pred)
+
   def shop_check():
     def pred(ctx):
       return str(ctx.author.id) in ctx.bot.db["economy"]["users"]
@@ -154,6 +164,7 @@ Level: **{guild_level}** \n{emoji} `({guild_xp} / {guild_xpneeded})`
 
   # Admin commands
   @guild.command()
+  @guild_check()
   @admin_check()
   async def invite(self, ctx, member : discord.Member = None):
     user, color = ctx.author.id, green
@@ -181,6 +192,7 @@ Level: **{guild_level}** \n{emoji} `({guild_xp} / {guild_xpneeded})`
     await ctx.reply(embed = embed, mention_author = False)
 
   @guild.command()
+  @guild_check()
   @admin_check()
   async def uninvite(self, ctx, member : discord.Member = None):
     user, color = ctx.author.id, green
@@ -204,6 +216,7 @@ Level: **{guild_level}** \n{emoji} `({guild_xp} / {guild_xpneeded})`
     await ctx.reply(embed = embed, mention_author = False)
 
   @guild.command()
+  @guild_check()
   @admin_check()
   async def kick(self, ctx, member : discord.Member = None, *, reason = None):
     user, color = ctx.author.id, green
@@ -228,6 +241,7 @@ Level: **{guild_level}** \n{emoji} `({guild_xp} / {guild_xpneeded})`
     await ctx.reply(embed = embed, mention_author = False)
 
   @guild.command()
+  @guild_check()
   @admin_check()
   async def tag(self, ctx, tag = None):
     user = ctx.author.id
@@ -273,6 +287,7 @@ Level: **{guild_level}** \n{emoji} `({guild_xp} / {guild_xpneeded})`
     await ctx.reply(embed = embed, mention_author = False)
 
   @guild.command()
+  @guild_check()
   async def list(self, ctx):
     user = ctx.author.id
     members = ""
@@ -289,6 +304,7 @@ Level: **{guild_level}** \n{emoji} `({guild_xp} / {guild_xpneeded})`
     await ctx.reply(embed = embed, mention_author = False)
 
   @guild.command()
+  @guild_check()
   async def leave(self, ctx):
     user = ctx.author.id
     guild_name = self.bot.db["economy"]["users"][str(user)]["guild"]
@@ -305,6 +321,7 @@ Level: **{guild_level}** \n{emoji} `({guild_xp} / {guild_xpneeded})`
     await ctx.reply(embed = embed, mention_author = False)
 
   @guild.command()
+  @guild_check()
   async def donate(self, ctx, amount = None):
     user = ctx.author.id
     guild_name = self.bot.db["economy"]["users"][str(user)]["guild"]
@@ -317,11 +334,30 @@ Level: **{guild_level}** \n{emoji} `({guild_xp} / {guild_xpneeded})`
         message, color = f"{cross} Are you trying to trick the system? Please donate an amount more than 0!", red
       else:
         self.bot.db["economy"]["guild"][guild_name]["members"][str(user)]["donate"] += amount
+        self.bot.db["economy"]["users"][str(user)]["balance"] -= amount
         message, color = f"You have donated **{amount} {coin}** to the guild! Use `{self.bot.prefix}g shop` to view the shop!", green
     except:
       message, color = f"Please use `{self.bot.prefix}g donate <amount>`", red
     embed = discord.Embed(title = "Guild Donation", description = message, color = color)
     await ctx.reply(embed = embed, mention_author = False)
 
+  @guild.command()
+  @guild_check()
+  async def disband(self, ctx, confirm = None):
+    user = ctx.author.id
+    guild_name = self.bot.db["economy"]["users"][str(user)]["guild"]
+    if self.bot.db["economy"]["guild"][guild_name]["owner"] == str(user) and confirm == guild_name:
+      self.bot.db["economy"]["users"][str(user)]["guild"] = ""
+      self.bot.db["economy"]["guild"].pop(guild_name)
+      message, color = f"Your guild has been disbanded. Feel free to create another guild using `{self.bot.prefix}g create <name>`!", green
+      await self.bot.log_action(ctx, "guild", f"**{ctx.author}** ({ctx.author.id}) has disbanded a guild called **{guild_name}**")
+    elif self.bot.db["economy"]["guild"][guild_name]["owner"] == str(user) and confirm != guild_name:
+      message, color = f"Please use `{self.bot.prefix}g disband <guild name>` to confirm this action!", discord.Color.blurple()
+    else:
+      message, color = f"{cross} You need to be the guild owner to disband the guild.", red
+    embed = discord.Embed(title = "Guild Disband", description = message, color = color)
+    await ctx.reply(embed = embed, mention_author = False)
+    
+    
 async def setup(bot):
   await bot.add_cog(Guilds(bot))

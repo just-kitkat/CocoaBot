@@ -1,4 +1,4 @@
-import discord, time, asyncio, random
+import discord, time, asyncio, random, traceback
 from vars import *
 from discord.ext import commands, tasks
 
@@ -76,6 +76,48 @@ class Events(commands.Cog):
         await self.bot.save_db()
       self.bot.giving_income = False
 
+#  @commands.Cog.listener()
+  async def on_command_error(self, ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+      return
+    elif isinstance(error, commands.MissingPermissions):
+      message = f"{cross} You are missing the required permissions to run this command!"
+    elif isinstance(error, commands.CommandOnCooldown):
+      message = f"{cross} This command is on cooldown, you can use it in **{round(error.retry_after, 2)}s**"
+    elif isinstance(error, commands.CheckFailure):
+      return
+    elif isinstance(error, commands.MemberNotFound):
+      return
+    elif isinstance(error, commands.MissingRequiredArgument):
+      return
+    elif isinstance(error, KeyError):
+      message = f"{cross} That user does not own a dessert shop!"
+    else:
+      try:
+        raise error
+      except Exception as e:
+        error_count = self.bot.db["economy"]["error"]["error_count"]
+        message = f"Oops, something went wrong while running this command! Please report this by creating a ticket in the official {bot_name} server! Thank you! \nError id: **{error_count}** \n{adv_msg}"
+        channel = self.bot.get_channel(947477442786893844)
+        ctx_stuff = [ctx.args, ctx.author, ctx.author.id, ctx.channel, ctx.command, ctx.guild.id, ctx.prefix, ctx.message]
+        error_msg = f"```{traceback.format_exc()}\nLogs: \nMessage Info: {ctx_stuff[-1]} \n\nCommand used: {ctx.message.content}```"
+    embed = discord.Embed(
+        title = bot_name,
+        description = message, 
+        color = discord.Color.red()
+      )
+    
+    await ctx.reply(embed = embed, mention_author = False)
+    try:
+      error_embed = discord.Embed(
+          title = f"Error ID {error_count}",
+          description = error_msg, 
+          color = discord.Color.green()
+        )
+      await channel.send(embed = error_embed)
+    except:
+      return
+    self.bot.db["economy"]["error"]["error_count"] += 1
 
 async def setup(bot):
   await bot.add_cog(Events(bot))

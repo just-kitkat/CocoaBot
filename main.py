@@ -9,6 +9,9 @@ from discord.ext import commands, tasks
 import keep_alive
 keep_alive.keep_alive()
 
+import logging
+logging.basicConfig(level=logging.INFO)
+
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
@@ -77,7 +80,7 @@ class MyBot(commands.Bot):
       user = ctx.author.id
       if bot.db["economy"]["users"][str(user)]["guild"] != "":
         guild_name = bot.db["economy"]["users"][str(user)]["guild"]
-        guild_members = len(db["economy"]["guild"][guild_name]["members"])
+        guild_members = len(bot.db["economy"]["guild"][guild_name]["members"])
         guild_level = bot.db["economy"]["guild"][guild_name]["level"]
         guild_xp = bot.db["economy"]["guild"][guild_name]["xp"]
         guild_xpneeded = bot.db["economy"]["guild"][guild_name]["xp_needed"]
@@ -154,7 +157,7 @@ class MyBot(commands.Bot):
             
     async def get_data(self, type, user):
       if type in ("income", "balance"):
-        return "{:,.0f}".format(db["economy"]["users"][str(user)][type])
+        return "{:,.0f}".format(bot.db["economy"]["users"][str(user)][type])
     
     async def notify_user(self, ctx, user, color, message):
       red, green = discord.Color.red(), discord.Color.green()

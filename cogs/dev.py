@@ -9,22 +9,25 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
   @commands.command()
   @commands.is_owner()
+  async def test(self, ctx):
+    a
+  
+  @commands.command()
+  @commands.is_owner()
   async def reload(self, ctx, name = None):
     if name is None:
       message = ""
-      async with self.bot:
-        for file in os.listdir("./cogs"):
-          if file.endswith(".py"):
-            try:
-              await self.bot.reload_extension(f"cogs.{file[:-3]}")
-              message += f"{tick} Reloaded {file}! \n"
-            except Exception as e:
-              message += f"{cross} Failed to reload {file} \nERROR: {e} \n"
+      for file in os.listdir("./cogs"):
+        if file.endswith(".py"):
+          try:
+            await self.bot.reload_extension(f"cogs.{file[:-3]}")
+            message += f"{tick} Reloaded {file}! \n"
+          except Exception as e:
+            message += f"{cross} Failed to reload {file} \nERROR: {e} \n"
 
     elif f"{name}.py" in os.listdir("./cogs"):
-      async with self.bot:
-        await self.bot.reload_extension(f"cogs.{name}")
-        message = f"{tick} Cog reloaded!"
+      await self.bot.reload_extension(f"cogs.{name}")
+      message = f"{tick} Cog reloaded!"
       
     else:
       message = f"{cross} Cog not found!"
@@ -39,9 +42,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     else:
       file = name + ".py"
       try:
-        async with self.bot:
-          await self.bot.load_extension(f"cogs.{file[:-3]}")
-          message = f"{tick} Loaded {file}! \n"
+        await self.bot.load_extension(f"cogs.{name}")
+        message = f"{tick} Loaded {file}! \n"
       except Exception as e:
         message = f"{cross} Failed to load {file} \nERROR: {e} \n"
     await self.bot.emby(ctx, "Developer Tools", message, discord.Color.blurple())

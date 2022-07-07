@@ -12,6 +12,7 @@ dnspython = "^2.2.1"
 pymongo = "^4.1.1"
 psutil = "^5.9.1"
 discord-ext-menus = {git = "https://github.com/Rapptz/discord-ext-menus.git"}
+discord = "^1.7.3"
 
 [tool.poetry.dev-dependencies]
 
