@@ -46,8 +46,6 @@ class Guilds(commands.Cog, name = "Guild Commands"):
       balance = self.bot.db["economy"]["users"][str(user)]["balance"]
       income = await self.bot.get_income(user)
   
-      guild_income_req = 20000
-      guild_bal_req = 1000000
       color = discord.Color.red()
       if self.bot.db["economy"]["users"][str(user)]["guild"] != "":
         guild_name = self.bot.db["economy"]["users"][str(user)]["guild"]

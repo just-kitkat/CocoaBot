@@ -59,7 +59,7 @@ class MyBot(commands.Bot):
       user = str(user)
       rng = random.randint(1, 20)
       if rng == 10:
-        rngmoney = random.randint(int(await get_income(user) / 20), await get_income(user) * 2)
+        rngmoney = random.randint(int(await bot.get_income(user) / 20), await bot.get_income(user) * 2)
         msg = f"**{random.choice(celebrities)}** just showed up and gave you a tip of **{rngmoney} {coin}**"
         bot.db["economy"]["users"][user]["balance"] += rngmoney
       else:
@@ -201,9 +201,9 @@ class MyBot(commands.Bot):
           msg = f"\nYou have earned **10,000 {coin}**!"
           bot.db["economy"]["users"][str(user)]["balance"] += 10000
         elif level+1 == 10:
-          msg = f"\nYou have unlocked monthly rewards! Use `{prefix}monthly` to claim it!"
+          msg = f"\nYou have unlocked monthly rewards! Use `{bot.prefix}monthly` to claim it!"
         elif level+1 == 20:
-          msg = f"\nYou have unlocked **Expeditions**! Use `{prefix}expedition` to get started!"
+          msg = f"\nYou have unlocked **Expeditions**! Use `{bot.prefix}expedition` to get started!"
         elif level+1 == 30:
           msg = f"\nYou have earned **1,000,000 {coin}**!"
           bot.db["economy"]["users"][str(user)]["balance"] += 1000000

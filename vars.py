@@ -18,5 +18,7 @@ celebrities = ["The Rock", "Tony Stark", "Bruno Mars", "Katy Perry", "Adele", "J
 sinvite = "https://discord.gg/5aNRWDj97u"
 binvite = "https://discord.com/api/oauth2/authorize?client_id=937222277156720651&permissions=387136&scope=bot"
 adv_msg = f"Useful Links: [Invite me]({binvite}) | [Support server]({sinvite})" # Voting link not yet
+guild_income_req = 20000
+guild_bal_req = 1000000
 
 # 947474270991310891

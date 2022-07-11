@@ -22,6 +22,32 @@ class Events(commands.Cog):
       print(f"{username}: {msg} ({ctx.guild.name} | {channel})")
       if "<@942716917821632572>" in msg or "<@!942716917821632572>" in msg:
         await ctx.reply(f"My prefix is `{self.bot.prefix}` \nThis is a test bot for Second Serving to test new features!")
+      if msg.lower() == "work" and ctx.channel.id == 937479769384177664 and self.bot.active_customer:
+        if str(ctx.author.id) in self.bot.db["economy"]["users"]:
+          guild = self.bot.get_guild(936983441516396554)
+          income_channel = guild.get_channel(937479769384177664)
+          income = await self.bot.get_income(str(ctx.author.id))
+          customer_income = random.randint(income, income * 3)
+          cincome = f"{customer_income:,}"
+          customer_rep = round(random.uniform(0.04, 0.25), 2)
+          customer_messages = [
+            f"enjoyed your dessert and tipped you **{customer_income} {coin}**", 
+            f"absolutely LOVED your dessert and tipped you a generous **{customer_income} {coin}**", 
+            f"gave you **{customer_income} {coin}** for that amazing customer service"
+          ]
+          
+          title, message, color = "Customer", f"**{random.choice(celebrities)}** {random.choice(customer_messages)}! \nYou have gained **{customer_rep} {erep}**", green
+          embed = discord.Embed(title = title, description = message, color = color)
+          await ctx.reply(embed = embed)
+          
+          self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"] += customer_income
+          self.bot.db["economy"]["users"][str(ctx.author.id)]["rep"] += round(customer_rep, 2)
+          self.bot.active_customer, self.bot.db["economy"]["active_customer"] = False, False
+          
+          await income_channel.set_permissions(guild.default_role, send_messages = False)
+          await self.bot.save_db()
+        else:
+          await ctx.reply(f"You do not own a dessert shop! Use `{prefix}build` to build one!", mention_author = False)
 
   @tasks.loop(seconds = 30.0, reconnect = True)
   async def tasksloop(self):
