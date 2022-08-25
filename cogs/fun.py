@@ -4,6 +4,7 @@ from skimage import io
 import random, time
 from vars import *
 from errors import *
+from discord import app_commands
 from discord.ext import commands
 
 class Buttons(discord.ui.View):
@@ -17,20 +18,19 @@ class Buttons(discord.ui.View):
     if itx.user.id == self.userID:
       self.value = True
       self.stop()
-      await itx.response.defer()
 
 class Fun(commands.Cog):
 
   def __init__(self, bot):
     self.bot = bot
 
-  @commands.command(aliases = ["monochrome"])
+  @app_commands.command(name = "monochrome")
   @commands.cooldown(1, 5, commands.BucketType.user)
-  async def mono(self, ctx, user : discord.Member=None):
+  async def monochrome(self, itx: discord.Interaction, user : discord.Member=None):
     """Converts a user's avatar into black and white"""
     processing_start = time.time()
     if user is None:
-      user = ctx.author
+      user = itx.user
     try:
       await user.avatar.save("images/mono.jpg")
       img = io.imread('images/mono.jpg')[:,:,:3]
@@ -42,16 +42,15 @@ class Fun(commands.Cog):
       
       file = discord.File("images/mono.jpg", filename="temp.jpg")
       embed.set_image(url="attachment://temp.jpg")
-      view = Buttons(ctx.author.id)
-      message = await ctx.reply(file=file, embed=embed, view = view, mention_author = False)
+      view = Buttons(itx.user.id)
+      await itx.response.send_message(file=file, embed=embed, view = view)
       await view.wait()
       if view.value:
-        await message.delete()
-        await ctx.message.delete()
+        await itx.delete_original_response()
 
     except AttributeError as e:
-      embed = discord.Embed(title = "Image to Monochrome", description = f"This user does not have a custom avatar set! \nERROR: {e}", color = red)
-      await ctx.reply(embed = embed, mention_author = False)
+      embed = discord.Embed(title = "Image to Monochrome", description = f"This user does not have a custom avatar set!", color = red)
+      await itx.response.send_message(embed = embed, ephemeral = True)
     
 
 """  @commands.command()

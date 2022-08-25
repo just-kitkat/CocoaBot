@@ -14,6 +14,7 @@ class Gamble(commands.Cog):
   @factory_check()
   @app_commands.command(name = "coinflip")
   async def coinflip(self, itx: discord.Interaction, bet: Literal["heads", "tails"], amt:int):
+    """Flip a coin and earn rewards! Good luck!!"""
     max_bet = math.floor(self.bot.db["economy"][str(itx.user.id)]["balance"] / 2)
     color = red
     if amt > max_bet:
