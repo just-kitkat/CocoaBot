@@ -1,24 +1,23 @@
 import time, discord
 
-bot_name = "Second Serving"
+bot_name = "KitkatBot"
 
 cross = "❌"
 tick = "✅"
-coin = "💵"
-cake = "🍰"
-erep = "⭐"
+coin = ":coin:"
+choco = "🍫"
+trashcan = "🗑️"
+eco_prestige = [0, 1000000, 2500000, 5000000, 10000000, 20000000]
+custom_emojis = {
+  "726965815265722390" : "<:trolllol:944407059443617792>"
+}
+prestige_icons = ["0", "I", "II", "III", "IV", "V"]
 whitespace = "\u200b"
 is_ready = False
 online_since = int(time.time())
 red, green = discord.Color.red(), discord.Color.green()
-giving_income = False
-active_customer = False
-customer_ping = "<@&955788937530597447>"
-celebrities = ["The Rock", "Tony Stark", "Bruno Mars", "Katy Perry", "Adele", "John Legend"]
-sinvite = "https://discord.gg/5aNRWDj97u"
-binvite = "https://discord.com/api/oauth2/authorize?client_id=937222277156720651&permissions=387136&scope=bot"
+sinvite = "None"
+binvite = "None"
 adv_msg = f"Useful Links: [Invite me]({binvite}) | [Support server]({sinvite})" # Voting link not yet
-guild_income_req = 20000
-guild_bal_req = 1000000
 
 # 947474270991310891

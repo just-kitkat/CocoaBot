@@ -1,6 +1,11 @@
-import discord, os, sys
+import discord, os, sys, asyncio
+from datetime import date
 from vars import *
+import errors, vars
+from discord import Object
 from discord.ext import commands
+from importlib import reload
+from typing import Optional, Literal
 
 class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
@@ -15,23 +20,82 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     await ctx.reply("No error raised? :O")
 
   @commands.command()
+  @commands.guild_only()
+  @commands.is_owner()
+  async def sync(self, ctx: Object, guilds: commands.Greedy[discord.Object], spec: Optional[Literal["~", "*", "^"]] = None) -> None:
+    if not guilds:
+      if spec == "~":
+        synced = await ctx.bot.tree.sync(guild=ctx.guild)
+      elif spec == "*":
+        ctx.bot.tree.copy_global_to(guild=ctx.guild)
+        synced = await ctx.bot.tree.sync(guild=ctx.guild)
+      elif spec == "^":
+        ctx.bot.tree.clear_commands(guild=ctx.guild)
+        await ctx.bot.tree.sync(guild=ctx.guild)
+        synced = []
+      else:
+        synced = await ctx.bot.tree.sync()
+
+      await ctx.send(
+        f"Synced {len(synced)} commands {'globally' if spec is None else 'to the current guild.'}"
+      )
+      return
+
+    ret = 0
+    for guild in guilds:
+      try:
+        await ctx.bot.tree.sync(guild=guild)
+      except discord.HTTPException:
+        pass
+      else:
+        ret += 1
+
+    await ctx.send(f"Synced the tree to {ret}/{len(guilds)}.")
+
+  @commands.command()
   @commands.is_owner()
   async def addmoney(self, ctx, user : discord.Member, amount : int):
-    guild = bot.get_guild(936983441516396554)
+    guild = self.bot.get_guild(936983441516396554)
   #  tester_role = guild.get_role(937349187673141308)
     if user != ctx.author and ctx.author.id != 915156033192734760:
       await ctx.reply("You can only mention yourself!", mention_author = False)
       return
-    self.bot.db["economy"]["users"][str(user.id)]["balance"] += amount
+    self.bot.db["economy"][str(user.id)]["balance"] += amount
     await ctx.reply(f"Added **{amount} {coin}** to {user.name}!", mention_author = False)
       
   @addmoney.error
   async def addmoney_error(self, ctx, error):
     await ctx.reply(f"Please use `{self.bot.prefix}addmoney <user> <amount>`", mention_author = False)
+
+  @commands.command()
+  @commands.is_owner()
+  async def dropcode(self, ctx, channel : discord.TextChannel, code, amount : int):
+    if ctx.author.id == 915156033192734760:
+      embed = discord.Embed(
+        title = "New Code Drop!",
+        description = f"A KitkatBot code has appeared! \nCode: `{code}` \nReward: **{amount} {coin}** \nClaim the code using `{self.bot.prefix}redeem <code>`", 
+        color = discord.Color.blurple()
+      )
+      embed.set_footer(text = "The code is only valid for one person. Good luck!")
+      await channel.send(embed = embed)
+      self.bot.dbo["others"]["code"][code] = amount
+      await ctx.reply(f"Code created!")
+      channel = bot.get_guild(923013388966166528).get_channel(968460468505153616)
+      embed = discord.Embed(title = f"A code has been created.", description = f"Code: `{code}` \nAmount: **{amount} {coin}**", color = discord.Color.green())
+      await channel.send(embed = embed)
+    else:
+      await ctx.reply(f"Only Kitkat3141 can create codes!")
+  @dropcode.error
+  async def dropcode_error(self, ctx, error):
+    if ctx.author.id == 915156033192734760:
+      await ctx.reply(f"Please use `{self.bot.prefix}dropcode <#channel> <code> <amount>`.")
+    else:
+      await ctx.reply("You do not have permission to create codes!")
   
   @commands.command()
   @commands.is_owner()
   async def reload(self, ctx, name = None):
+    others = ["errors", "vars"]
     if name is None:
       message = ""
       for file in os.listdir("./cogs"):
@@ -41,7 +105,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
             message += f"{tick} Reloaded {file}! \n"
           except Exception as e:
             message += f"{cross} Failed to reload {file} \nERROR: {e} \n"
-
     elif f"{name}.py" in os.listdir("./cogs"):
       await self.bot.reload_extension(f"cogs.{name}")
       message = f"{tick} Cog reloaded!"
@@ -49,7 +112,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     else:
       message = f"{cross} Cog not found!"
 
-    await self.bot.emby(ctx, "Developer Tools", message, discord.Color.blurple())
+    embed = discord.Embed(title = "Developer Tools", description = message, color = discord.Color.blurple())
+    await ctx.reply(embed = embed, mention_author = False)
 
   @commands.command()
   @commands.is_owner()
@@ -63,7 +127,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         message = f"{tick} Loaded {file}! \n"
       except Exception as e:
         message = f"{cross} Failed to load {file} \nERROR: {e} \n"
-    await self.bot.emby(ctx, "Developer Tools", message, discord.Color.blurple())
+    embed = discord.Embed(title = "Developer Tools", description = message, color = discord.Color.blurple())
+    await ctx.reply(embed = embed, mention_author = False)
         
   @commands.command()
   @commands.is_owner()
@@ -73,12 +138,12 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     else:
       file = name + ".py"
       try:
-        async with self.bot:
-          await self.bot.unload_extension(f"cogs.{file[:-3]}")
-          message = f"{tick} Unloaded {file}! \n"
+        await self.bot.unload_extension(f"cogs.{file[:-3]}")
+        message = f"{tick} Unloaded {file}! \n"
       except Exception as e:
         message = f"{cross} Failed to unload {file} \nERROR: {e} \n"
-    await self.bot.emby(ctx, "Developer Tools", message, discord.Color.blurple())
+    embed = discord.Embed(title = "Developer Tools", description = message, color = discord.Color.blurple())
+    await ctx.reply(embed = embed, mention_author = False)
 
 
   @commands.command()
@@ -91,75 +156,12 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       #await update_status(True)
       await msg.edit(content=f"Killing {bot_name}...")
       await self.bot.close()
-
     elif arg1 == "restart":
       await ctx.send("Restarting bot... `This might take a few seconds`")
       os.execv(sys.executable, ['python'] + sys.argv)
 
 
-  @commands.command()
-  @commands.is_owner()
-  async def blacklist(self, ctx, user : discord.Member, duration, * ,reason):
-    timings = {"m" : 60, "h" : 3600, "d" : 86400, "w" : 604800, "mo" : 2592000, "y" : 31104000}
-    time_names = {"m" : "minute", "h" : "hour", "d" : "day", "w" : "week", "mo" : "month", "y" : "year"}
-    duration_s = int(time.time()) + int(duration[:-1]) * timings[duration[-1]]
-    self.bot.db["economy"]["user_blacklist"][str(user.id)] = {"reason" : reason, "time" : duration_s}
-    title, color = bot_name, discord.Color.green()
-    message = f"{tick} Successfully blacklisted **{user}** for **{duration[:-1]} {time_names[duration[-1]]}(s)**"
-    embed = discord.Embed(
-      title = title, color = color, 
-      description = message
-    )
-    await ctx.reply(embed = embed, mention_author = False)
-    user_embed = discord.Embed(
-      title = bot_name, color = discord.Color.red(),
-      description = f"You have been blacklisted from {bot_name}! \nDuration: **{duration[:-1]} {time_names[duration[-1]]}(s)** \nReason: **{reason}** \n*To appeal, join our support server [here]({sinvite}) and create a ticket.*"
-    )
-    await user.send(embed = user_embed)
-  
-  @commands.command()
-  @commands.is_owner()
-  async def unblacklist(self, ctx, user : discord.Member, *, reason):
-    if str(user.id) in self.bot.db["economy"]["user_blacklist"]:
-      self.bot.db["economy"]["user_blacklist"].pop(str(user.id))
-      dm_embed = discord.Embed(
-        title = bot_name,
-        description = f"You have been unblacklisted from {bot_name}. \nReason: **{reason}**",
-        color = discord.Color.green()
-      )
-      embed = discord.Embed(
-        title = bot_name,
-        description = f"You have unblacklisted **{user}** for **{reason}**.",
-        color = discord.Color.green()
-      )
-      await user.send(embed = dm_embed)
-      await ctx.reply(embed = embed, mention_author = False)
-    else:
-      embed = discord.Embed(
-        title = bot_name, 
-        description = f"{cross} **{user}** is not blacklisted!",
-        color = discord.Color.red()
-      )
-      await ctx.reply(embed = embed, mention_author = False)
-  
-  @commands.command()
-  @commands.is_owner()
-  async def blacklists(self, ctx):
-    message, count = "", 1
-    if self.bot.db["economy"]["user_blacklist"] != {}:
-      for user in self.bot.db["economy"]["user_blacklist"]:
-        username = bot.get_user(int(user))
-        message += f"\n{count}. **{username}**"
-        count += 1
-    else:
-      message = "No one is currently blacklisted! :D"
-    embed = discord.Embed(
-      title = f"{bot_name} blacklists",
-      description = message,
-      color = discord.Color.blue()
-    )
-    await ctx.reply(embed = embed, mention_author = False)
-  
+
   @commands.command()
   @commands.is_owner()
   async def backup(self, ctx):
@@ -167,8 +169,12 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     today = date.today()
     timestamp = today.strftime("%d %B %Y, %A")
     with open("backup.txt", "w") as backup:
-      backup.truncate(0)
-      backup.write(str(data) + f"\n{timestamp} [{int(time.time())}]")
+        backup.truncate(0)
+        data = db["economy"]
+        data2 = dbo["others"]
+        backup.write("Economy: \n" + str(data) + "\nOthers: \n" + str(data2) + f"\n[{int(time.time())}]")
+        await ctx.send(file=discord.File("backup.txt"))
+        os.remove("backup.txt")
     await ctx.message.delete()
     await ctx.send(file=discord.File("backup.txt"))
     os.remove("backup.txt")
@@ -193,12 +199,12 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       await msg.add_reaction("✅")
   
       def check(reaction, user):
-        return user == ctx.author and str(reaction.emoji) in ["✅"]
+        return user.id == ctx.author.id and reaction.message == msg and str(reaction.emoji) in ["✅"]
   
       try:
         reaction, user = await self.bot.wait_for("reaction_add", timeout=60, check=check)
         if str(reaction.emoji) == "✅":
-            self.bot.db["economy"]["users"] = {}
+            self.bot.db["economy"] = {}
             self.bot.db["economy"]["guild"] = {}
             new_embed = discord.Embed(
               title=f"Economy Reset",
@@ -217,18 +223,25 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       msg = await ctx.send(embed=embed)
       await msg.add_reaction("✅")
       def check(reaction, user):
-        return user == ctx.author and str(reaction.emoji) in ["✅"]
+        return user.id == ctx.author.id and reaction.message == msg and str(reaction.emoji) in ["✅"]
       try:
         reaction, user = await self.bot.wait_for("reaction_add", timeout=60, check=check)
         if str(reaction.emoji) == "✅":
-          guild = self.bot.db["economy"]["users"][str(member.id)]["guild"]
-          self.bot.db["economy"]["users"].pop(str(member.id))
+          guild = self.bot.db["economy"][str(member.id)]["guild"]
+          
           if guild != "":
             rank = self.bot.db["economy"]["guild"][guild]["owner"]
             if str(member.id) == rank:
+              for i in self.bot.db["economy"]["guild"][guild]["members"]:
+                try:
+                  self.bot.db["economy"][i]["guild"] = ""
+                except Exception:
+                  pass
               self.bot.db["economy"]["guild"].pop(guild)
+                       
             else:
               self.bot.db["economy"]["guild"][guild]["members"].pop(str(member.id))
+            self.bot.db["economy"].pop(str(member.id)) 
           new_embed = discord.Embed(
             title=f"Economy Reset",
             description=f"The economy has been successfully resetted for {member.mention}!",
@@ -237,6 +250,98 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   
       except asyncio.TimeoutError:
           await ctx.reply("You did not react in time.")
+
+  @commands.command()
+  async def lottery(self, ctx, duration=None, *, price : int=None):
+    if ctx.author.id == 915156033192734760:
+      lottery_channel = 923121739637088256 #924492712328171530
+      lottery_role = "" #924492846550114365
+      if duration is None:
+          return await ctx.send(
+              f"Please enter a time and a prize! `({self.bot.prefix}lottery <time> <prize> | s = seconds, m = minutes, h = hours, d = days`)"
+          )
+      elif price is None:
+          await ctx.send(f"Please enter a prize! (`{self.bot.prefix}gcreate <time> <prize>`)")
+  
+      time_convert = {"s": 1, "m": 60, "h": 3600, "d": 86400}
+      lottery_time = int(duration[:-1]) * time_convert[duration
+      [-1]]
+      ends = int(time.time()) + lottery_time
+      embed = discord.Embed(
+          title="Lottery Posted!",
+          description=
+          f"Your lottery was posted in <#{lottery_channel}>",
+          color=discord.Color.blue())
+      embed.set_author(name=ctx.message.author,
+                        url=ctx.author.avatar,
+                        icon_url=ctx.author.avatar)
+      await ctx.send(embed=embed)
+      embed = discord.Embed(
+          title=f"Lottery",
+          description=
+          f"React with :tickets: to purchase a lottery ticket! The cost will be deducted from your balance right before the lottery ends! \nEnds: <t:{ends}:R> | <t:{ends}> \nCurrent prize pool: `No one has bought a ticket!` \nCost: {price}{coin}",
+          color=discord.Color.green())
+      embed.set_footer(text = "If you do not have enough money, your entry will not be registered!")
+      lottery_msg = await ctx.guild.get_channel(lottery_channel).send(f"<@&{lottery_role}>", embed=embed)
+      await lottery_msg.add_reaction("🎟️")
+  
+      count = 0
+      while count < lottery_time:
+        count += 60
+        users = 0
+        channel_posted = ctx.guild.get_channel(lottery_channel)
+        new_lottery_msg = await channel_posted.fetch_message(lottery_msg.id)
+        user_list = [
+          u async for u in new_lottery_msg.reactions[0].users()
+          if u != self.bot.user
+        ]
+        user_list_copy = user_list.copy()
+        for i in user_list_copy:
+          if self.bot.db["economy"][str(i.id)]["balance"] >= price:
+            users += 1
+            user_list.remove(i)
+        if users <= 1:
+          new_embed = discord.Embed(
+          title=f"Lottery",
+          description=
+          f"React with :tickets: to purchase a lottery ticket! The cost will be deducted from your balance right before the lottery ends! \nEnds: <t:{ends}:R> | <t:{ends}> \nCurrent prize pool: `Not enough tickets purchased!` \nCost: {price}{coin} \nNumber of tickets bought: `{users}`",
+          color=discord.Color.green())
+          new_embed.set_footer(text = "If you do not have enough money, your entry will not be registered!")
+        else:
+          new_embed = discord.Embed(
+          title=f"Lottery",
+          description=
+          f"React with :tickets: to purchase a lottery ticket! The cost will be deducted from your balance right before the lottery ends! \nEnds: <t:{ends}:R> | <t:{ends}> \nCurrent prize pool: **{users * price}{coin}** \nCost: **{price}{coin}** \nNumber of tickets bought: `{users}`",
+          color=discord.Color.green())
+          new_embed.set_footer(text = "If you do not have enough money, your entry will not be registered!")
+        
+        await new_lottery_msg.edit(embed = new_embed)
+        await asyncio.sleep(60)
+  
+      channel_posted = ctx.guild.get_channel(lottery_channel)
+      new_lottery_msg = await channel_posted.fetch_message(lottery_msg.id)
+      user_list = [u async for u in new_lottery_msg.reactions[0].users() if u != self.bot.user]
+      user_list_copy = user_list.copy()
+      for i in user_list_copy:
+        if self.bot.db["economy"][str(i.id)]["balance"] <= price:
+          user_list.remove(i)
+      if len(user_list) <= 1:
+          await lottery_msg.reply("Not enough people joined the lottery.")
+      else:
+          winner = random.choice(user_list)
+          for user in user_list:
+            self.bot.db["economy"][str(user.id)]["balance"] -= price
+          prize = len(user_list) * price
+          await lottery_msg.reply(f"{winner.mention} has won **{prize}{coin}**! (Tickets purchased: {len(user_list)})")
+          self.bot.db["economy"][str(winner.id)]["balance"] += prize
+          channel_posted = ctx.guild.get_channel(lottery_channel)
+          new_lottery_msg = await channel_posted.fetch_message(lottery_msg.id)
+          final_embed = discord.Embed(
+          title=f"Lottery",
+          description=
+          f"The lottery ended <t:{ends}:R> | <t:{ends}>! \nPrize pool: **{users * price}{coin}** \nWinner: `{winner}` \nNumber of tickets bought: `{users}`",
+          color=discord.Color.green())
+          await new_lottery_msg.edit(embed = final_embed)
   
   @commands.command(aliases = ["mm"])
   @commands.is_owner()

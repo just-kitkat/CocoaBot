@@ -1,5 +1,6 @@
-import discord, time, random, math
+import discord, time, random, math, asyncio
 from vars import *
+from errors import *
 from datetime import timedelta, date, datetime
 from discord.ext import commands
 
@@ -9,779 +10,632 @@ class Economy(commands.Cog, name = "General Commands"):
     self.bot = bot
 
   @commands.command()
-  async def build(self, ctx):
-    if str(ctx.author.id) not in self.bot.db["economy"]["users"]:
-      self.bot.db["economy"]["users"][str(ctx.author.id)] = {
-"balance" : 1000, "income" : 500, "tips" : 200, "account_created" : int(time.time()), "happiness" : 100, "daily_streak" : 0, "rush_hour" : 0, "guild" : "", "rep" : 0.00, "rep_cooldowns" : {}, #{user_id : time}
-"stats" : {"work" : 0, "tip" : 0, "clean" : 0, "praise" : 0, "overtime" : 0},
-"achievements" : {"work" : False, "tip" : False, "clean" : False, "million" : False, "praise" : False, "manager" : False, "leaderboard" : False, "guild" : False}, 
-"levels" : {"xp" : 0, "xp_mult" : 1, "level" : 1, "xp_needed" : 20}, 
-"cooldowns" : {"work" : 1, "tip" : 1, "clean" : 1, "daily" : 1, "weekly" : 1, "monthly" : 1}, 
-"hire" : {"waiter" : 0, "chef" : 1, "head_chef" : 0, "cashier" : 0, "manager" : 0, "cleaner" : 0}, 
-"upgrade" : {"tipjar" : 0, "sign" : 0, "paint" : 0, "fan" : 1, "aircon" : 0, "light" : 0}, 
-"boost" : {"band" : 0, "pianist" : 0, "guitarist" : 0, "singer" : 0, "magician" : 0}
-      }
+  async def start(self, ctx):
+    if str(ctx.author.id) not in self.bot.db["economy"]:
+      self.bot.db["economy"][str(ctx.author.id)] = {"balance" : 10 , "last_sold" : int(time.time()), "workers" : 1, "machine_level" : 1, "storage" : 200, "last_daily" : 1, "last_weekly" : 1, "last_monthly" : 1, "prestige" : 0, "kitkats_sold" : 0, "last_cf": 1, "upgrade_cap" : 10, "sponsor" : 0, "chests" : 0, "fish" : {"last_fish" : 0, "rod_level" : 1}, "pets" : {"name": "", "type": "", "tier" : 0, "level": 0, "last_hunt" : 1}, "daily_streak" : 0}
       embed = discord.Embed(
-        title = bot_name,
-        description = f"{tick} You have successfully built a dessert shop! \nCheck your DMs for a quick guide! \n`View the tutorial using {self.bot.prefix}tutorial`",
+        title = "**Kitkat Factory**", 
+        description = f"""
+  Hello {ctx.author.mention}, you have successfully built a factory! Welcome to your very own **Kitkat Factory!** 
+  Currently, you are producing kitkats at a rate of `3 {choco} / minute`! To sell the kitkats, all you need to do is `{self.bot.prefix}sell`! 
+  Making upgrades to your factory will increase your kitkats' value!
+  Current kitkat value: **2 {coin} / kitkat**.
+      
+  To produce kitkats at a faster rate, you can either hire more workers or upgrade your machine! You can do `{self.bot.prefix}upgrades` for more information on that! To view your balance, you can do `{self.bot.prefix}balance`.
+  You can also get your own pet by doing `{self.bot.prefix}pet`! Having a pet gives you access to the `{self.bot.prefix}hunt` command, which gives you a random amount of coins every hour!
+  
+  Lastly, `{self.bot.prefix}guide` will always be avaliable to those who are confused on how the factory works! You can also view the leaderboard using `{self.bot.prefix}leaderboard` and prestige using `{self.bot.prefix}prestige`. 
+  
+  To join giveaways, lotteries and more, you can join KitkatBot's official server by clicking [here](https://discord.gg/hhVwjFBJ2C)! Here's a free **10{coin}** to get you started on your journey. Remember to do `{self.bot.prefix}daily` everyday to claim a free gift, good luck!
+  """, 
         color = discord.Color.green()
       )
-      dm_embed = discord.Embed(
-        title = f"{cake} Your brand new **Dessert Shop** is now in business! {cake}",
-        description = f"""
-You are the owner of your dessert shop and will recieve a hourly income to pay for things!
-  
-➼ You can increase your income by purchasing **Upgrades**, hiring **Employees**, purchasing **Advertisment** and much more!
-➼ You can also **work** and collect **tips** for extra income! (Work: `{self.bot.prefix}work`, Collect tips: `{self.bot.prefix}tips`)
-➼ Make sure to **clean** your shop once every 6 hours to keep your customers happy to maximise income!
-➼ Become the most successful shop and climb up the leaderboards!
-  
-To join the **Support Server**, you can click the link below!
-Benefits of joining the server:
-➼ Participate in lotteries and giveaways.
-➼ Make friends and be part of the community!
-➼ Get help and updates regarding the development of the bot!
-  
-**To get started, you can use the `{self.bot.prefix}tutorial` command! Good luck!**
-""",
-  color = discord.Color.green()
-      )
-      user = bot.get_user(ctx.author.id)
-      try:
-        await user.send(embed = dm_embed)
-        await user.send(f"Join the support server here: {sinvite}")
-      except:
-        error_embed = discord.Embed(title = "Something went wrong!", description = f"{cross} Something went wrong while trying to message you. You might have your DMs closed or have Second Serving blocked! To view the tutorial, use `{self.bot.prefix}tutorial`", color = red)
-      await ctx.reply(embed = error_embed)
+      await ctx.reply(embed = embed, mention_author = False)
     else:
-      embed = discord.Embed(
-        title = bot_name,
-        description = f"{cross} You already own a dessert shop!",
-        color = discord.Color.red()
-      )
+      await ctx.reply(f"You already own a factory! Do `{self.bot.prefix}help economy` to see the commands you can use!", mention_author = False)
+
+  @factory_check()
+  @commands.command(aliases = ["tutorial"])
+  async def guide(self, ctx):
+    workers = self.bot.db["economy"][str(ctx.author.id)]["workers"]
+    machine_lvl = self.bot.db["economy"][str(ctx.author.id)]["machine_level"]
+
+    rate_of_kitkats = (workers + 2) * machine_lvl
+    embed = discord.Embed(
+      title = "**The kitkat factory guide!**", 
+      description = f"""
+Hello {ctx.author.mention}, it looks like you are lost! Do not worry, `?guide` will always be avaliable to you! 
+
+Currently, you are producing kitkats at a rate of `{rate_of_kitkats} {choco} / minute`! To sell the kitkats, all you need to do is `{self.bot.prefix}sell`! 
+Making upgrades to your factory will increase your kitkats' value!
+Current kitkat value: **2 {coin} / kitkat**.
+      
+To produce kitkats at a faster rate, you can either hire more workers or upgrade your machine! You can do `{self.bot.prefix}upgrades` for more information on that! To view your balance, you can do `{self.bot.prefix}balance`.
+You can also get your own pet by doing `{self.bot.prefix}pet`! Having a pet gives you access to the `{self.bot.prefix}hunt` command, which gives you a random amount of coins every hour!
+
+You can view the leaderboard using `{self.bot.prefix}leaderboard` and prestige using `{self.bot.prefix}prestige`. To join giveaways, lotteries and more, you can join KitkatBot's official server by clicking [here](https://discord.gg/hhVwjFBJ2C)! Remember to do `{self.bot.prefix}daily` everyday to claim a free gift, good luck!
+""", 
+      color = discord.Color.green()
+    )
     await ctx.reply(embed = embed, mention_author = False)
 
+  @factory_check()
+  @commands.command(aliases = ["s"])
+  async def sell(self, ctx):
+    last_sold = self.bot.db["economy"][str(ctx.author.id)]["last_sold"]
+    time_diff = int(time.time()) - last_sold
+    
+    workers = self.bot.db["economy"][str(ctx.author.id)]["workers"]
+    machine_lvl = self.bot.db["economy"][str(ctx.author.id)]["machine_level"]
+    storage = self.bot.db["economy"][str(ctx.author.id)]["storage"]
+
+    rate_of_kitkats = (workers + 2) * machine_lvl
+    amt_sold = math.floor(time_diff / 60) * rate_of_kitkats
+
+    if math.floor(amt_sold) <= 0:
+      await ctx.reply(f"You currently have no kitkats to sell! You are currently producing `{str(rate_of_kitkats)}{choco} / minute`")
+    else:
+      if math.floor(amt_sold) > self.bot.db["economy"][str(ctx.author.id)]["storage"]:
+        amt_sold_final = self.bot.db["economy"][str(ctx.author.id)]["storage"]
+        self.bot.db["economy"][str(ctx.author.id)]["balance"] += math.floor(amt_sold_final) * 2
+        self.bot.db["economy"][str(ctx.author.id)]["last_sold"] = int(time.time())
+        self.bot.db["economy"][str(ctx.author.id)]["kitkats_sold"] += math.floor(amt_sold_final)
+        if self.bot.db["economy"][str(ctx.author.id)]["prestige"] >= 4:
+          self.bot.db["economy"][str(ctx.author.id)]["balance"] += (math.floor(amt_sold_final * 2/100*10))
+          self.bot.db["economy"][str(ctx.author.id)]["kitkats_sold"] += math.floor(amt_sold_final/100*10)
+          msg = f"You have sold {amt_sold_final}{choco} and have earned **{amt_sold_final * 2} {coin}** and an extra **{(math.floor(amt_sold_final * 2/100*5))}{coin}** as a prestige bonus! (`+5%`). You could have made more kitkats but your storage capacity could only hold **{storage}{choco}!** "
+        elif self.bot.db["economy"][str(ctx.author.id)]["prestige"] < 4:
+          
+          msg = f"You have sold {amt_sold_final}{choco} and have earned **{amt_sold_final * 2} {coin}!** You could have made more kitkats but your storage capacity could only hold **{storage}{choco}!** Upgrade your storage capacity using `{self.bot.prefix}upgrade storage`."
+      else:
+        if self.bot.db["economy"][str(ctx.author.id)]["prestige"] >= 4:
+          amt_sold_final = amt_sold
+          self.bot.db["economy"][str(ctx.author.id)]["balance"] += math.floor(amt_sold_final) * 2
+          self.bot.db["economy"][str(ctx.author.id)]["last_sold"] = int(time.time())
+          self.bot.db["economy"][str(ctx.author.id)]["balance"] += (math.floor(amt_sold_final * 2/100*5))
+          self.bot.db["economy"][str(ctx.author.id)]["kitkats_sold"] += math.floor(amt_sold_final/100*5)
+          msg = f"You have sold {amt_sold_final}{choco} and have earned **{amt_sold_final * 2} {coin}** and an extra **{(math.floor(amt_sold_final * 2/100*5))}{coin}** as a prestige bonus! (`+5%`)." 
+        elif self.bot.db["economy"][str(ctx.author.id)]["prestige"] < 4:
+          amt_sold_final = amt_sold
+          self.bot.db["economy"][str(ctx.author.id)]["balance"] += math.floor(amt_sold_final * 2)
+          self.bot.db["economy"][str(ctx.author.id)]["last_sold"] = int(time.time())
+          self.bot.db["economy"][str(ctx.author.id)]["kitkats_sold"] += math.floor(amt_sold_final)
+          msg = f"You have sold {amt_sold_final}{choco} and have earned **{math.floor(amt_sold_final * 2)} {coin}**! "
+      
+      msg += f"You are currently producing `{str(rate_of_kitkats)}{choco} / minute`"
+      await ctx.reply(msg, mention_author = False)
   
-  @commands.command(aliases = ["w"])
-  async def work(self, ctx):
-    if str(ctx.author.id) in self.bot.db["economy"]["users"]:
-      cooldown = 600
-      last_work = self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["work"]
-      income = self.bot.db["economy"]["users"][str(ctx.author.id)]["income"]
-      if int(time.time()) - last_work > cooldown:
-        earn = random.randint(income - 200, income + 200)
-        self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"] += earn
-        self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["work"] = int(time.time())
-        balance = self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"]
-        happiness = self.bot.db["economy"]["users"][str(ctx.author.id)]["happiness"]
-        if happiness < 25:
-          notify = f"\nYour customers' happiness is at **{happiness}%**. This will affect your income significantly! Please clean your shop using `{self.bot.prefix}clean`"
+  @commands.command(aliases = ["f"])
+  async def fish(self, ctx):
+    """Take a break and go fishing!"""
+    if str(ctx.author.id) in self.bot.db["economy"]:
+      level = self.bot.db["economy"][str(ctx.author.id)]["fish"]["rod_level"]
+      if level == 1:
+        cooldown = 300
+        mins_ = 5
+        money = random.randint(100, 1000)
+      if level == 2:
+        cooldown = 240
+        mins_ = 4
+        money = random.randint(300, 2000)
+      if level == 3:
+        cooldown = 120
+        mins_ = 2
+        money = random.randint(500,4000)
+  
+      if time.time() >= self.bot.db["economy"][str(ctx.author.id)]["fish"]["last_fish"] + cooldown:
+        luck = random.randint(1,100)
+        if luck > 30:
+          self.bot.db["economy"][str(ctx.author.id)]["balance"] += money
+          self.bot.db["economy"][str(ctx.author.id)]["fish"]["last_fish"] = int(time.time())
+          embed = discord.Embed(
+            title = "Fishing", 
+            description = f"You went fishing and caught a wallet! You got **{money}{coin}**.", 
+            color = discord.Color.green()
+          )
+          await ctx.reply(embed = embed)
         else:
-          notify = ""
-        xp = random.randint(1,3)
-        xp_notify,xp = await self.bot.check_xp(ctx, ctx.author.id, xp)
-        celeb_app = await self.bot.celebrity_appearance(str(ctx.author.id))
-        embed = discord.Embed(
-          title =  bot_name,
-          description = f"{tick} You worked in your dessert shop and earned **{earn} {coin}** \nBalance: **{balance} {coin}** \nXP Earned: **{xp} xp** {xp_notify} {notify} \n{celeb_app}",
-          color = discord.Color.green()
+          self.bot.db["economy"][str(ctx.author.id)]["balance"] -= money
+          self.bot.db["economy"][str(ctx.author.id)]["fish"]["last_fish"] = int(time.time())
+          embed = discord.Embed(
+            title = "Fishing", 
+            description = f"You went fishing and fished out a scuba diver! You got fined **{money}{coin}**", 
+            color = discord.Color.red()
           )
-        await self.bot.user_stats(ctx, "work")
-      else:
-        last = self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["work"]
-        currenttime = int(time.time())
-        min = str(math.floor((10 - ((currenttime - last) % 3600) / 60)))
-        sec = str(math.floor((60 - ((currenttime - last) % 3600) % 60)))
-        cooldown = f"{min} minutes {sec} seconds"
-        embed = discord.Embed(
-          title =  bot_name,
-          description = f"{cross} You cannot work so soon! Please wait another `{cooldown}`",
-          color = discord.Color.red()
+          await ctx.reply(embed = embed)
+          if self.bot.db["economy"][str(ctx.author.id)]["balance"] < 0:
+            self.bot.db["economy"][str(ctx.author.id)]["balance"] = 0
+      elif time.time() < self.bot.db["economy"][str(ctx.author.id)]["fish"]["last_fish"] + cooldown:
+          currenttime = int(time.time())
+          last_fish = self.bot.db["economy"][str(ctx.author.id)]["fish"]["last_fish"]
+          mins_left = str(math.floor((mins_ - ((currenttime - last_fish) % 3600) / 60)))
+          secs_left = str(math.floor((60 - ((currenttime - last_fish) % 3600) % 60)))
+          embed = discord.Embed(
+            title = "Fishing", 
+            description = f"You cannot fish so soon! You can fish again in `{mins_left}m {secs_left}s`", 
+            color = discord.Color.orange()
           )
+          await ctx.reply(embed = embed)
     else:
-      embed = discord.Embed(
-       title =  bot_name,
-       description = f"{cross} You do not own a dessert shop. Do `{self.bot.prefix}build` to build one!",
-       color = discord.Color.red()
-      )
-    await ctx.reply(embed = embed, mention_author = False)
+      await ctx.reply(f"Whoops, looks like you do not own a factory... Do `{self.bot.prefix}start` to build one!")
 
-  @commands.command(aliases = ["t", "tips"])
-  async def tip(self, ctx):
-    if str(ctx.author.id) in self.bot.db["economy"]["users"]:
-      cooldown = 300
-      last_tip = self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["tip"]
-      tip = self.bot.db["economy"]["users"][str(ctx.author.id)]["tips"]
-      if int(time.time()) - last_tip > cooldown:
-        earn = random.randint(tip, tip * 5)
-        self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"] += earn
-        self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["tip"] = int(time.time())
-        balance = self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"]
-        xp = random.randint(1,2)
-        xp_notify, xp = await self.bot.check_xp(ctx, ctx.author.id, xp)
-        celeb_app = await self.bot.celebrity_appearance(str(ctx.author.id))
-        await self.bot.user_stats(ctx, "tip")
-        embed = discord.Embed(
-          title =  bot_name,
-          description = f"{tick} You checked your tip jar and found **{earn} {coin}** \nBalance: **{balance} {coin}** \nXP earned: **{xp} xp** \n{xp_notify} \n{celeb_app}",
-          color = discord.Color.green()
-          )
-      else:
-        last = self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["tip"]
-        currenttime = int(time.time())
-        min = str(math.floor((5 - ((currenttime - last) % 3600) / 60)))
-        sec = str(math.floor((60 - ((currenttime - last) % 3600) % 60)))
-        cooldown = f"{min} minutes {sec} seconds"
-        embed = discord.Embed(
-          title =  bot_name,
-          description = f"{cross} It is rude to check your tip jar so often! Try again in `{cooldown}`",
-          color = discord.Color.red()
-          )
-    else:
-      embed = discord.Embed(
-       title =  bot_name,
-       description = f"{cross} You do not own a dessert shop. Do `{self.bot.prefix}build` to build one!",
-       color = discord.Color.red()
-      )
-    await ctx.reply(embed = embed, mention_author = False)                                          
+  # Upgrades Command
+  @factory_check()
+  @commands.command(aliases = ["upgrade", "up", "shop"])
+  async def upgrades(self, ctx, *, name = None):
+    workers = self.bot.db["economy"][str(ctx.author.id)]["workers"]
+    machine_lvl = self.bot.db["economy"][str(ctx.author.id)]["machine_level"]
+    storage = self.bot.db["economy"][str(ctx.author.id)]["storage"]
+    total_upgrades = workers + machine_lvl
+    balance = self.bot.db["economy"][str(ctx.author.id)]["balance"]
+    upgrade_cap = self.bot.db["economy"][str(ctx.author.id)]["upgrade_cap"]
+    title, color = "Upgrades", red
+  
+    upgrades_mult = 1.96
+  
+    rate_of_kitkats = (workers + 2) * machine_lvl
+    machine_base_upgrade = 20
+    workers_base_upgrade = 10
+    storage_base_upgrade = 50
+    cap_base_upgrade = 10
+    machine_upgrade = math.floor(machine_base_upgrade * upgrades_mult ** machine_lvl)
+    workers_upgrade = math.floor(workers_base_upgrade * upgrades_mult ** workers)
+    cap_upgrade = math.floor((upgrade_cap - 5) ** 4)
+    storage_upgrade = storage_base_upgrade * 2 + storage
+    rod_level = self.bot.db["economy"][str(ctx.author.id)]["fish"]["rod_level"]
+    if rod_level < 3:
+      rod_upgrade_ = 10000 * 4 ** rod_level
+      rod_upgrade = f"{rod_upgrade_}{coin}"
+    else: 
+      rod_upgrade = "Max Level"
+    if name is None:
+      title = "Upgrades avaliable:"
+      msg = f"""
+Machine Upgrade: **{machine_upgrade}{coin}**
+Machine Level: **{machine_lvl}**
+Command: `{self.bot.prefix}upgrade machine`
 
-  # Clean Command
-  @commands.command()
-  async def clean(self, ctx):
-    if str(ctx.author.id) in self.bot.db["economy"]["users"]:
-      last_clean = self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["clean"]
-      balance = self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"]
-      income = self.bot.db["economy"]["users"][str(ctx.author.id)]["income"]
-      cleaners = self.bot.db["economy"]["users"][str(ctx.author.id)]["hire"]["cleaner"]
-      cooldown = 21600 # 6 hours
-      currenttime = int(time.time())
-      if currenttime - last_clean > cooldown and cleaners > 0:
-        self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"] -= income
-        self.bot.db["economy"]["users"][str(ctx.author.id)]["happiness"] = 100
-        if self.bot.db["economy"]["users"][str(ctx.author.id)]["happiness"] > 100:
-          self.bot.db["economy"]["users"][str(ctx.author.id)]["happiness"] = 100
-  
-        self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["clean"] = int(time.time())
-        balance = self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"]
-        if balance < 0:
-          self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"] = 0
-          balance = 0
-        await self.bot.user_stats(ctx, "clean")
-        embed = discord.Embed(
-          title =  bot_name,
-          description = f"{tick} You paid your cleaners **{income} {coin}** and your customers' happiness increased by **50%**! \nBalance: **{balance} {coin}**",
-          color = discord.Color.green()
-          )
-      elif cleaners < 1:
-        embed = discord.Embed(
-          title =  bot_name,
-          description = f"{cross} You did not employ any cleaners! Use `{self.bot.prefix}hire` to hire them!",
-          color = discord.Color.red()
-          )
-      else:
-        last = self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["clean"]
-        td = timedelta(seconds=43200-currenttime+last)
-        hour = td.seconds // 3600
-        min = (td.seconds % 3600) // 60
-        sec = td.seconds % 60
-        clean = f"{hour} hours {min} minutes {sec} seconds"
-        embed = discord.Embed(
-          title =  bot_name,
-          description = f"{cross} You cannot clean your shop too often! Try again in `{clean}`",
-          color = discord.Color.red()
-          )
-    else:
-      embed = discord.Embed(
-       title =  bot_name,
-       description = f"{cross} You do not own a dessert shop. Do `{self.bot.prefix}build` to build one!",
-       color = discord.Color.red()
-      )
-    await ctx.reply(embed = embed, mention_author = False)
-  
-  @commands.command()
-  async def praise(self, ctx, user : discord.Member = None):
-    if str(ctx.author.id) in self.bot.db["economy"]["users"]:
-      if user is not None:
-        cooldowns = self.bot.db["economy"]["users"][str(ctx.author.id)]["rep_cooldowns"]
-        rep = self.bot.db["economy"]["users"][str(ctx.author.id)]["rep"]
-        randrep = round(random.uniform(0.01, 0.08), 2)
-        
-        if ctx.author.id != user.id and not user.bot and str(user.id) in self.bot.db["economy"]["users"]:
-          if str(user.id) in cooldowns and int(time.time()) - cooldowns[str(user.id)] < 86400:
-            title, message, color = user, f"{cross} Looks like you have already praised this person in the past 24 hours... Try again later!", red
-          else:
-            await self.bot.user_stats(ctx, "praise")
-            title, message, color = ctx.author, f"You praised **{user}** for their amazing dessert! \nTheir reputation increased by **{randrep} {erep}**!", green
-            self.bot.db["economy"]["users"][str(user.id)]["rep"] += randrep
-            self.bot.db["economy"]["users"][str(ctx.author.id)]["rep_cooldowns"][str(user.id)] = int(time.time())
-        elif user.bot:
-          title, message, color = "You can't praise bots ._.", f"Try praising someone else!", red
-        elif str(user.id) not in self.bot.db["economy"]["users"]:
-          title, message, color = "Shop not found!", f"{cross} That user doesn't seem to own a shop...", red
+Hire Workers: **{workers_upgrade}{coin}**
+Number of workers: **{workers}**
+Command: `{self.bot.prefix}upgrade workers`
+
+Capacity Upgrade: **{cap_upgrade}{coin}**
+Upgrades Capacity: **{upgrade_cap}**
+Command: `{self.bot.prefix}upgrade capacity`
+
+Storage Upgrade: **{storage_upgrade}{coin}**
+Storage capacity: **{storage}**
+Command: `{self.bot.prefix}upgrade storage`
+
+Fishing Rod Upgrade: **{rod_upgrade}**
+FIshing Rod level: **{rod_level}**
+Command: `{self.bot.prefix}upgrade rod`
+
+To upgrade your pet, you can use `{self.bot.prefix}pet upgrade`.
+
+Current balance: **{balance}{coin}**  |  `{rate_of_kitkats}{choco} / minute`
+Do `{self.bot.prefix}help economy` to see all economy commands!
+"""
+      color = discord.Color.blurple()
+    elif name in ("w", "worker", "workers"):
+      if balance >= workers_upgrade:
+        if upgrade_cap > total_upgrades:
+          self.bot.db["economy"][str(ctx.author.id)]["balance"] -= workers_upgrade
+          self.bot.db["economy"][str(ctx.author.id)]["workers"] += 1
+          title = "Upgrade Successful!"
+          msg, color = f"You spent {workers_upgrade}{coin} to hire another worker! \n`Total workers: {workers + 1}`", green
         else:
-          title, message, color = "Self praise is a national disgrace!", f"Try praising someone else!", red   
-      else:
-        title, message, color = "Praise someone!", f"Praise someone and help them earn reputation stars! Use `{self.bot.prefix}praise <user>` to praise them!", green
-      embed = discord.Embed(title = title, description = message, color = color)
-    else:
-      embed = discord.Embed(
-       title =  bot_name,
-       description = f"{cross} You do not own a dessert shop. Do `{self.bot.prefix}build` to build one!",
-       color = discord.Color.red()
-      )
-    await ctx.reply(embed = embed, mention_author = False)
+          msg = f"Your upgrade capacity is full! Do `{self.bot.prefix}upgrade capacity` to increase it."
+      else: 
+        msg = f"You do not have enough coins to hire another worker! You need **{workers_upgrade - balance}{coin}** more! Do `{self.bot.prefix}help economy` to explore other commands!"
   
-  @praise.error
-  async def praise_error(self, ctx, error):
-    embed = discord.Embed(title = "Error", description = f"{cross} This user does not exist!", color = red)
+    elif name in ("s", "storage", "storages"):
+      if balance >= storage_upgrade:
+        self.bot.db["economy"][str(ctx.author.id)]["balance"] -= storage_upgrade
+        self.bot.db["economy"][str(ctx.author.id)]["storage"] += storage * 2
+        title, msg, color = "Upgrade Successful!", f"Upgrade successfull! You spent {storage_upgrade}{coin} to upgrade your storage capacity! \n`Storage capacity: {storage * 2}`", green
+      else: 
+        msg = f"You do not have enough coins to upgrade your storage! You need **{storage_upgrade - balance}{coin}** more! Do `{self.bot.prefix}help economy` to explore other commands!"
+  
+    elif name in ("m", "machine", "machines"):
+      if balance >= machine_upgrade:
+        if upgrade_cap > total_upgrades:
+          self.bot.db["economy"][str(ctx.author.id)]["balance"] -= machine_upgrade
+          self.bot.db["economy"][str(ctx.author.id)]["machine_level"] += 1
+          title, msg, color = "Upgrade Successful!", f"Upgrade successfull! You spent {machine_upgrade}{coin} to upgrade your machine! \nMachine level: `{machine_lvl + 1}`", green
+        else:
+          msg = f"Your upgrade capacity is full! Do `{self.bot.prefix}upgrade capacity` to increase it."
+      else: 
+        msg = f"You do not have enough coins to upgrade your machine! You need **{machine_upgrade - balance}{coin} more!** Do `{self.bot.prefix}help economy` to explore other commands!"
+    elif name == "cap" or name == "capacity":
+      if balance >= cap_upgrade:
+        self.bot.db["economy"][str(ctx.author.id)]["balance"] -= cap_upgrade
+        self.bot.db["economy"][str(ctx.author.id)]["upgrade_cap"] += 10
+        title, msg, color = "Upgrade Successful!", f"Upgrade successfull! You spent {cap_upgrade}{coin} to upgrade your upgrades capacity! \nCurrent Capacity: `{upgrade_cap + 10}`", green
+      else: 
+        msg = f"You do not have enough coins to upgrade your capacity! You need **{cap_upgrade - balance}{coin}** more! Do `{self.bot.prefix}help economy` to explore other commands!"
+    elif name in ("rod", "fish", "fishing rod"):
+      if rod_level < 3:
+        if balance >= rod_upgrade_:
+          self.bot.db["economy"][str(ctx.author.id)]["balance"] -= rod_upgrade_
+          self.bot.db["economy"][str(ctx.author.id)]["fish"]["rod_level"] += 1
+          title, msg, color = "Upgrade Successful!", f"Upgrade successfull! You spent {rod_upgrade_}{coin} to upgrade your fishing rod! \nFishing rod level: `{rod_level + 1}`", green
+        else: 
+          msg = f"You do not have enough coins to upgrade your fishing rod! You need **{rod_upgrade_ - balance}{coin}** more! Do `{self.bot.prefix}help economy` to explore other commands!"
+      else: 
+        msg = "Your fishing rod is already maxed out!"
+    embed = discord.Embed(title = title, description = msg, color = color)
     await ctx.reply(embed = embed, mention_author = False)
+
+  # Balance Command
+  @factory_check()
+  @commands.command(aliases = ["b", "bal"])
+  async def balance(self, ctx, user: discord.Member = None):
+    if user is None:
+      user = ctx.author
+    balance = self.bot.db["economy"][str(user.id)]["balance"]
+    bal = f"{balance:,}"
+    if user == ctx.author:
+      msg = f"Your balance is **{bal}{coin}**! \nYou can do `{self.bot.prefix}sell` to sell your current kitkats and earn more money!"
+    else:
+      msg = f"**{user.name}'s** balance is **{bal}{coin}!**"
+    embed = discord.Embed(title = f"{user.name}'s balance", description = msg, color = green)
+    await ctx.send(embed = embed, mention_author = False)
+
+  # Stats Command
+  @factory_check()
+  @commands.command(aliases = ["stat", "profile", "statistics"])
+  async def stats(self, ctx, user: discord.Member = None):
+    if user is None:
+      user = self.bot.get_user(ctx.author.id)
+    embed = discord.Embed(
+      title = f"{user.name}'s profile:",
+      description = f"Getting {user.name}'s statistics...", 
+      color = discord.Color.blue()
+    )
+    embed.set_footer(text = f"Do {self.bot.prefix}profile <@user> to check someone's profile!")
+
+    profile = await ctx.reply(embed = embed, mention_author = False)
+    workers = self.bot.db["economy"][str(user.id)]["workers"]
+    machine_lvl = self.bot.db["economy"][str(user.id)]["machine_level"]
+    upgrade_cap = self.bot.db["economy"][str(user.id)]["upgrade_cap"]
+    storage = self.bot.db["economy"][str(user.id)]["storage"]
+    rate_of_kitkats = (workers + 2) * machine_lvl
+    balance = self.bot.db["economy"][str(user.id)]["balance"]
+    kitkats_sold = self.bot.db["economy"][str(user.id)]["kitkats_sold"]
+    prestige = self.bot.db["economy"][str(user.id)]["prestige"]
+    rod_level = self.bot.db["economy"][str(user.id)]["fish"]["rod_level"]
+    daily_streak = self.bot.db["economy"][str(user.id)]["daily_streak"]
+    msg = f"""
+Balance: **{balance}{coin}** | `{rate_of_kitkats}{choco} / minute`
+
+Machine Level: `{machine_lvl}`
+Workers: `{workers}`
+Upgrade Capacity: `{upgrade_cap}`
+Kitkat Storage: `{storage}`
+Fishing Rod Level: `{rod_level}`
+Daily Streak: `{daily_streak}`
+Total Kitkats Sold: `{kitkats_sold}{choco}`
+"""
+    
+    if prestige > 0:
+      msg += f"\nPrestige: `{prestige}`"
+    else:
+      msg += f"\nYou have not prestiged yet! Use `{self.bot.prefix}prestige` to prestige!"
+
+    if self.bot.db["economy"][str(user.id)]["pets"]["tier"] == 0:
+      msg += f"**\n\nPet Statistics: **{user.name} does not own a pet! \nDo `{self.bot.prefix}pet list` to view available pets!"
+
+    elif self.bot.db["economy"][str(user.id)]["pets"]["tier"] > 0:
+      pet_name = self.bot.db["economy"][str(user.id)]["pets"]["name"]
+      pet_tier = self.bot.db["economy"][str(user.id)]["pets"]["tier"]
+      pet_type = self.bot.db["economy"][str(user.id)]["pets"]["type"]
+      pet_level = self.bot.db["economy"][str(user.id)]["pets"]["level"]
+      last_hunt = int(self.bot.db["economy"][str(user.id)]["pets"]["last_hunt"])
+      if self.bot.db["economy"][str(user.id)]["pets"]["tier"] == 1:
+        cooldown = 3600
+        mins_ = 60
+      if self.bot.db["economy"][str(user.id)]["pets"]["tier"] == 2:
+        cooldown = 2700
+        mins_ = 45
+      if self.bot.db["economy"][str(user.id)]["pets"]["tier"] == 3:
+        cooldown = 1800
+        mins_ = 30
+      msg += f"""\n\n**Pet Statistics:**
+Name: `{pet_name}`
+Type: `{pet_type}`
+Tier: `{pet_tier}`
+Level: `{pet_level}`
+"""   
+      if int(time.time()) < last_hunt + cooldown:
+        currenttime = int(time.time())
+        last_hunt = self.bot.db["economy"][str(user.id)]["pets"]["last_hunt"]
+        mins_left = str(math.floor((mins_ - ((currenttime - last_hunt) % 3600) / 60)))
+        secs_left = str(math.floor((60 - ((currenttime - last_hunt) % 3600) % 60)))
+        msg += f"\n`{pet_name}` can hunt again in `{mins_left}m {secs_left}s`"
+      else: 
+        msg += f"\n`{pet_name}` can go hunting! Do `{self.bot.prefix}hunt` to hunt!"
+    new_embed = discord.Embed(
+      title = f"{user.name}'s profile:",
+      description = msg, color = discord.Color.green())
+    new_embed.set_footer(text = f"Do {self.bot.prefix}profile <@user> to check someone's profile!")
+    await profile.edit(embed = new_embed)
+
+  @factory_check()
   @commands.command(aliases = ["d"])
   async def daily(self, ctx):
-    if str(ctx.author.id) in self.bot.db["economy"]["users"]:
-      last_daily = self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["daily"]
-      streak = self.bot.db["economy"]["users"][str(ctx.author.id)]["daily_streak"]
-      curr_time = int(time.time())
-      
-  
-      if curr_time - last_daily > 86400:
-        xp = random.randint(1, 6)
-        xp_msg, xp = await self.bot.check_xp(ctx, ctx.author.id, xp)
-        income = await self.bot.get_income(ctx.author.id)
-        emoji, streak_emoji, no_streak_emoji = "", "🟡", "⚫"
-        if curr_time - last_daily > 86400 * 3:
-          self.bot.db["economy"]["users"][str(ctx.author.id)]["daily_streak"] = 0
-          streak = 0
-        else:
-          self.bot.db["economy"]["users"][str(ctx.author.id)]["daily_streak"] += 1
-          streak + 1
-  
-        streak_bonus = int(income/100*streak * 3)
-        daily_reward = income * 5
-        self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["daily"] = curr_time
-        self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"] += daily_reward + streak_bonus
-        
-        for number in range(streak % 7):
-          emoji += streak_emoji
-        for number in range(7 - streak % 7):
-          emoji += no_streak_emoji
-        
-        title, color = "Daily Reward", discord.Color.green()
-        message = f"""**{tick} You have collected your daily reward of {daily_reward} {coin}**
-  Streak Bonus: **{streak_bonus} {coin}**
-  XP earned: **{xp} xp** {xp_msg}
-  **__Daily Streak Progress__**
-  {emoji}
-  
-  Current daily streak: **{streak}**
-  Get a 7 daily streak for a reward!
-  """
-      else:
-        td = timedelta(seconds=86400-curr_time+last_daily)
-        hour = td.seconds // 3600
-        min = (td.seconds % 3600) // 60
-        sec = td.seconds % 60
-        daily_cooldown = f"{hour} hours {min} minutes {sec} seconds"
-        title, message, color = bot_name, f"{cross} You cannot claim your daily reward so soon! Try again in `{daily_cooldown}`",discord.Color.red()
-    else:
-      title, message, color = bot_name, f"{cross} You do not own a dessert shop. Use `{self.bot.prefix}build` to build one!",discord.Color.red()
-      
-    embed = discord.Embed(
-        title = title,
-        description = message,
-      color = color
-    )
-    await ctx.reply(embed = embed, mention_author = False)
-  
-  @commands.command()
-  async def monthly(self, ctx):
-    if str(ctx.author.id) in self.bot.db["economy"]["users"]:
-      level = self.bot.db["economy"]["users"][str(ctx.author.id)]["levels"]["level"]
-      if level >= 10:
-        last_monthly = self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["monthly"]
-        curr_time = int(time.time())
-        if curr_time - last_monthly > 2592000:
-          xp = random.randint(4, 20)
-          xp_msg, xp = await self.bot.check_xp(ctx, ctx.author.id, xp)
-          for i in range(10):
-            xp_msg, dummy = await self.bot.check_xp(ctx, ctx.author.id, 0)
-          income = await self.bot.get_income(ctx.author.id)
-          monthly_reward = income * 24
-          self.bot.db["economy"]["users"][str(ctx.author.id)]["cooldowns"]["monthly"] = curr_time
-          self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"] += monthly_reward
-          bal = self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"]
-          title, color = "Monthly Reward", discord.Color.green()
-          message = f"""**{tick} You have collected your monthly reward of {monthly_reward} {coin}**
-  Balance: **{bal} {coin}**
-  XP earned: **{xp} xp** {xp_msg}
-  """
-        else:
-          td = timedelta(seconds=2592000-curr_time+last_monthly)
-          days = td.days
-          hour = td.seconds // 3600
-          min = (td.seconds % 3600) // 60
-          sec = td.seconds % 60
-          monthly_cooldown = f"{days} days {hour} hours {min} minutes {sec} seconds"
-          title, message, color = bot_name, f"{cross} You cannot claim your monthly reward so soon! Try again in `{monthly_cooldown}`",discord.Color.red()
-      else:
-        title, message, color = "Monthly Reward", f"{cross} You must be level 10 or higher to claim your monthly reward!" ,red
-    else:
-      title, message, color = bot_name, f"{cross} You do not own a dessert shop. Use `{self.bot.prefix}build` to build one!",discord.Color.red()
-      
-    embed = discord.Embed(
-        title = title,
-        description = message,
-      color = color
-    )
-    await ctx.reply(embed = embed, mention_author = False)
-  
-  
-  @commands.command(aliases = ["rh", "rush"])
-  async def rushhour(self, ctx, number : int = None):
-    if str(ctx.author.id) in self.bot.db["economy"]["users"]:
-      rh = self.bot.db["economy"]["users"][str(ctx.author.id)]["rush_hour"]
-      if number is None:
-        title, color = "Rush Hour Info", discord.Color.green()
-        message = f"Rush hour **instantly** gives you 6 hours worth of income. To use a rush hour coupon, you can use `{self.bot.prefix}rh <number of coupons>` \nYou currently have **{rh} coupons**"
-      else:
-        if 0 < number <= rh:
-          title, color = bot_name, discord.Color.green()
-          message = f"{cross} You do not have that many rush hour coupons! You can get them by using commands like `{self.bot.prefix}work` and participating in giveaways in the official {bot_name} server! \n`{self.bot.prefix}rh` for more information"
-        else: 
-          title, color = bot_name, discord.Color.red()
-          if rh < 1:
-            message = f"{cross} You do not have any rush hour coupons! You can get them by using commands like `{self.bot.prefix}work` and participating in giveaways in the official {bot_name} server! \n`{self.bot.prefix}rh` for more information"
-          elif number < 1:
-            message = f"{cross} Invalid number! Please use `{self.bot.prefix}rh <number of coupons>`"
-          elif number > rh:
-            message = f"You do not have that many coupons! You only have **{rh} coupons**"
-    else:
-      title, message, color = bot_name, f"{cross} You do not own a dessert shop. Use `{self.bot.prefix}build` to build one!",discord.Color.red()
-      
-    embed = discord.Embed(
-        title = title,
-        description = message,
-      color = color
-    )
-    await ctx.reply(embed = embed, mention_author = False)
-
-  # Hire Command
-  @commands.command(aliases = ["employ"])
-  async def hire(self, ctx, id = None):
-    if str(ctx.author.id) in self.bot.db["economy"]["users"]:
-      valid = "waiter", "cashier", "cleaner", "chef", "head", "manager"
-      hire = {} 
-      balance = self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"]
-      # Waiter
-      hire["waiter"] = self.bot.db["economy"]["users"][str(ctx.author.id)]["hire"]["waiter"]
-      hire["waiter_cost"] = int(100 * 1.4 ** hire["waiter"])
-      hire["waiter_income"] = 10
-      # Cashier
-      hire["cashier"] = self.bot.db["economy"]["users"][str(ctx.author.id)]["hire"]["cashier"]
-      hire["cashier_cost"] = int(250 * 1.4 ** hire["cashier"])
-      hire["cashier_income"] = 20
-      # Cleaner
-      hire["cleaner"] = self.bot.db["economy"]["users"][str(ctx.author.id)]["hire"]["cleaner"]
-      hire["cleaner_cost"] = int(100 * 1.3 ** hire["cleaner"])
-      hire["cleaner_income"] = 50
-      # Chef
-      hire["chef"] = self.bot.db["economy"]["users"][str(ctx.author.id)]["hire"]["chef"]
-      hire["chef_cost"] = int(6000 * 1.2 ** hire["chef"])
-      hire["chef_income"] = 75
-      # Head Chef
-      hire["head_chef"] = self.bot.db["economy"]["users"][str(ctx.author.id)]["hire"]["head_chef"]
-      hire["head_chef_cost"] = int(25000 * 1.23 ** hire["head_chef"])
-      hire["head_chef_income"] = 150
-      # Manager
-      hire["manager"] = self.bot.db["economy"]["users"][str(ctx.author.id)]["hire"]["manager"]
-      hire["manager_cost"] = int(100000 * 1.25 ** hire["manager"])
-      hire["manager_income"] = 250
-  
-      # Max Upgrades Values
-      hire["waiter_max"] = 12
-      hire["cashier_max"] = 8
-      hire["chef_max"] = 20
-      hire["cleaner_max"] = 16
-      hire["head_chef_max"] = 12
-      hire["manager_max"] = 6
-  
-      if id is None:
-        for item in valid:
-          if item == "head":
-            item = "head_chef"
-          if hire[item] >= hire[item + "_max"]:
-            hire[item + "_cost"] = "**Upgrade Maxed!**"
-            hire[item + "_income"] = 0
-        embed = discord.Embed(
-          title = "Employees 👨‍🍳",
-          description = f"""
-  **Waiter** `({hire["waiter"]}/{hire["waiter_max"]})`
-  Cost: {hire["waiter_cost"]} {coin}
-  Income: +{hire["waiter_income"]} {coin}
-  ID: `waiter`
-  
-  **Cashier** `({hire["cashier"]}/{hire["cashier_max"]})`
-  Cost: {hire["cashier_cost"]} {coin}
-  Income: +{hire["cashier_income"]} {coin}
-  ID: `cashier`
-  
-  **Cleaner** `({hire["cleaner"]}/{hire["cleaner_max"]})`
-  Cost: {hire["cleaner_cost"]} {coin}
-  Income: +{hire["cleaner_income"]} {coin}
-  ID: `cleaner`
-  
-  **Chef** `({hire["chef"]}/{hire["chef_max"]})`
-  Cost: {hire["chef_cost"]} {coin}
-  Income: +{hire["chef_income"]} {coin}
-  ID: `chef`
-  
-  **Head Chef** `({hire["head_chef"]}/{hire["head_chef_max"]})`
-  Cost: {hire["head_chef_cost"]} {coin}
-  Income: +{hire["head_chef_income"]} {coin}
-  ID: `head`
-  
-  **Manager** `({hire["manager"]}/{hire["manager_max"]})`
-  Cost: {hire["manager_cost"]} {coin}
-  Income: +{hire["manager_income"]} {coin}
-  ID: `manager`
-  **_\_\__\__\__\__\__\__\__\__\__\_\__\__\__\__\__\_\_\_\_**
-  Balance: **{balance:,} {coin}**
-  Hire more staff using `{self.bot.prefix}hire <ID>`
-  """,
-        color = discord.Color.blurple()
-        )
-      elif id in valid:
-        if id == "head":
-          id = "head_chef"
-        if balance >= hire[id+"_cost"] and hire[id] < hire[id+"_max"]:
-          self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"] -= hire[id+"_cost"]
-          self.bot.db["economy"]["users"][str(ctx.author.id)]["income"] += hire[id+"_income"]
-          self.bot.db["economy"]["users"][str(ctx.author.id)]["hire"][id] += 1
-          balance = self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"]
-          income = await self.bot.get_income(ctx.author.id)
-          cost = hire[id+"_cost"]
-          if id == "head_chef":
-            id = "head chef"
-          embed = discord.Embed(
-            title = "Employees",
-            description = f"{tick} You have employed a **{id}** for **{cost} {coin}**! \nBalance: **{balance:,} {coin}** \nIncome: **{income:,} {coin}**", 
-            color = discord.Color.green()
-          )
-        elif hire[id] >= hire[id+"_max"]:
-          if id == "head_chef":
-            id = "head chef"
-          embed = discord.Embed(
-            title = "Employees",
-            description = f"{cross} You cannot employ so many {id}s!",
-            color = discord.Color.red()
-          )
-        elif balance < hire[id+"_cost"]:
-          if id == "head_chef":
-            id = "head chef"
-          embed = discord.Embed(
-            title = "Employees",
-            description = f"{cross} You do not have enough money to hire a {id}",
-            color = discord.Color.red()
-          )
-        
-      else:
-        embed = discord.Embed(title = "Employees", description = f"{cross} Invalid ID! Please use `{self.bot.prefix}hire <ID>`", color = discord.Color.red())
-    else:
-      embed = discord.Embed(
-        title = bot_name,
-        description = f"{cross} You do not own a dessert shop. Use `{self.bot.prefix}build` to build one!",
-      color = discord.Color.red()
-      )
-    await ctx.reply(embed = embed, mention_author = False)
-  
-  # Upgrades Command
-  @commands.command(aliases = ["up", "upgrades"])
-  async def upgrade(self, ctx, id = None):
-    if str(ctx.author.id) in self.bot.db["economy"]["users"]:
-      valid = ["tipjar", "sign", "paint", "fan", "aircon", "light"]
-      upgrades = {} 
-      balance = self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"]
-      # "upgrade" : {"tipjar" : 0, "sign" : 0, "paint" : 0, "fan" : 1, "aircon" : 0, "light" : 0}
-      # Tip Jar
-      upgrades["tipjar"] = self.bot.db["economy"]["users"][str(ctx.author.id)]["upgrade"]["tipjar"]
-      upgrades["tipjar_cost"] = int(100 * 1.75 ** upgrades["tipjar"])
-      upgrades["tipjar_income"] = 10
-      # Sign
-      upgrades["sign"] = self.bot.db["economy"]["users"][str(ctx.author.id)]["upgrade"]["sign"]
-      upgrades["sign_cost"] = int(250 * 1.5 ** upgrades["sign"])
-      upgrades["sign_income"] = 50
-      # Paint
-      upgrades["paint"] = self.bot.db["economy"]["users"][str(ctx.author.id)]["upgrade"]["paint"]
-      upgrades["paint_cost"] = int(200 * 1.3 ** upgrades["paint"])
-      upgrades["paint_income"] = 25
-      # Fan
-      upgrades["fan"] = self.bot.db["economy"]["users"][str(ctx.author.id)]["upgrade"]["fan"]
-      upgrades["fan_cost"] = int(450 * 1.2 ** upgrades["fan"])
-      upgrades["fan_income"] = 150
-      # Aircon
-      upgrades["aircon"] = self.bot.db["economy"]["users"][str(ctx.author.id)]["upgrade"]["aircon"]
-      upgrades["aircon_cost"] = int(8000 * 1.2 ** upgrades["aircon"])
-      upgrades["aircon_income"] = 600
-      # Lights
-      upgrades["light"] = self.bot.db["economy"]["users"][str(ctx.author.id)]["upgrade"]["light"]
-      upgrades["light_cost"] = int(10000 * 1.2 ** upgrades["light"])
-      upgrades["light_income"] = 1250
-  
-      # Max Upgrades Values
-      upgrades["tipjar_max"] = 5
-      upgrades["sign_max"] = 2
-      upgrades["paint_max"] = 6
-      upgrades["fan_max"] = 8
-      upgrades["aircon_max"] = 8
-      upgrades["light_max"] = 8
-  
-      if id is None:
-        for item in valid:
-          if upgrades[item] >= upgrades[item + "_max"]:
-            upgrades[item + "_cost"] = "**Upgrade Maxed!**"
-            upgrades[item + "_income"] = 0
-        embed = discord.Embed(
-          title = "Upgrades",
-          description = f"""
-  **Cooler Tip Jar** `({upgrades["tipjar"]}/{upgrades["tipjar_max"]})`
-  Cost: {upgrades["tipjar_cost"]} {coin}
-  Income: +{upgrades["tipjar_income"]} {coin}
-  ID: `tipjar`
-  
-  **Open/Close Sign** `({upgrades["sign"]}/{upgrades["sign_max"]})`
-  Cost: {upgrades["sign_cost"]} {coin}
-  Income: +{upgrades["sign_income"]} {coin}
-  ID: `sign`
-  
-  **Better Paint** `({upgrades["paint"]}/{upgrades["paint_max"]})`
-  Cost: {upgrades["paint_cost"]} {coin}
-  Income: +{upgrades["paint_income"]} {coin}
-  ID: `paint`
-  
-  **More Fans** `({upgrades["fan"]}/{upgrades["fan_max"]})`
-  Cost: {upgrades["fan_cost"]} {coin}
-  Income: +{upgrades["fan_income"]} {coin}
-  ID: `fan`
-  
-  **Stronger Air Cons** `({upgrades["aircon"]}/{upgrades["aircon_max"]})`
-  Cost: {upgrades["aircon_cost"]} {coin}
-  Income: +{upgrades["aircon_income"]} {coin}
-  ID: `aircon`
-  
-  **Better Lights** `({upgrades["light"]}/{upgrades["light_max"]})`
-  Cost: {upgrades["light_cost"]} {coin}
-  Income: +{upgrades["light_income"]} {coin}
-  ID: `light`
-  **\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_**
-  Balance: **{balance} {coin}**
-  Upgrading items will increase your tips!
-  Use `{self.bot.prefix}upgrade <ID>` to upgrade an item!
-  """,
-          color = discord.Color.blurple()
-        )
-      elif id in valid:
-        if balance >= upgrades[id+"_cost"] and upgrades[id] < upgrades[id+"_max"]:
-          self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"] -= upgrades[id+"_cost"]
-          self.bot.db["economy"]["users"][str(ctx.author.id)]["income"] += upgrades[id+"_income"]
-          self.bot.db["economy"]["users"][str(ctx.author.id)]["upgrade"][id] += 1
-          balance = self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"]
-          income = await self.bot.get_income(ctx.author.id)
-          self.bot.db["economy"]["users"][str(ctx.author.id)]["tips"] += 50 * upgrades[id]
-            
-          cost = upgrades[id+"_cost"]
-          if id == "paint":
-            msg = f"You have applied a new coat of {id}"
-          if id == "tipjar":
-            msg = f"You have purchased a cooler tip jar"
-          else:
-            if id == "light":
-              id = "lights"
-            if id == "fan":
-              id = "fans"
-            if id == "sign":
-              id = "open/close sign"
-            msg = f"You have upgraded your **{id}**"
-          embed = discord.Embed(
-            title = "Shop Upgrades",
-            description = f"{tick} {msg} for **{cost} {coin}**! \nBalance: **{balance:,} {coin}** \nIncome: **{income:,} {coin}** \nYour tips have increased!", 
-            color = discord.Color.green()
-          )
-        elif balance < upgrades[id+"_cost"]:
-          if id == "light":
-              id = "lights"
-          if id == "fan":
-            id = "fans"
-          if id == "sign":
-            id = "open/close sign"
-          embed = discord.Embed(
-            title = "Shop Upgrades",
-            description = f"{cross} You do not have enough money to upgrade your {id}",
-            color = discord.Color.red()
-          )
-        elif upgrades[id] >= upgrades[id+"_max"]:
-          if id == "light":
-              id = "lights"
-          if id == "fan":
-            id = "fans"
-          if id == "sign":
-            id = "open/close sign"
-          grammer = "are" if id[-1] == "s" else "is"
-          embed = discord.Embed(
-            title = "Shop Upgrades",
-            description = f"{cross} Your **{id}** {grammer} already fully upgraded!",
-            color = discord.Color.red()
-          )
-      else:
-        embed = discord.Embed(
-          title = bot_name,
-          description = f"{cross} Invalid ID!",
-          color = discord.Color.red()
-        )
-  
-    else:
-      embed = discord.Embed(
-        title = bot_name,
-        description = f"{cross} You do not own a dessert shop. Use `{self.bot.prefix}build` to build one!",
-      color = discord.Color.red()
-      )
-    await ctx.reply(embed = embed, mention_author = False)
-  
-  @commands.command(aliases = ["boosts"])
-  async def boost(self, ctx, id = None, bulk = None):
-    if str(ctx.author.id) in self.bot.db["economy"]["users"]:
-      user = str(ctx.author.id)
-      balance = self.bot.db["economy"]["users"][user]["balance"]
-      boost = {}
-      #"boost" : {"band" : 0, "piano" : 0, "guitarist" : 0, "singer" : 0, "magician" : 0}
-      # Singer
-      boost["singer"] = self.bot.db["economy"]["users"][str(ctx.author.id)]["boost"]["singer"]
-      boost["singer_cost"] = 500
-      boost["singer_income"] = 1000
-      boost["singer_duration"] = 2
-  
-      # Guitarist
-      boost["guitarist"] = self.bot.db["economy"]["users"][str(ctx.author.id)]["boost"]["guitarist"]
-      boost["guitarist_cost"] = 8000
-      boost["guitarist_income"] = 10000
-      boost["guitarist_duration"] = 3
-  
-      # Pianist
-      boost["pianist"] = self.bot.db["economy"]["users"][str(ctx.author.id)]["boost"]["pianist"]
-      boost["pianist_cost"] = 2500
-      boost["pianist_income"] = 4000
-      boost["pianist_duration"] = 4
-  
-      # Band
-      boost["band"] = self.bot.db["economy"]["users"][str(ctx.author.id)]["boost"]["band"]
-      boost["band_cost"] = 10000
-      boost["band_income"] = 4000
-      boost["band_duration"] = 6
-  
-      # Magician
-      boost["magician"] = self.bot.db["economy"]["users"][str(ctx.author.id)]["boost"]["magician"]
-      boost["magician_cost"] = 10000
-      boost["magician_income"] = 8000
-      boost["magician_duration"] = 2
-      if id is None:
-        embed = discord.Embed(
-          title = "Shop Boosts",
-          description = f"""
-  **__Singer__** `[2h]`
-  Boost: **+ 1000 {coin} / hour**
-  Cost: **500 {coin}**
-  ID: `singer`
-  
-  **__Guitarist__** `[3h]`
-  Boost: **+ 5000 {coin} / hour**
-  Cost: **8000 {coin} / hour**
-  ID: `guitarist`
-          
-  **__Pianist__** `[4h]`
-  Boost: **+ 2500 {coin} / hour**
-  Cost: **4000 {coin}**
-  ID: `pianist`
+    workers = self.bot.db["economy"][str(ctx.author.id)]["workers"]
+    machine_lvl = self.bot.db["economy"][str(ctx.author.id)]["machine_level"]
+    balance = self.bot.db["economy"][str(ctx.author.id)]["balance"]
+    last_daily = self.bot.db["economy"][str(ctx.author.id)]["last_daily"]
+    currenttime = int(time.time())
+    rate_of_kitkats = (workers + 2) * machine_lvl
+    daily_coins = int(rate_of_kitkats) * 100
+    daily_streak = self.bot.db["economy"][str(ctx.author.id)]["daily_streak"]
     
-  **__Band__** `[6h]`
-  Boost: **+ 10,000 {coin} / hour**
-  Cost: **40,000 {coin}**
-  ID: `band`
-  
-  **__Magician__** `[2h]`
-  Boost: **+ 8000 {coin} / hour**
-  Cost: **10,000 {coin}**
-  ID: `magician`
-  \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
-  Balance: **{balance} {coin}**
-  Use `{self.bot.prefix}boost <ID>` to purchase a boost.
-  Use `{self.bot.prefix}boost view` to view your current boosts.
-  """,
-          color = discord.Color.purple()
-        )
-      elif id == "view":
-        boosts = {}
-        for boost in self.bot.db["economy"]["users"][str(ctx.author.id)]["boost"]:
-          boosts[boost] = self.bot.db["economy"]["users"][str(ctx.author.id)]["boost"][boost]
-        embed = discord.Embed(
-          title = ":hourglass: | Active Boosters",
-          color = discord.Color.teal()
-        )
-        for boost in self.bot.db["economy"]["users"][str(ctx.author.id)]["boost"]:
-          embed.add_field(name = f"**{boost.title()}:** ", value = f"Time Left: **{boosts[boost]} hour(s)**", inline = False)
-      elif id in ("band", "pianist", "guitarist", "singer", "magician"):
-        if bulk is None:
-          bulk = 1
-        try:
-          bulk = int(bulk)
-          if bulk < 1:
-            a
-        except:
-          embed = discord.Embed(
-            title = "🚀 | Boosts",
-            description = f"{cross} Invalid amount! Please use `{self.bot.prefix}boosts <ID> <amount>`!",
-            color = discord.Color.red()
-          )
-          await ctx.reply(embed = embed, mention_author = False)
-          return
-        if self.bot.db["economy"]["users"][str(ctx.author.id)]["boost"][id] > 48 or bulk > 5:
-          if self.bot.db["economy"]["users"][str(ctx.author.id)]["boost"][id] > 48:
-            message = f"{cross} You cannot buy more boosts when you have more than 48 hours of boosts remaining!"
-          else:
-            message = "You cannot by more than 5 boosts at one time!"
-          embed = discord.Embed(
-            title = "🚀 | Boosts",
-            description = message,
-            color = discord.Color.red()
-          )
-          await ctx.reply(embed = embed, mention_author = False)
-          return
-        if balance >= boost[id+"_cost"] * bulk:
-          self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"] -= boost[id+"_cost"] * bulk
-          self.bot.db["economy"]["users"][str(ctx.author.id)]["boost"][id] += boost[id+"_duration"] * bulk
-          balance = self.bot.db["economy"]["users"][str(ctx.author.id)]["balance"]
-          duration = boost[id+"_duration"] * bulk
-          embed = discord.Embed(
-          title = "🚀 | Boosts",
-          description = f"{tick} You have hired a **{id}** for **{duration} hours** \nBalance: **{balance} {coin}** \nIncome: **{await self.bot.get_income(ctx.author.id):,} {coin}/ hour**",
-          color = discord.Color.green()
-        )
-        else:
-          embed = discord.Embed(
-          title = "🚀 | Boosts",
-          description = f"{cross} You do not have enough money to hire **{bulk} {id}**  \nBalance: **{balance} {coin}** ",
-          color = discord.Color.red()
-        )
+    if currenttime >= (last_daily + 86400):
+      pres_coins = 0
+      streak_bonus = 500
+      if currenttime >= (last_daily + 86400*2):
+        self.bot.db["economy"][str(ctx.author.id)]["daily_streak"] = 0
+        streak_coins = 0
       else:
-        embed = discord.Embed(
-          title = "Shop Boosts",
-          description = f"{cross} Invalid ID! Please use `{self.bot.prefix}boost <id>`",
-          color = discord.Color.red()
-        )
+        self.bot.db["economy"][str(ctx.author.id)]["daily_streak"] += 1
+      streak_coins = self.bot.db["economy"][str(ctx.author.id)]["daily_streak"] * streak_bonus
+        
+      daily_streak = self.bot.db["economy"][str(ctx.author.id)]["daily_streak"]
+      if self.bot.db["economy"][str(ctx.author.id)]["prestige"] >= 2:
+        pres_coins = math.floor(daily_coins/100*15)
+        rate = "15%"
+        if self.bot.db["economy"][str(ctx.author.id)]["prestige"] >= 3:
+          pres_coins = math.floor(daily_coins/100*30)
+          rate = "30%"
+      total_coins = daily_coins + pres_coins + streak_coins
+
+      self.bot.db["economy"][str(ctx.author.id)]["last_daily"] = time.time()
+      self.bot.db["economy"][str(ctx.author.id)]["balance"] += total_coins
+      updated_bal = balance + total_coins
+      if self.bot.db["economy"][str(ctx.author.id)]["prestige"] < 2:
+        msg = f"Daily reward: **{daily_coins}{coin}** \nStreak Bonus: **{streak_coins}{coin}** \nTotal Reward: **{total_coins}{coin}** \n\nCurrent Balance: **{updated_bal}{coin}** \nDaily Streak: `{daily_streak}` "
+      else: 
+        msg, color = f"Daily reward: **{daily_coins}{coin}** \nPrestige bonus: **{pres_coins}{coin}** (+{rate}) \nStreak Bonus: **{streak_coins}{coin}** \nTotal Reward: **{total_coins}{coin}** \n\nCurrent Balance: **{updated_bal}{coin}** \nDaily Streak: `{daily_streak}` ", green
+      
     else:
-      embed = discord.Embed(
-        title = bot_name,
-        description = f"{cross} You do not own a dessert shop. Use `{self.bot.prefix}build` to build one!",
-      color = discord.Color.red()
+      td = timedelta(seconds=86400-currenttime+last_daily)
+      hours_left = td.seconds // 3600
+      mins_left = (td.seconds % 3600) // 60
+      secs_left = td.seconds % 60
+      msg, color = f"You can claim your daily gift in `{hours_left}h {mins_left}m {secs_left}s`. \nDaily Streak: `{daily_streak}`", red
+      
+    embed = discord.Embed(
+        title = "Daily Reward",
+        description = msg,
+        color = color
       )
     await ctx.reply(embed = embed, mention_author = False)
 
+  @factory_check()
+  @commands.command(aliases = ["w"])
+  async def weekly(self, ctx):
+    if self.bot.db["economy"][str(ctx.author.id)]["prestige"] >= 1:
+      workers = self.bot.db["economy"][str(ctx.author.id)]["workers"]
+      machine_lvl = self.bot.db["economy"][str(ctx.author.id)]["machine_level"]
+      balance = self.bot.db["economy"][str(ctx.author.id)]["balance"]
+      last_weekly = self.bot.db["economy"][str(ctx.author.id)]["last_weekly"]
+      currenttime = int(time.time())
+      rate_of_kitkats = (workers + 2) * machine_lvl
+      weekly_coins = (int(rate_of_kitkats) + 20) * 800
+
+      if currenttime >= (last_weekly + 604800):
+        self.bot.db["economy"][str(ctx.author.id)]["last_weekly"] = int(time.time())
+        self.bot.db["economy"][str(ctx.author.id)]["balance"] += weekly_coins
+        msg, color = f"You have claimed your weekly gift of **{weekly_coins}{coin}!** \nCurrent balance: **{balance + weekly_coins}{coin}**", green
+      else:
+        td = timedelta(seconds=604800-currenttime+last_weekly)
+        days_left = td.days
+        hours_left = td.seconds // 3600
+        mins_left = (td.seconds % 3600) // 60
+        secs_left = td.seconds % 60
+        msg, color = f"You can claim your weekly gift in `{days_left}d {hours_left}h {mins_left}m {secs_left}s`. ", red
+    else:
+      msg, color = f"This is a prestige 1 feature! Do `{self.bot.prefix}prestige` to view prestige costs!", red
+    embed = discord.Embed(title = "Weekly Reward", description = msg, color = color)
+    await ctx.reply(embed = embed, mention_author = False)
+
+  @factory_check()
+  @commands.command(aliases = ["m"])
+  async def monthly(self, ctx):
+    workers = self.bot.db["economy"][str(ctx.author.id)]["workers"]
+    machine_lvl = self.bot.db["economy"][str(ctx.author.id)]["machine_level"]
+    balance = self.bot.db["economy"][str(ctx.author.id)]["balance"]
+    last_monthly = self.bot.db["economy"][str(ctx.author.id)]["last_monthly"]
+    currenttime = int(time.time())
+    rate_of_kitkats = (workers + 2) * machine_lvl
+    monthly_coins = (int(rate_of_kitkats) + 20) * 2000
+
+    if currenttime >= (last_monthly + 2592000):
+      self.bot.db["economy"][str(ctx.author.id)]["last_monthly"] = time.time()
+      self.bot.db["economy"][str(ctx.author.id)]["balance"] += monthly_coins
+      msg, color = f"You have claimed your monthly gift of **{monthly_coins}{coin}!** \nCurrent balance: **{balance + monthly_coins}{coin}**", green
+    else:
+      td = timedelta(seconds=2592000-currenttime+last_monthly)
+      days_left = td.days
+      hours_left = td.seconds // 3600
+      mins_left = (td.seconds % 3600) // 60
+      secs_left = td.seconds % 60
+      msg, color = f"You can claim your monthly gift in `{days_left}d {hours_left}h {mins_left}m {secs_left}s`. ", red
+    embed = discord.Embed(title = "Monothly Reward", description = msg, color = color)
+    await ctx.reply(embed = embed, mention_author = False)
+
+  @factory_check()
+  @commands.command(aliases = ["p", "pres"])
+  async def prestige(self, ctx):
+    prestige = self.bot.db["economy"][str(ctx.author.id)]["prestige"]
+    balance = self.bot.db["economy"][str(ctx.author.id)]["balance"]
+    
+    prestige_msg = f"""
+Welcome to the hall of prestiges! Here, you can view all the prestige perks and can unlock the option to prestige!
+
+Prestiges:
+**[I]** - Unlocks a unique icon next to your name and bolds your name on the leaderboard. It also unlocks the `{self.bot.prefix}weekly` command which gives you A TON of coins EVERY WEEK!
+Cost: **1,000,000{coin}**
+
+**[II]** - Gives you an additional +15% coin bonus when recieving your daily gift.
+Cost: **2,500,000{coin}**
+
+**[III]** - Upgrades your daily bonus from +15% to +30%.
+Cost: **5,000,000{coin}**
+
+**[IV]** - You get an additional +5% coin bonus when selling kitkats.
+Cost: **10,000,000{coin}**
+
+**[V]** - Unlocks a special emoji next to your name on the leaderboards.
+Cost: **20,000,000{coin}**
+
+__More coming soon! :eyes:__
+
+
+Current prestige: **[{prestige_icons[prestige]}]**
+"""
+    if prestige < 5:
+      if balance >= eco_prestige[prestige + 1]:
+        prestige_msg += f"\nYou have enough coins to prestige! React with a :white_check_mark: to prestige! \n**WARNING:** This will reset ALL your progress!"
+    elif prestige == 5:
+      prestige_msg += f"\nYou are currently at the highest prestige level and cannot prestige anymore!"
+    else:
+      prestige_msg += f"You do not have enough coins to prestige! Coins needed: **{eco_prestige[prestige + 1]}{coin}**"
+
+    embed = discord.Embed(
+      title = "Prestige", 
+      description = prestige_msg, 
+        colour = discord.Color.blue()
+        )
+    prestige_confirm = await ctx.send(embed = embed)
+    if prestige < 5:
+      if balance >= eco_prestige[prestige + 1]:
+        await prestige_confirm.add_reaction("✅")
+  
+        def check(reaction, user):
+            return user.id == ctx.author.id and reaction.message == prestige_confirm and str(reaction.emoji) in ["✅"]
+        try:
+            reaction, user = await bot.wait_for("reaction_add",
+                                                timeout=60,
+                                                check=check)
+            if str(reaction.emoji) == "✅" and self.bot.db["economy"][str(ctx.author.id)]["balance"] >= eco_prestige[prestige + 1]:
+                self.bot.db["economy"][str(ctx.author.id)]["balance"] = 0
+                self.bot.db["economy"][str(ctx.author.id)]["last_sold"] = int(time.time())
+                self.bot.db["economy"][str(ctx.author.id)]["workers"] = 1
+                self.bot.db["economy"][str(ctx.author.id)]["machine_level"] = 1
+                self.bot.db["economy"][str(ctx.author.id)]["storage"] = 200
+                self.bot.db["economy"][str(ctx.author.id)]["upgrade_cap"] = 10
+                self.bot.db["economy"][str(ctx.author.id)]["last_daily"] = 1
+                self.bot.db["economy"][str(ctx.author.id)]["last_weekly"] = 1
+                self.bot.db["economy"][str(ctx.author.id)]["last_monthly"] = 1
+                self.bot.db["economy"][str(ctx.author.id)]["prestige"] += 1
+                self.bot.db["economy"][str(ctx.author.id)]["fish"] = {"last_fish" : 1, "rod_level" : 1}
+                self.bot.db["economy"][str(ctx.author.id)]["pets"] = {"name": "", "type": "", "tier" : 0, "level": 0, "last_hunt" : 1}
+                self.bot.db["economy"][str(ctx.author.id)]["daily_streak"] = 0
+                  
+                new_embed = discord.Embed(
+                    title=f"Prestige",
+                    description=f"You have successfully prestiged! **Prestige level: {prestige + 1}**",
+                    color=discord.Color.green())
+                await prestige_confirm.edit(embed=new_embed)
+                p = self.bot.db["economy"][str(ctx.author.id)]["prestige"]
+                channel = bot.get_guild(923013388966166528).get_channel(971043716083089488)
+                await channel.send(f"**{ctx.author} has just prestiged! `Prestige {prestige} > {p}` [{ctx.author.id}]**")
+  
+        except asyncio.TimeoutError:
+            await ctx.reply("You did not react in time.")
+
+  @factory_check()
+  @commands.command(aliases = ["lb", "leaderboards"])
+  async def leaderboard(self, ctx, arg = "kitkats"):
+    note = ""
+    lb_dump = {}
+    arg = arg.lower()
+    for user in self.bot.db["economy"]:
+      if arg in ("c", "coin", "coins", "bal", "balance"):
+        lb_dump[user] = self.bot.db["economy"][user]["balance"]
+        emoji = coin
+        note = f"There are currently `{len(self.bot.db['economy'])}` users producing kitkats!"
+        
+      elif arg in ("b", "bug", "bugs"):
+        try:
+          lb_dump[user] = self.bot.dbo["others"]["bugs"][user]
+        except: 
+          pass
+        emoji = ":bug:"
+        count = 0
+        for user in self.bot.dbo['others']['bugs']:
+          count += self.bot.dbo['others']['bugs'][user]
+        note = f"A total of `{count}` bugs have been reported!"
+        
+      elif arg in ("s", "sponsor", "sponsors"):
+        lb_dump[user] = self.bot.db["economy"][user]["sponsor"]
+        emoji = ":moneybag:"
+        count = 0
+        for user in self.bot.db["economy"]:
+          count += self.bot.db["economy"][user]["sponsor"]
+        note = f"A total of **{count:,} {coin}** has been sponsored!"
+        
+      else:
+        lb_dump[user] = self.bot.db["economy"][user]["kitkats_sold"]
+        emoji = choco
+        note = f"There are currently `{len(self.bot.db['economy'])}` users producing kitkats!"
+        
+    lb = {users: balance for users, balance in reversed(sorted(lb_dump.items(), key=lambda item: item[1]))}
+    
+    count = 1
+    msg = ""
+    for user in lb:
+      prestige = self.bot.db["economy"][user]["prestige"] if self.bot.db["economy"][user]["prestige"] <= 5 else 0
+      fire = ":fire:" if prestige == 5 else ""
+      custom_emoji = custom_emojis[user] if user in custom_emojis else ""
+      tag = f"**{custom_emoji}{fire}[" + prestige_icons[prestige] + "]**"
+        
+      bal = lb[user]
+      user = self.bot.get_user(int(user))
+      msg += f"**{count}.** {tag} {user}: **{bal:,} {emoji}** \n"
+      count += 1
+      if count > 10: break
+    msg += f"\n{note}"
+    embed = discord.Embed(title = "Leaderboards", description = msg, color = green)
+    await ctx.send(embed = embed)
+
+  @factory_check()
+  @commands.command()
+  async def redeem(self, ctx, code = None):
+    if code in self.bot.dbo["others"]["code"] and code is not None and str(ctx.author.id) in self.bot.db["economy"]:
+      money = self.bot.dbo["others"]["code"][code]
+      self.bot.dbo["others"]["code"].pop(code)
+      self.bot.db["economy"][str(ctx.author.id)]["balance"] += money
+      embed = discord.Embed(
+        title = "Code claimed!",
+        description = f"You have successfully claimed the code `{code}`. \nYou have earned **{money} {coin}**",
+        color = discord.Color.blurple()
+      )
+      await ctx.reply(embed = embed, mention_author = False)
+      channel = bot.get_guild(923013388966166528).get_channel(968460468505153616)
+      embed = discord.Embed(title = f"{ctx.author} has claimed a code.", description = f"Code: `{code}` \nAmount: **{money} {coin}**", color = discord.Color.blurple())
+      await channel.send(embed = embed)
+    elif str(ctx.author.id) not in self.bot.db["economy"]:
+      raise FactoryCheck(f"Looks like you do not own a factory! Do `{self.bot.prefix}start` to build one!")
+    else:
+      embed = discord.Embed(
+        title = "Code not found...",
+        description = f"This code has been redeemed before or does not exist... Sorry.",
+        color = discord.Color.red()
+      )
+      await ctx.reply(embed = embed, mention_author = False)
+
+  @commands.command()
+  async def totalkitkats(self, ctx):
+    total = 0
+    for user in self.bot.db["economy"]:
+      total += self.bot.db["economy"][user]["kitkats_sold"]
+    kitkats = f"{total:,}"
+    await ctx.reply(f"A total of **{kitkats}{choco}** has been made!")
+    
 async def setup(bot):
   await bot.add_cog(Economy(bot))
