@@ -1,8 +1,8 @@
 import discord, os, sys, asyncio
 from datetime import date
 from vars import *
-import errors, vars
-from discord import Object
+from errors import *
+from discord import Object, app_commands
 from discord.ext import commands
 from importlib import reload
 from typing import Optional, Literal
@@ -22,7 +22,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   @commands.command()
   @commands.guild_only()
   @commands.is_owner()
-  async def sync(self, ctx: Object, guilds: commands.Greedy[discord.Object], spec: Optional[Literal["~", "*", "^"]] = None) -> None:
+  async def sync(self, ctx: Object, guilds: commands.Greedy[discord.Object], spec: Optional[Literal["~", "*", "^", "-", "help"]] = None) -> None:
     if not guilds:
       if spec == "~":
         synced = await ctx.bot.tree.sync(guild=ctx.guild)
@@ -33,6 +33,21 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         ctx.bot.tree.clear_commands(guild=ctx.guild)
         await ctx.bot.tree.sync(guild=ctx.guild)
         synced = []
+      elif spec == "-":
+        ctx.bot.tree.clear_commands(guild = None)
+        await ctx.bot.tree.sync()
+        await ctx.send(f"Cleared all global commands")
+        return
+      elif spec == "help":
+        await ctx.send(f"""
+.sync -> global sync
+.sync ~ -> sync current guild
+.sync * -> copies all global app commands to current guild and syncs
+.sync ^ -> clears all commands from the current guild target and syncs (removes guild commands)
+.sync id_1 id_2 -> syncs guilds with id 1 and 2
+.sync - -> clears all global slash commands
+.sync help -> calls this help page
+""")
       else:
         synced = await ctx.bot.tree.sync()
 
@@ -52,20 +67,12 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
     await ctx.send(f"Synced the tree to {ret}/{len(guilds)}.")
 
-  @commands.command()
-  @commands.is_owner()
-  async def addmoney(self, ctx, user : discord.Member, amount : int):
-    guild = self.bot.get_guild(936983441516396554)
-  #  tester_role = guild.get_role(937349187673141308)
-    if user != ctx.author and ctx.author.id != 915156033192734760:
-      await ctx.reply("You can only mention yourself!", mention_author = False)
-      return
+  @app_commands.command()
+  @is_owner()
+  async def addmoney(self, itx: discord.Interaction, amount: int, user: Optional[discord.Member] = None):
+    if user is None: user = itx.user
     self.bot.db["economy"][str(user.id)]["balance"] += amount
-    await ctx.reply(f"Added **{amount} {coin}** to {user.name}!", mention_author = False)
-      
-  @addmoney.error
-  async def addmoney_error(self, ctx, error):
-    await ctx.reply(f"Please use `{self.bot.prefix}addmoney <user> <amount>`", mention_author = False)
+    await itx.response.send_message(f"Added **{amount} {coin}** to {user.name}!")
 
   @commands.command()
   @commands.is_owner()
@@ -159,6 +166,14 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     elif arg1 == "restart":
       await ctx.send("Restarting bot... `This might take a few seconds`")
       os.execv(sys.executable, ['python'] + sys.argv)
+    elif arg1 == "updatedb":
+      pass
+      """for user in self.bot.db["economy"]:
+        self.bot.db["economy"][user]["fish"]["tuna"] = 0
+        self.bot.db["economy"][user]["fish"]["grouper"] = 0
+        self.bot.db["economy"][user]["fish"]["snapper"] = 0
+        self.bot.db["economy"][user]["fish"]["salmon"] = 0
+        self.bot.db["economy"][user]["fish"]["cod"] = 0"""
 
 
 
@@ -205,7 +220,6 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         reaction, user = await self.bot.wait_for("reaction_add", timeout=60, check=check)
         if str(reaction.emoji) == "✅":
             self.bot.db["economy"] = {}
-            self.bot.db["economy"]["guild"] = {}
             new_embed = discord.Embed(
               title=f"Economy Reset",
               description=f"The economy has been successfully resetted!",
@@ -227,21 +241,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       try:
         reaction, user = await self.bot.wait_for("reaction_add", timeout=60, check=check)
         if str(reaction.emoji) == "✅":
-          guild = self.bot.db["economy"][str(member.id)]["guild"]
-          
-          if guild != "":
-            rank = self.bot.db["economy"]["guild"][guild]["owner"]
-            if str(member.id) == rank:
-              for i in self.bot.db["economy"]["guild"][guild]["members"]:
-                try:
-                  self.bot.db["economy"][i]["guild"] = ""
-                except Exception:
-                  pass
-              self.bot.db["economy"]["guild"].pop(guild)
-                       
-            else:
-              self.bot.db["economy"]["guild"][guild]["members"].pop(str(member.id))
-            self.bot.db["economy"].pop(str(member.id)) 
+          self.bot.db["economy"].pop(str(member.id)) 
           new_embed = discord.Embed(
             title=f"Economy Reset",
             description=f"The economy has been successfully resetted for {member.mention}!",
@@ -258,7 +258,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       lottery_role = "" #924492846550114365
       if duration is None:
           return await ctx.send(
-              f"Please enter a time and a prize! `({self.bot.prefix}lottery <time> <prize> | s = seconds, m = minutes, h = hours, d = days`)"
+              f"Please enter a time and a prize! (`{self.bot.prefix}lottery <time> <prize> | s = seconds, m = minutes, h = hours, d = days`)"
           )
       elif price is None:
           await ctx.send(f"Please enter a prize! (`{self.bot.prefix}gcreate <time> <prize>`)")
@@ -342,7 +342,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
           f"The lottery ended <t:{ends}:R> | <t:{ends}>! \nPrize pool: **{users * price}{coin}** \nWinner: `{winner}` \nNumber of tickets bought: `{users}`",
           color=discord.Color.green())
           await new_lottery_msg.edit(embed = final_embed)
-  
+  """
   @commands.command(aliases = ["mm"])
   @commands.is_owner()
   async def maintenancemode(self, ctx):
@@ -353,7 +353,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       description = f"Set bot's maintenance to **{not maintenance}**!",
       color = discord.Color.green()
     )
-    await ctx.reply(embed = embed)
+    await ctx.reply(embed = embed)"""
     
 async def setup(bot):
   await bot.add_cog(Dev(bot))

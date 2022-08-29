@@ -1,22 +1,33 @@
 import discord
-from discord.ext import commands
+from vars import *
+from discord import app_commands
 
 def factory_check():
-  def pred(ctx):
-    if str(ctx.author.id) in ctx.bot.db["economy"]:
+  def pred(itx: discord.Interaction):
+    if str(itx.user.id) in itx.client.db["economy"]:
       return True
-    raise FactoryCheck(f"{cross} You do not own a kitkat factory! Use `{ctx.bot.prefix}start` to build one.")
-  return commands.check(pred)
+    raise FactoryCheck(f"{cross} You do not own a kitkat factory! Use `{itx.client.prefix}start` to build one.")
+  return app_commands.check(pred)
 
-class FactoryCheck(commands.CheckFailure):
+class FactoryCheck(app_commands.CheckFailure):
   pass
 
 def pet_check():
-  def pred(ctx):
-    if str(ctx.author.id) in ctx.bot.db["economy"] and ctx.bot.db["economy"][str(ctx.author.id)]["pets"]["tier"] > 0:
+  def pred(itx: discord.Interaction):
+    if str(itx.user.id) in itx.client.db["economy"] and itx.client.db["economy"][str(itx.user.id)]["pets"]["tier"] > 0:
       return True
-    raise PetCheck(f"{cross} You do not own a pet! Use `{ctx.bot.prefix}pets` to adopt one.")
-  return commands.check(pred)
+    raise PetCheck(f"{cross} You do not own a pet! Use `{itx.client.prefix}pet view` to view available pets!")
+  return app_commands.check(pred)
 
-class PetCheck(commands.CheckFailure):
+class PetCheck(app_commands.CheckFailure):
+  pass
+
+def is_owner():
+  def pred(itx: discord.Interaction):
+    if itx.user.id == 915156033192734760:
+      return True
+    raise OwnerCheck(f"{cross} You do not have access to this command!")
+  return app_commands.check(pred)
+
+class OwnerCheck(app_commands.CheckFailure):
   pass

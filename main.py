@@ -48,7 +48,10 @@ bot = MyBot(
   strip_after_prefix = True
 )
 bot.db, bot.dbo = {}, {}
-bot.prefix = "."
+bot.cache = {
+  "fishing_cooldown" : {"users" : {}}
+}
+bot.prefix = "/"
 bot.giving_income = False
 
 

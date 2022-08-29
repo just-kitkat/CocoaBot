@@ -1,11 +1,13 @@
 import discord
 from vars import *
+from discord import app_commands
 from discord.ext import commands
 
 class Events(commands.Cog):
 
   def __init__(self, bot):
     self.bot = bot
+    bot.tree.on_error = self.on_app_command_error
 
   @commands.Cog.listener()
   async def on_ready(self):
@@ -21,6 +23,25 @@ class Events(commands.Cog):
       channel = "DM CHANNEL"
     if not ctx.author.bot:
       print(f"{username}: {msg} ({ctx.guild.name} | {channel})")
+
+  async def on_app_command_error(self, itx: discord.Interaction, error):
+    if isinstance(error, app_commands.MissingPermissions):
+      message = f"{cross} You are missing the required permissions to run this command!"
+    elif isinstance(error, app_commands.CommandOnCooldown):
+      message = f"{cross} This command is on cooldown, you can use it in **{round(error.retry_after, 2)}s**"
+    elif isinstance(error, app_commands.CheckFailure):
+      message = error
+    elif isinstance(error, KeyError):
+      message = f"{cross} That user does not own a dessert shop!"
+    else:
+      message = str(error)
+      message += "\nPlease report this to kitkat3141"
+    embed = discord.Embed(title = "An error occured", description = message, color = red)
+    try:
+      await itx.response.send_message(embed = embed)
+    except Exception as e:
+      print("EH error:", e)
+      await itx.channel.send(embed = embed)
 
 #  @commands.Cog.listener()
   async def on_command_error(self, ctx, error):
@@ -42,7 +63,7 @@ class Events(commands.Cog):
       message = str(error)
       message += "\nPlease report this to kitkat3141"
     embed = discord.Embed(title = "An error occured", description = message, color = red)
-    await ctx.send(embed = embed, mention_author = False)
+    await ctx.reply(embed = embed, mention_author = False)
   
 
 async def setup(bot):

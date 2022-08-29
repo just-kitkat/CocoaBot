@@ -9,7 +9,7 @@ class TicTacToeRequest(discord.ui.View):
   def __init__(self, userID, opponent, *, timeout=120):
     self.userID = userID
     self.opponent = opponent
-    self.value = False
+    self.value = None
     super().__init__(timeout=timeout)
 
   @discord.ui.button(label = "Accept", style = discord.ButtonStyle.success)
@@ -160,10 +160,12 @@ class Games(commands.Cog):
       embed = discord.Embed(title = title, description = f"{match_msg}Status: **It is now <@{turn}>'s turn!**", color = green)
       await itx.channel.send(embed = embed, view = TicTacToe(itx.user.id, user.id, turn, match_msg))
       
-    else:
+    elif view.value == False:
       embed = discord.Embed(title = "Tic Tac Toe", description = f"{itx.user.mention} has canceled the match against {user.mention}!", color = red)
       await itx.edit_original_response(embed = embed, view = None)
-      
+    else:
+      embed = discord.Embed(title = "Tic Tac Toe", description = f"{user.mention} took too long to accept the match! To start a new game, use `/tictactoe`!", color = red)
+      await itx.edit_original_response(embed = embed, view = None)
 
 async def setup(bot):
   await bot.add_cog(Games(bot))
