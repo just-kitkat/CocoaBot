@@ -1,3 +1,12 @@
 {
-  "files": {}
+  "files": {
+    "cogs/economy.py": [
+      {
+        "id": "09733f50-2a4f-4311-8aec-2059c93652d1",
+        "line": 993,
+        "version": 14752,
+        "index": 47861
+      }
+    ]
+  }
 }

@@ -16,7 +16,7 @@ def pet_check():
   def pred(itx: discord.Interaction):
     if str(itx.user.id) in itx.client.db["economy"] and itx.client.db["economy"][str(itx.user.id)]["pets"]["tier"] > 0:
       return True
-    raise PetCheck(f"{cross} You do not own a pet! Use `{itx.client.prefix}pet view` to view available pets!")
+    raise PetCheck(f"{cross} You do not own a pet! Use `{itx.client.prefix}pets list` to view available pets!")
   return app_commands.check(pred)
 
 class PetCheck(app_commands.CheckFailure):

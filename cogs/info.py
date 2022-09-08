@@ -11,21 +11,21 @@ class Info(commands.Cog, name = "Information Commands"):
     self.bot = bot
 
 
-  @app_commands.command()
-  async def ping(self, itx: discord.Interaction):
+  @commands.hybrid_command()
+  async def ping(self, ctx):
     """Gets the bot's latency"""
     ping = round(self.bot.latency * 1000)
     embed = discord.Embed(title = bot_name, 
                          description = f"Ping: **{ping}ms** \nResponse time: **Calculating...**",
                          color = red)
     start = time.time()
-    msg = await itx.response.send_message(embed = embed)
+    msg = await ctx.reply(embed = embed, mention_author = False)
     end = time.time()
     responsetime = round((end - start) * 1000)
     updated_embed = discord.Embed(title = bot_name,
                                  description = f"Ping: **{ping}ms** \nResponse time: **{responsetime}ms**",
                                  color = green)
-    await itx.edit_original_response(embed = updated_embed)
+    await msg.edit(embed = updated_embed)
 
 
     

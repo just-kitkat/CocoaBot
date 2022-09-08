@@ -166,14 +166,26 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     elif arg1 == "restart":
       await ctx.send("Restarting bot... `This might take a few seconds`")
       os.execv(sys.executable, ['python'] + sys.argv)
-    elif arg1 == "updatedb":
-      pass
-      """for user in self.bot.db["economy"]:
-        self.bot.db["economy"][user]["fish"]["tuna"] = 0
-        self.bot.db["economy"][user]["fish"]["grouper"] = 0
-        self.bot.db["economy"][user]["fish"]["snapper"] = 0
-        self.bot.db["economy"][user]["fish"]["salmon"] = 0
-        self.bot.db["economy"][user]["fish"]["cod"] = 0"""
+    elif arg1 == "updatequest":
+      for user in self.bot.db["economy"]:
+        self.bot.db["economy"][user]["quest"] = {
+          "fish" : {
+            "name": "tuna",
+            "times": 5,
+            "completed": False
+          },
+          "hunt" : {
+            "times": 1,
+            "times_completed": 0,
+            "completed": False
+          }
+        }
+        self.bot.db["economy"][user]["last_quest"] = 1
+      await ctx.reply("updated database!")
+    elif arg1 == "updatechests":
+      for user in self.bot.db["economy"]:
+        self.bot.db["economy"][user].pop("chests")
+        self.bot.db["economy"][user]["diamonds"] = 0
 
 
 

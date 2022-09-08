@@ -6,6 +6,24 @@ from typing import Optional, Literal
 from discord import app_commands
 from discord.ext import commands
 
+class AdoptButton(discord.ui.View):
+  def __init__(self, userID, *, timeout=120):
+    self.userID = userID
+    self.value = False
+    super().__init__(timeout=timeout)
+    
+  @discord.ui.button(label="Adopt!", style = discord.ButtonStyle.green)
+  async def adopt_button(self, itx:discord.Interaction, button:discord.ui.Button):
+    button.disabled = True
+    self.value = True
+    await itx.response.edit_message(view = self)
+    self.stop()
+
+  async def interaction_check(self, itx: discord.Interaction):
+    if self.userID == itx.user.id:
+      return True
+    return await itx_check(itx)
+
 class Buttons(discord.ui.View):
   def __init__(self, userID, disabled, *, timeout=120):
     self.userID = userID
@@ -62,9 +80,43 @@ Upgrade cost: **{upgrade_cost}**
     await ctx.reply(embed = embed, mention_author = False)
 
   pet = app_commands.Group(name = "pets", description = "Pet commands")
-  
+
   @pet.command(name = "view")
+  @pet_check()
   async def view(self, itx: discord.Interaction):
+    """View your pet's information"""
+    base_upgrade = 10000
+    upgrades_mult = 1.7
+    level = self.bot.db["economy"][str(itx.user.id)]["pets"]["level"]
+    
+    name = self.bot.db["economy"][str(itx.user.id)]["pets"]["name"]
+    type_ = self.bot.db["economy"][str(itx.user.id)]["pets"]["type"]
+    level = self.bot.db["economy"][str(itx.user.id)]["pets"]["level"]
+    upgrade_cost = math.floor(base_upgrade * upgrades_mult ** level)
+    if self.bot.db["economy"][str(itx.user.id)]["prestige"] == 0 and self.bot.db["economy"][str(itx.user.id)]["pets"]["level"] == 3:
+      upgrade_cost = "Max level"
+    elif self.bot.db["economy"][str(itx.user.id)]["prestige"] == 1 and self.bot.db["economy"][str(itx.user.id)]["pets"]["level"] == 5:
+      upgrade_cost = "Max level"
+    elif self.bot.db["economy"][str(itx.user.id)]["prestige"] >= 2 and self.bot.db["economy"][str(itx.user.id)]["pets"]["level"] == 10:
+      upgrade_cost = "Max level"
+    else:
+      cost1 = math.floor(base_upgrade * upgrades_mult ** level)
+      upgrade_cost = f"{cost1}{coin}"
+
+    embed = discord.Embed(
+      title = "Pets", 
+      description= f"""You currently own a **{type_}!**
+Name: **{name}**
+Type: **{type_}**
+Level: **{level}**
+Upgrade cost: **{upgrade_cost}**
+""", color = discord.Color.green())
+    embed.set_footer(text = f"Do {self.bot.prefix}help pets to view more commands!")
+    await itx.response.send_message(embed = embed)
+  
+  @pet.command(name = "list")
+  async def list(self, itx: discord.Interaction):
+    """A list of all pets up for adoption :D"""
     embed = discord.Embed(
         title = "Pets", 
         description = f"""Welcome to the pet shop! Here, you can buy many different pets! The higher level they are, the more coins you get when hunting! To buy a pet, do `{self.bot.prefix}pet adopt <pet name>`. To hunt, do `{self.bot.prefix}hunt`!
@@ -102,6 +154,7 @@ Pets available: Bee, Python, Seal, Eagle
   @pet.command(name = "adopt")
   @factory_check()
   async def adopt(self, itx: discord.Interaction, pet: Literal["dog", "cat", "hampter", "CookieMonster", "monkey", "lion", "tiger", "bee", "python", "seal", "eagle"]):
+    """Adopt your very own pet!"""
     color = red
     pets = [
     None, #start list at index 1 to represent tiers system
@@ -114,58 +167,51 @@ Pets available: Bee, Python, Seal, Eagle
     user = itx.user.id
     balance = self.bot.db["economy"][str(user)]["balance"]
     prestige = self.bot.db["economy"][str(user)]["prestige"]
-
-    tier = None
+    
     for i in pets[1:]:
       if pet in i:
         tier = pets.index(i)
         break
-    if tier is None:
-      msg = f"{cross} Please enter a valid pet name!"
-    else:
-      if prestige >= tier and balance >= pets_price[tier]:
-        msg = embed = discord.Embed(
-          title = f"Pet: {pet}", 
-          description = f"React with a {tick} to buy a **{pet}** \n**Warning:** This purchase will abandon your previous pet (if any) and reset it's level", 
-          colour = discord.Color.blurple()
-            )
-        pet_confirm = await itx.response.send_message(embed = embed)
-
-        await pet_confirm.add_reaction(tick)
-
-        def check(reaction, user):
-            return user.id == itx.user.id and reaction.message == pet_confirm and str(reaction.emoji) in [tick]
-        try:
-            reaction, user = await self.bot.wait_for("reaction_add", timeout=60, check=check)
-            if str(reaction.emoji) == tick:
-                self.bot.db["economy"][str(itx.user.id)]["pets"]["type"] = pet
-                self.bot.db["economy"][str(itx.user.id)]["pets"]["name"] = f"{str(itx.user.name)}'s pet"
-                self.bot.db["economy"][str(itx.user.id)]["pets"]["last_hunt"] = 1
-                self.bot.db["economy"][str(itx.user.id)]["pets"]["tier"] = tier
-                self.bot.db["economy"][str(itx.user.id)]["pets"]["level"] = 1
-                self.bot.db["economy"][str(itx.user.id)]["balance"] -= pets_price[tier]
+        
+    if prestige >= tier and balance >= pets_price[tier]:
+      msg = embed = discord.Embed(
+        title = f"Pet: {pet}", 
+        description = f"React with a {tick} to buy a **{pet}** \n**Warning:** This purchase will abandon your previous pet (if any) and reset it's level", 
+        colour = discord.Color.blurple()
+          )
+      view = AdoptButton(itx.user.id)
+      await itx.response.send_message(embed = embed, view = view)
+      await view.wait()
+      if view.value:
+        self.bot.db["economy"][str(itx.user.id)]["pets"]["type"] = pet
+        self.bot.db["economy"][str(itx.user.id)]["pets"]["name"] = f"{str(itx.user.name)}'s pet"
+        self.bot.db["economy"][str(itx.user.id)]["pets"]["last_hunt"] = 1
+        self.bot.db["economy"][str(itx.user.id)]["pets"]["tier"] = tier
+        self.bot.db["economy"][str(itx.user.id)]["pets"]["level"] = 1
+        self.bot.db["economy"][str(itx.user.id)]["balance"] -= pets_price[tier]
 
 
-                new_embed = discord.Embed(
-                    title=f"Pet",
-                    description=f"You have successfully adopted a `{pet}`! To rename it, use `{self.bot.prefix}pet name <name>`. You can use `{self.bot.prefix}hunt` to find some amazing loot!",
-                    color=discord.Color.green())
-                await pet_confirm.edit(embed=new_embed)
+        new_embed = discord.Embed(
+            title=f"Pet",
+            description=f"You have successfully adopted a `{pet}`! \nTo rename it, use `{self.bot.prefix}pet name <name>`. You can use `{self.bot.prefix}hunt` to find some amazing loot! \nRemember to feed it everyday or it might starve!",
+            color=discord.Color.green())
+        await itx.edit_original_response(embed=new_embed)
 
-        except asyncio.TimeoutError:
-            await itx.response.send_message("You did not react in time!")
       else:
-        if prestige < tier:
-          msg = f"{cross} You need to be at least **Prestige {tier}** to adopt this pet!"
-        else:
-          msg = f"You do not have enough money to adopt this pet!"
-        embed = discord.Embed(title = "Pets", description = msg, color = color)
-        await itx.response.send_message(embed = embed)
+        await itx.followup.send("You did not react in time!")
+    else:
+      if prestige < tier:
+        msg = f"{cross} You need to be at least **Prestige {tier}** to adopt this pet!"
+      else:
+        msg = f"You do not have enough money to adopt this pet!"
+      embed = discord.Embed(title = "Pets", description = msg, color = color)
+      await itx.response.send_message(embed = embed)
 
   @pet.command(name = "upgrade")
   @factory_check()
   @pet_check()
   async def upgrade(self, itx: discord.Interaction):
+    """Level up your pet for awesome perks!"""
     color = red
     button_disabled = True
     base_upgrade = 10000
@@ -202,6 +248,7 @@ Pets available: Bee, Python, Seal, Eagle
   @factory_check()
   @pet_check()
   async def rename(self, itx: discord.Interaction, name: app_commands.Range[str, 1, 16]):
+    """Give your pet a name!"""
     color = red
     if name in ("@everyone", "@here", "discord.gg"):
       msg = "Nice try but KitkatBot cannot be fooled! Try naming your pet something else!"

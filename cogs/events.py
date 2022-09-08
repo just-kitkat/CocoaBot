@@ -7,11 +7,16 @@ class Events(commands.Cog):
 
   def __init__(self, bot):
     self.bot = bot
-    bot.tree.on_error = self.on_app_command_error
+    #bot.tree.on_error = self.on_app_command_error  
 
   @commands.Cog.listener()
   async def on_ready(self):
     print("We have logged in as {0.user}".format(self.bot))
+
+  @commands.Cog.listener()
+  async def on_app_command_completion(self, itx: discord.Interaction, command):
+    print(f"slash after_invoke ({command})")
+    await self.bot.save_db()
 
   @commands.Cog.listener()
   async def on_message(self, ctx):
@@ -24,7 +29,7 @@ class Events(commands.Cog):
     if not ctx.author.bot:
       print(f"{username}: {msg} ({ctx.guild.name} | {channel})")
 
-  async def on_app_command_error(self, itx: discord.Interaction, error):
+  async def on_app_command_error_(self, itx: discord.Interaction, error):
     if isinstance(error, app_commands.MissingPermissions):
       message = f"{cross} You are missing the required permissions to run this command!"
     elif isinstance(error, app_commands.CommandOnCooldown):
@@ -43,7 +48,7 @@ class Events(commands.Cog):
       print("EH error:", e)
       await itx.channel.send(embed = embed)
 
-#  @commands.Cog.listener()
+  #@commands.Cog.listener()
   async def on_command_error(self, ctx, error):
     if isinstance(error, commands.CommandNotFound):
         return

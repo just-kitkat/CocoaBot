@@ -6,6 +6,43 @@ from typing import Literal, Optional
 from datetime import timedelta, date, datetime
 from discord.ext import commands
 
+class ChestButtons(discord.ui.View):
+  def __init__(self, userID, diamonds):
+    self.userID = userID
+    self.diamonds = diamonds
+    self.value = False
+    super().__init__(timeout=120)
+    types = {"normal":5, "rare":25, "legendary":200}
+    for type in types:
+      self.add_item(OpenChest(userID, type, diamonds <= types[type]))
+    """self.normal_chest.disabled = diamonds>=5
+    self.rare_chest.disabled = diamonds>=25
+    self.legendary_chest.disabled = diamonds>=200"""
+
+  async def interaction_check(self, itx: discord.Interaction):
+    if self.userID == itx.user.id:
+      return True
+    return await itx.client.itx_check(itx)
+
+class OpenChest(discord.ui.Button):
+  def __init__(self, userID, type, can_open):
+    self.userID = userID
+    #self.type = type
+    self.can_open = can_open
+    super().__init__(style=discord.ButtonStyle.success, label=f"Open {type.title()} Chest")
+    self.disabled = can_open
+
+  async def callback(self, itx: discord.Interaction):
+    view: ChestButtons = self.view
+    self.disabled = True
+    await itx.response.edit_message(view = view)
+    await view.ChestButtons(view, itx, itx.client.db["economy"][str(itx.user.id)]["diamonds"])
+
+  async def interaction_check(self, itx: discord.Interaction):
+    if self.userID == itx.user.id:
+      return True
+    return await itx.client.itx_check(itx)
+
 class FishButtons(discord.ui.View):
   def __init__(self, userID, cooldown, *, timeout=5*60):
     self.userID = userID
@@ -29,6 +66,7 @@ class FishButtons(discord.ui.View):
 
   @discord.ui.button(label = "View Inventory", style = discord.ButtonStyle.blurple, emoji = "🧰")
   async def view_inventory(self, itx: discord.Interaction, button: discord.ui.Button):
+    await itx.client.check_quests(itx)
     fishdb = itx.client.db["economy"][str(itx.user.id)]["fish"]
     fishes = {
       "tuna": fishdb["tuna"],
@@ -40,20 +78,105 @@ class FishButtons(discord.ui.View):
     msg = ""
     for fish in fishes:
       if fishes[fish] > 0:
-        msg += f"**{fishes[fish]:,}x {fish.title()}** \n"
+        msg += f"**{fishes[fish]:,}x {fish.title()}** ({fish_values[fish]:,} {coin} each) \n"
     if msg == "":
       msg = f"You have not caught any fishes! Go do some fishing and come back!"
 
     embed = discord.Embed(title = "Fishing Inventory", description = msg, color = blurple)
     embed.set_footer(text = "Upgrade your rod to unlock different kinds of fishes!")
-    await itx.response.send_message(embed = embed)
+    view = SellFish(itx.user.id, itx.client)
+    await itx.response.send_message(embed = embed, view = view)
+    
 
 
   async def interaction_check(self, itx: discord.Interaction):
     if self.userID == itx.user.id:
       return True
-    raise app_commands.CheckFailure(f"{cross} This is not your button!")
+    return await itx.client.itx_check(itx)
+
+class SellIndiFish(discord.ui.Button):
+  def __init__(self, fish):
+    super().__init__(style=discord.ButtonStyle.success, label=f"Sell {fish.title()}")
+    self.fish = fish
+
+  async def callback(self, itx: discord.Interaction):
+    view: SellFish = self.view
+    self.disabled = True
+    await itx.response.edit_message(view = view)
+    await view.sell_fish(view, itx, self.fish)
+
+  async def interaction_check(self, itx: discord.Interaction):
+    if self.userID == itx.user.id:
+      return True
+    return await itx.client.itx_check(itx)
     
+
+class SellFish(discord.ui.View):
+  def __init__(self, userID, dbval, *, timeout=5*60):
+    self.userID = userID
+    self.value = None
+    self.dbval = dbval
+    super().__init__(timeout=timeout)
+    self.complete_quest.label = "Complete quest: Submit " + str(dbval.db["economy"][str(userID)]["quest"]["fish"]["times"]) + " " + dbval.db["economy"][str(userID)]["quest"]["fish"]["name"] + "s"
+    self.fish_name = dbval.db["economy"][str(userID)]["quest"]["fish"]["name"]
+    self.fish_needed = dbval.db["economy"][str(userID)]["quest"]["fish"]["times"]
+    self.complete_quest.disabled = dbval.db["economy"][str(userID)]["quest"]["fish"]["completed"] or dbval.db["economy"][str(userID)]["fish"][self.fish_name] < self.fish_needed
+    #self.sell_tuna.label = "tuna"
+    fishdb = self.dbval.db["economy"][str(userID)]["fish"]
+    fishes = {
+    "tuna": fishdb["tuna"],
+    "grouper": fishdb["grouper"],
+    "snapper": fishdb["snapper"],
+    "salmon": fishdb["salmon"],
+    "cod": fishdb["cod"]
+  }
+    for fish in fishes:
+      if fishes[fish] > 0:
+        self.add_item(SellIndiFish(fish))
+
+  async def sell_fish(self, ins, itx: discord.Interaction, type: str):
+    await itx.edit_original_response(view = ins)
+    fishdb = itx.client.db["economy"][str(itx.user.id)]["fish"]
+    fishes = {
+    "tuna": fishdb["tuna"],
+    "grouper": fishdb["grouper"],
+    "snapper": fishdb["snapper"],
+    "salmon": fishdb["salmon"],
+    "cod": fishdb["cod"]
+  }
+    temp = {type: fishes[type]} if type != True else fishes
+    money = 0
+    for fish in temp:
+      money += fish_values[fish] * fishes[fish]
+      itx.client.db["economy"][str(itx.user.id)]["fish"][fish] = 0
+
+    itx.client.db["economy"][str(itx.user.id)]["balance"] += money
+    balance = itx.client.db["economy"][str(itx.user.id)]["balance"]
+    embed = discord.Embed(title = "Fish", description = f"You sold all your {'fishes' if type == True else type} for a total of **{money:,}{coin}**! \nBalance: **{balance:,}{coin}**", color = green)
+    await itx.followup.send(embed = embed)
+    
+    
+  @discord.ui.button(label="Sell All", style = discord.ButtonStyle.green, emoji = "💸")
+  async def sell_all(self, itx: discord.Interaction, button: discord.ui.Button):
+    for child in self.children:
+      child.disabled = True
+    await itx.response.edit_message(view = self)
+    await self.sell_fish(self, itx, True)
+
+  @discord.ui.button(label="Complete Quest", style = discord.ButtonStyle.blurple, row = 3)
+  async def complete_quest(self, itx: discord.Interaction, button: discord.ui.Button):
+    itx.client.db["economy"][str(itx.user.id)]["fish"][self.fish_name] -= itx.client.db["economy"][str(itx.user.id)]["quest"]["fish"]["times"]
+    itx.client.db["economy"][str(itx.user.id)]["quest"]["fish"]["completed"] = True
+    itx.client.db["economy"][str(itx.user.id)]["balance"] += 25000
+    await itx.response.send_message("Quest completed!")
+    
+
+  async def interaction_check(self, itx: discord.Interaction):
+    if self.userID == itx.user.id:
+      return True
+    return await itx.client.itx_check(itx)
+    
+  
 
 class PrestigeButton(discord.ui.View):
   def __init__(self, userID, prestige, disabled):
@@ -66,11 +189,14 @@ class PrestigeButton(discord.ui.View):
   @discord.ui.button(label = "Prestige", style = discord.ButtonStyle.success)
   async def prestige_button(self, itx:discord.Interaction, button:discord.ui.Button):
     self.value = True
+    button.disabled = True
     self.stop()
-    await itx.response.defer()
+    await itx.response.edit_message(view=self)
 
   async def interaction_check(self, itx: discord.Interaction):
-    return self.userID == itx.user.id
+    if self.userID != itx.user.id:
+      return await itx.client.itx_check(itx)
+    return True
 
 class Economy(commands.Cog, name = "General Commands"):
 
@@ -191,33 +317,33 @@ You can view the leaderboard using `{self.bot.prefix}leaderboard` and prestige u
       odds = random.randint(1, 101)
       level = self.bot.db["economy"][str(itx.user.id)]["fish"]["rod_level"]
       if level == 1:
-        cooldown = 30
+        cooldown = 15
         if odds < 65: fish = "tuna"
-        if 65 < odds < 90: fish = "grouper"
+        if 65 <= odds < 90: fish = "grouper"
         if odds >= 90: fish = "snapper"
       if level == 2:
-        cooldown = 20
+        cooldown = 10
         if odds < 60: fish = "tuna"
-        if 60 < odds < 85: fish = "grouper"
+        if 60 <= odds < 85: fish = "grouper"
         if odds >= 85: fish = "snapper"
       if level == 3:
-        cooldown = 12
+        cooldown = 10
         if odds < 50: fish = "tuna"
-        if 50 < odds < 75: fish = "grouper"
-        if 75 < odds < 90: fish = "snapper"
+        if 50 <= odds < 75: fish = "grouper"
+        if 75 <= odds < 90: fish = "snapper"
         if odds >= 90: fish = "salmon"
       if level == 4:
-        cooldown = 8
+        cooldown = 5
         if odds < 40: fish = "tuna"
-        if 40 < odds < 65: fish = "grouper"
-        if 65 < odds < 85: fish = "snapper"
+        if 40 <= odds < 65: fish = "grouper"
+        if 65 <= odds < 85: fish = "snapper"
         if odds >= 85: fish = "salmon"
       if level == 5:
         cooldown = 5
         if odds < 30: fish = "tuna"
-        if 30 < odds < 60: fish = "grouper"
-        if 60 < odds < 85: fish = "snapper"
-        if 85 < odds < 100: fish = "salmon"
+        if 30 <= odds < 60: fish = "grouper"
+        if 60 <= odds < 90: fish = "snapper"
+        if 90 <= odds < 100: fish = "salmon"
         if odds >= 100: fish = "cod"
       if time.time() < self.bot.db["economy"][str(itx.user.id)]["fish"]["last_fish"] + cooldown:
         view = None
@@ -305,16 +431,16 @@ Upgrades Capacity: **{upgrade_cap}**
 Command: `{self.bot.prefix}upgrade capacity`
 
 Storage Upgrade: **{storage_upgrade}{coin}**
-Storage capacity: **{storage}**
+Storage capacity: **{storage:,}**
 Command: `{self.bot.prefix}upgrade storage`
 
-Fishing Rod Upgrade: **{rod_upgrade}**
+Fishing Rod Upgrade: **{rod_upgrade}{coin}**
 FIshing Rod level: **{rod_level}**
 Command: `{self.bot.prefix}upgrade rod`
 
 To upgrade your pet, you can use `{self.bot.prefix}pet upgrade`.
 
-Current balance: **{balance:,}{coin}**  |  `{rate_of_kitkats}{choco} / minute`
+Current balance: **{balance:,}{coin}**  |  `{rate_of_kitkats:,}{choco} / minute`
 Do `{self.bot.prefix}help economy` to see all economy commands!
 """
       color = discord.Color.blurple()
@@ -324,51 +450,51 @@ Do `{self.bot.prefix}help economy` to see all economy commands!
           self.bot.db["economy"][str(itx.user.id)]["balance"] -= workers_upgrade
           self.bot.db["economy"][str(itx.user.id)]["workers"] += 1
           title = "Upgrade Successful!"
-          msg, color = f"You spent {workers_upgrade}{coin} to hire another worker! \n`Total workers: {workers + 1}`", green
+          msg, color = f"You spent {workers_upgrade:,}{coin} to hire another worker! \n`Total workers: {workers + 1}`", green
         else:
           msg = f"Your upgrade capacity is full! Do `{self.bot.prefix}upgrade capacity` to increase it."
       else: 
-        msg = f"You do not have enough coins to hire another worker! You need **{workers_upgrade - balance}{coin}** more! Do `{self.bot.prefix}help economy` to explore other commands!"
+        msg = f"You do not have enough coins to hire another worker! You need **{(workers_upgrade - balance):,}{coin}** more! Do `{self.bot.prefix}help economy` to explore other commands!"
   
     elif name == "storage":
       if balance >= storage_upgrade:
         self.bot.db["economy"][str(itx.user.id)]["balance"] -= storage_upgrade
         self.bot.db["economy"][str(itx.user.id)]["storage"] += storage * 2
-        title, msg, color = "Upgrade Successful!", f"Upgrade successfull! You spent {storage_upgrade}{coin} to upgrade your storage capacity! \n`Storage capacity: {storage * 2}`", green
+        title, msg, color = "Upgrade Successful!", f"Upgrade successfull! You spent {storage_upgrade:,}{coin} to upgrade your storage capacity! \n`Storage capacity: {storage * 2}`", green
       else: 
-        msg = f"You do not have enough coins to upgrade your storage! You need **{storage_upgrade - balance}{coin}** more! Do `{self.bot.prefix}help economy` to explore other commands!"
+        msg = f"You do not have enough coins to upgrade your storage! You need **{(storage_upgrade - balance):,}{coin}** more! Do `{self.bot.prefix}help economy` to explore other commands!"
   
     elif name == "machines":
       if balance >= machine_upgrade:
         if upgrade_cap > total_upgrades:
           self.bot.db["economy"][str(itx.user.id)]["balance"] -= machine_upgrade
           self.bot.db["economy"][str(itx.user.id)]["machine_level"] += 1
-          title, msg, color = "Upgrade Successful!", f"Upgrade successfull! You spent {machine_upgrade}{coin} to upgrade your machine! \nMachine level: `{machine_lvl + 1}`", green
+          title, msg, color = "Upgrade Successful!", f"Upgrade successfull! You spent {machine_upgrade:,}{coin} to upgrade your machine! \nMachine level: `{machine_lvl + 1}`", green
         else:
           msg = f"Your upgrade capacity is full! Do `{self.bot.prefix}upgrade capacity` to increase it."
       else: 
-        msg = f"You do not have enough coins to upgrade your machine! You need **{machine_upgrade - balance}{coin} more!** Do `{self.bot.prefix}help economy` to explore other commands!"
+        msg = f"You do not have enough coins to upgrade your machine! You need **{(machine_upgrade - balance):,}{coin} more!** Do `{self.bot.prefix}help economy` to explore other commands!"
     elif name == "capacity":
       if balance >= cap_upgrade:
         self.bot.db["economy"][str(itx.user.id)]["balance"] -= cap_upgrade
         self.bot.db["economy"][str(itx.user.id)]["upgrade_cap"] += 10
-        title, msg, color = "Upgrade Successful!", f"Upgrade successfull! You spent {cap_upgrade}{coin} to upgrade your upgrades capacity! \nCurrent Capacity: `{upgrade_cap + 10}`", green
+        title, msg, color = "Upgrade Successful!", f"Upgrade successfull! You spent {cap_upgrade:,}{coin} to upgrade your upgrades capacity! \nCurrent Capacity: `{upgrade_cap + 10}`", green
       else: 
-        msg = f"You do not have enough coins to upgrade your capacity! You need **{cap_upgrade - balance}{coin}** more! Do `{self.bot.prefix}help economy` to explore other commands!"
+        msg = f"You do not have enough coins to upgrade your capacity! You need **{(cap_upgrade - balance):,}{coin}** more! Do `{self.bot.prefix}help economy` to explore other commands!"
     elif name == "rod":
       if rod_level < 5:
         if balance >= rod_upgrade_:
           self.bot.db["economy"][str(itx.user.id)]["balance"] -= rod_upgrade_
           self.bot.db["economy"][str(itx.user.id)]["fish"]["rod_level"] += 1
           if rod_level + 1 == 3:
-            extra = "\nCongratulations, you have unlocked the ability to catch a **Salmon**!"
+            extra = "\n**Congratulations, you have unlocked the ability to catch a *Salmon***!"
           elif rod_level + 1 == 5:
-            extra = "\nCongratulations, you have unlocked the ability to catch a **LEGENDARY Cod Fish**!"
+            extra = "\n**Congratulations, you have unlocked the ability to catch a *LEGENDARY Cod Fish***!"
           else:
-            extra = ""
-          title, msg, color = "Upgrade Successful!", f"Upgrade successfull! You spent {rod_upgrade_}{coin} to upgrade your fishing rod! \nFishing rod level: `{rod_level + 1}` {extra}", green
+            extra = "\n**Your fishing cooldown has decreased!**"
+          title, msg, color = "Upgrade Successful!", f"Upgrade successfull! You spent **{rod_upgrade_:,}{coin}** to upgrade your fishing rod! \nFishing rod level: `{rod_level + 1}` {extra}", green
         else: 
-          msg = f"You do not have enough coins to upgrade your fishing rod! You need **{rod_upgrade_ - balance}{coin}** more! Do `{self.bot.prefix}help economy` to explore other commands!"
+          msg = f"You do not have enough coins to upgrade your fishing rod! You need **{(rod_upgrade_ - balance):,}{coin}** more! Do `{self.bot.prefix}help economy` to explore other commands!"
       else: 
         msg = "Your fishing rod is already maxed out!"
     embed = discord.Embed(title = title, description = msg, color = color)
@@ -474,6 +600,7 @@ Level: `{pet_level}`
   @app_commands.command(name = "daily")
   async def daily(self, itx: discord.Interaction):
     """Collect your daily reward! """
+    color = green
     workers = self.bot.db["economy"][str(itx.user.id)]["workers"]
     machine_lvl = self.bot.db["economy"][str(itx.user.id)]["machine_level"]
     balance = self.bot.db["economy"][str(itx.user.id)]["balance"]
@@ -508,7 +635,7 @@ Level: `{pet_level}`
       if self.bot.db["economy"][str(itx.user.id)]["prestige"] < 2:
         msg = f"Daily reward: **{daily_coins}{coin}** \nStreak Bonus: **{streak_coins}{coin}** \nTotal Reward: **{total_coins}{coin}** \n\nCurrent Balance: **{updated_bal}{coin}** \nDaily Streak: `{daily_streak}` "
       else: 
-        msg, color = f"Daily reward: **{daily_coins}{coin}** \nPrestige bonus: **{pres_coins}{coin}** (+{rate}) \nStreak Bonus: **{streak_coins}{coin}** \nTotal Reward: **{total_coins}{coin}** \n\nCurrent Balance: **{updated_bal}{coin}** \nDaily Streak: `{daily_streak}` ", green
+        msg = f"Daily reward: **{daily_coins}{coin}** \nPrestige bonus: **{pres_coins}{coin}** (+{rate}) \nStreak Bonus: **{streak_coins}{coin}** \nTotal Reward: **{total_coins}{coin}** \n\nCurrent Balance: **{updated_bal}{coin}** \nDaily Streak: `{daily_streak}` "
       
     else:
       td = timedelta(seconds=86400-currenttime+last_daily)
@@ -578,6 +705,20 @@ Level: `{pet_level}`
       msg, color = f"You can claim your monthly gift in `{days_left}d {hours_left}h {mins_left}m {secs_left}s`. ", red
     embed = discord.Embed(title = "Monothly Reward", description = msg, color = color)
     await itx.response.send_message(embed = embed)
+
+  @app_commands.command(name = "quests")
+  @factory_check()
+  @is_owner()
+  async def quests(self, itx: discord.Interaction):
+    """View your daily quests here!"""
+    # 3 quests. 1 fishing, 1 hunting, 1 pet play/kitkats generated
+    fish_msg, hunt_msg = await self.bot.check_quests(itx)
+    last_quest = self.bot.db["economy"][str(itx.user.id)]["last_quest"]
+    embed = discord.Embed(title = "Daily Quests", description = f"Quest resetting <t:{last_quest + 86400}:R>", color = blurple)
+    embed.add_field(name = "Fishing Quest: ", value = fish_msg, inline = False)
+    embed.add_field(name = "Hunting Quest: ", value = hunt_msg, inline = False)
+    await itx.response.send_message(embed=embed)
+        
 
   @factory_check()
   @app_commands.command(name = "prestige")
@@ -736,6 +877,80 @@ Current prestige: **[{prestige_icons[prestige]}]**
         color = discord.Color.red()
       )
       await itx.response.send_message(embed = embed)
+
+
+  chest = app_commands.Group(name = "chest", description = "Chests commands")
+
+  @chest.command(name = "open")
+  async def open(self, itx: discord.Interaction):
+    if str(itx.user.id) in self.bot.db["economy"]:
+      diamonds = self.bot.db["economy"][str(itx.user.id)]["diamonds"]
+      embed = discord.Embed(
+        title = "Chests",
+        description = f"""
+You currently have **{diamonds} {diamond}**
+
+Normal Chest: **5 {diamond}**
+Rare Chest: **25 {diamond}**
+Legendary Chest: **200{diamond}**
+""",
+        color = blurple
+      )
+      view = ChestButtons(itx.user.id, diamonds)
+      await itx.response.send_message(embed = embed, view = view)
+      await view.wait()
+      if view.value:
+        pass
+        '''
+        self.bot.db["economy"][str(ctx.author.id)]["chests"] -= 1
+        looted = False
+        while not looted:
+          rarity = random.randint(1, 4)
+          item = random.randint(1, 4)
+          if rarity == 1:
+            if item == 1:
+              prize = f"small bag of coins (10,000{coin})"
+              self.bot.db["economy"][str(ctx.author.id)]["balance"] += 10000
+            if item == 2:
+              prize = f"medium bag of coins (100,000{coin})"
+              self.bot.db["economy"][str(ctx.author.id)]["balance"] += 100000
+            if item == 3:
+              prize = "capacity upgrade"
+              self.bot.db["economy"][str(ctx.author.id)]["upgrade_cap"] += 10
+            if item == 4:
+              prize = "storage upgrade"
+              self.bot.db["economy"][str(ctx.author.id)]["storage"] += self.bot.db["economy"][str(ctx.author.id)]["storage"] * 2
+            looted = True
+          if rarity == 2:
+            if item == 1:
+              prize = f"worker upgrade"
+              self.bot.db["economy"][str(ctx.author.id)]["workers"] += 1
+              looted = True
+            if item == 2:
+              prize = f"machine upgrade"
+              self.bot.db["economy"][str(ctx.author.id)]["machine_level"] += 1
+              looted = True
+            if item == 3:
+              if self.bot.db["economy"][str(ctx.author.id)]["rod_level"] < 3:
+                prize = "rod upgrade"
+                self.bot.db["economy"][str(ctx.author.id)]["rod_level"] += 1
+              else:
+                looted = False
+            if item == 4:
+              prize = "maxed out kitkat storage"
+              self.bot.db["economy"][str(ctx.author.id)]["last_sold"] = 1
+              looted = True
+  
+          embed = discord.Embed(
+            title = "Chest Reward",
+            description = f"You opened a chest and got a **{prize}**",
+            color = discord.Color.green()
+          )
+          await ctx.reply(embed = embed)
+          '''
+        await itx.channel.send("Chests are still a work in progreess and is disabled for now!")
+          
+       
 
   @app_commands.command(name = "totalkitkats")
   async def totalkitkats(self, itx: discord.Interaction):

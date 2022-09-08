@@ -6,7 +6,7 @@ from vars import *
 from errors import *
 
 class TicTacToeRequest(discord.ui.View):
-  def __init__(self, userID, opponent, *, timeout=120):
+  def __init__(self, userID, opponent, *, timeout=180):
     self.userID = userID
     self.opponent = opponent
     self.value = None
