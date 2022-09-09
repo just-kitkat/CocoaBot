@@ -69,7 +69,7 @@ Legendary Chest: **200{diamond}**
     if chance <= 60: luck = "common"
     if 60 < chance <= 99: luck = "rare"
     if chance == 100: luck = "legendary"
-    reward = "Medium Bag of Fish" #random.choice(chest_rewards[self.chosen][luck])
+    reward = random.choice(chest_rewards[self.chosen][luck])
 
     # Handle coins
     if reward.endswith("Coins"):
