@@ -74,24 +74,28 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     self.bot.db["economy"][str(user.id)]["balance"] += amount
     await itx.response.send_message(f"Added **{amount} {coin}** to {user.name}!")
 
+  @app_commands.command()
+  @is_owner()
+  async def adddiamonds(self, itx: discord.Interaction, user:discord.Member, amt:int):
+    diamonds = self.bot.db["economy"][str(user.id)]["diamonds"]
+    self.bot.db["economy"][str(user.id)]["diamonds"] += amt
+    await itx.response.send_message(f"Added **{amt} {diamond}** to **{user}**. **{user.name}** now has **{diamonds +  amt} {diamond}**!")
+
   @commands.command()
   @commands.is_owner()
   async def dropcode(self, ctx, channel : discord.TextChannel, code, amount : int):
-    if ctx.author.id == 915156033192734760:
-      embed = discord.Embed(
-        title = "New Code Drop!",
-        description = f"A KitkatBot code has appeared! \nCode: `{code}` \nReward: **{amount} {coin}** \nClaim the code using `{self.bot.prefix}redeem <code>`", 
-        color = discord.Color.blurple()
-      )
-      embed.set_footer(text = "The code is only valid for one person. Good luck!")
-      await channel.send(embed = embed)
-      self.bot.dbo["others"]["code"][code] = amount
-      await ctx.reply(f"Code created!")
-      channel = bot.get_guild(923013388966166528).get_channel(968460468505153616)
-      embed = discord.Embed(title = f"A code has been created.", description = f"Code: `{code}` \nAmount: **{amount} {coin}**", color = discord.Color.green())
-      await channel.send(embed = embed)
-    else:
-      await ctx.reply(f"Only Kitkat3141 can create codes!")
+    embed = discord.Embed(
+      title = "New Code Drop!",
+      description = f"A KitkatBot code has appeared! \nCode: `{code}` \nReward: **{amount} {coin}** \nClaim the code using `{self.bot.prefix}redeem <code>`", 
+      color = discord.Color.blurple()
+    )
+    embed.set_footer(text = "The code is only valid for one person. Good luck!")
+    await channel.send(embed = embed)
+    self.bot.dbo["others"]["code"][code] = amount
+    await ctx.reply(f"Code created!")
+    channel = bot.get_guild(923013388966166528).get_channel(968460468505153616)
+    embed = discord.Embed(title = f"A code has been created.", description = f"Code: `{code}` \nAmount: **{amount} {coin}**", color = discord.Color.green())
+    await channel.send(embed = embed)
   @dropcode.error
   async def dropcode_error(self, ctx, error):
     if ctx.author.id == 915156033192734760:
@@ -186,6 +190,10 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       for user in self.bot.db["economy"]:
         self.bot.db["economy"][user].pop("chests")
         self.bot.db["economy"][user]["diamonds"] = 0
+    elif arg1 == "updatefish":
+      for user in self.bot.db["economy"]:
+        self.bot.db["economy"][user]["fish"] = {"last_fish" : 0, "rod_level" : 1, "tuna" : 0, "grouper" : 0, "snapper" : 0, "salmon" : 0, "cod" : 0}
+      await ctx.send("updated fish db")
 
 
 

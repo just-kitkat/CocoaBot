@@ -20,6 +20,23 @@ fish_values = {
   "salmon": 250000,
   "cod": 1000000
 }
+chest_rewards = {
+      "normal": {
+        "common": ["Small Bag of Coins", "5x Pet Food", "Small Bag of Fish"],
+        "rare": ["Medium Bag of Coins", "10x Pet Food", f"2 {diamond}"],
+        "legendary": ["Large Bag of Coins", "Free Worker Upgrade", "20x Pet Food", "Medium Bag of Fish"]
+      },
+      "rare": {
+        "common": ["Medium Bag of Coins", "8x Pet Food", "Small Bag of Fish"],
+        "rare": ["Large Bag of Coins", "15x Pet Food", "Free Worker Upgrade", "Medium Bag of Fish", f"20 {diamond}"],
+        "legendary": ["Cart Full of Coins", "Free Machine Upgrade", "20x Pet Food", f"69 {diamond}"]
+      },
+      "legendary": {
+        "common": ["Large Bag of Coins", "20x Pet Food", "Medium Bag of Fish", "Free Worker Upgrade", f"69 {diamond}"],
+        "rare": ["Cart Full of Coins", "40x Pet Food", "Free Machine Upgrade", "Large Bag of Fish", f"250 {diamond}"],
+        "legendary": ["House Full of Coins", "100x Pet Food", f"500 {diamond}"]
+      }
+    }
 prestige_icons = ["0", "I", "II", "III", "IV", "V"]
 whitespace = "\u200b"
 is_ready = False

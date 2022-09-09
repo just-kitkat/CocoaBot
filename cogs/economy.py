@@ -7,17 +7,31 @@ from datetime import timedelta, date, datetime
 from discord.ext import commands
 
 class ChestButtons(discord.ui.View):
-  def __init__(self, userID, diamonds):
+  def __init__(self, itx, userID, diamonds, recall = False):
     self.userID = userID
     self.diamonds = diamonds
     self.value = False
     super().__init__(timeout=120)
     types = {"normal":5, "rare":25, "legendary":200}
     for type in types:
-      self.add_item(OpenChest(userID, type, diamonds <= types[type]))
-    """self.normal_chest.disabled = diamonds>=5
-    self.rare_chest.disabled = diamonds>=25
-    self.legendary_chest.disabled = diamonds>=200"""
+      self.add_item(OpenChest(userID, type, types, diamonds < types[type]))
+
+  @discord.ui.button(label = "View Possible Loot", emoji = "🎁", style = discord.ButtonStyle.blurple, row = 4)
+  async def view_loot(self, itx: discord.Interaction, button: discord.ui.Button):
+    embed = discord.Embed(
+      title = "Possibe Chest Loot",
+      description = "Open a chest and stand a chance to get any of these loot!",
+      color = blurple
+    )
+    # Chets Rewards
+    for chest_type in chest_rewards:
+      msg = ""
+      for rarity in chest_rewards[chest_type]:
+        msg += f"**{rarity.title()}:** \n"
+        for item in chest_rewards[chest_type][rarity]:
+          msg += f"- {item} \n"
+      embed.add_field(name = f"{chest_type.title()} Chest", value = msg)
+    await itx.response.send_message(embed = embed)
 
   async def interaction_check(self, itx: discord.Interaction):
     if self.userID == itx.user.id:
@@ -25,18 +39,85 @@ class ChestButtons(discord.ui.View):
     return await itx.client.itx_check(itx)
 
 class OpenChest(discord.ui.Button):
-  def __init__(self, userID, type, can_open):
+  def __init__(self, userID: int, chosen: str, types: dict, can_open: bool):
     self.userID = userID
-    #self.type = type
+    self.types = types
+    self.chosen = chosen
     self.can_open = can_open
-    super().__init__(style=discord.ButtonStyle.success, label=f"Open {type.title()} Chest")
+    super().__init__(style=discord.ButtonStyle.success, label=f"Open {chosen.title()} Chest")
     self.disabled = can_open
 
   async def callback(self, itx: discord.Interaction):
     view: ChestButtons = self.view
-    self.disabled = True
-    await itx.response.edit_message(view = view)
-    await view.ChestButtons(view, itx, itx.client.db["economy"][str(itx.user.id)]["diamonds"])
+    itx.client.db["economy"][str(itx.user.id)]["diamonds"] -= self.types[self.chosen]
+    view = ChestButtons(itx, itx.user.id, itx.client.db["economy"][str(itx.user.id)]["diamonds"])
+    diamonds = itx.client.db["economy"][str(itx.user.id)]["diamonds"]
+    embed = discord.Embed(
+        title = "Chests",
+        description = f"""
+You currently have **{diamonds} {diamond}**
+
+Normal Chest: **5 {diamond}**
+Rare Chest: **25 {diamond}**
+Legendary Chest: **200{diamond}**
+""",
+        color = blurple
+      )
+    await itx.response.edit_message(embed = embed, view = view)
+    # Chest logic
+    chance = random.randint(1, 101)
+    if chance <= 60: luck = "common"
+    if 60 < chance <= 99: luck = "rare"
+    if chance == 100: luck = "legendary"
+    reward = "Medium Bag of Fish" #random.choice(chest_rewards[self.chosen][luck])
+
+    # Handle coins
+    if reward.endswith("Coins"):
+      if reward.startswith("Small"): amt = random.randint(1000, 20000)
+      if reward.startswith("Medium"): amt = random.randint(10000, 50000)
+      if reward.startswith("Large"): amt = random.randint(500000, 1000000)
+      if reward.startswith("Cart"): amt = random.randint(1000000, 5000000)
+      if reward.startswith("House"): amt = random.randint(2500000, 10000000)
+      itx.client.db["economy"][str(itx.user.id)]["balance"] += amt
+      msg = f"You have gained **{amt} {coin}**"
+
+    # Handle Pet Food
+    if reward.endswith("Pet Food"):
+      amt = int(reward.split("x")[0])
+      msg = f"You have gained **{amt} Pet Food** (WIP)"
+
+    if reward.endswith("Upgrade"):
+      if reward[5:].startswith("Worker"): amt = "workers"
+      if reward[5:].startswith("Machine"): amt = "machine_level"
+      itx.client.db["economy"][str(itx.user.id)][amt] += 1
+      msg = f"Your **{amt.replace('_', ' ')}** has increased by 1"
+
+    if reward.endswith(diamond):
+      amt = int(reward.split(" ")[0])
+      itx.client.db["economy"][str(itx.user.id)]["diamonds"] += amt
+      msg = f"You have recieved **{amt} {diamond}**"
+
+    if reward.endswith("Fish"):
+      if reward.startswith("Small"): 
+        fish = random.choice(["tuna", "grouper"])
+        amt = random.randint(3, 8)
+      if reward.startswith("Medium"): 
+        fish = random.choice(["tuna", "grouper", "snapper"])
+        amt = random.randint(5, 25)
+      if reward.startswith("Large"): 
+        fish = random.choice(["snapper", "salmon", "cod"])
+        amt = random.randint(8, 30) if amt[0] != "cod" else random.randint(2, 5)
+      itx.client.db["economy"][str(itx.user.id)]["fish"][fish] += amt
+      msg = f"You received a bag of fish containing **{amt}x {fish}**"
+
+    embed = discord.Embed(
+      title = f"{self.chosen.title()} Chest",
+      description = f"You spent **{self.types[self.chosen]} {diamond}** and opened a **{self.chosen.title()} Chest**! \nReward: **{reward}** \nRarity: **{luck.title()}** \n*{msg}*",
+      color = blurple
+    )
+    
+    await itx.followup.send(embed = embed)
+    
 
   async def interaction_check(self, itx: discord.Interaction):
     if self.userID == itx.user.id:
@@ -207,7 +288,7 @@ class Economy(commands.Cog, name = "General Commands"):
   async def start(self, itx: discord.Interaction):
     """Start your kitkat journey here!"""
     if str(itx.user.id) not in self.bot.db["economy"]:
-      self.bot.db["economy"][str(itx.user.id)] = {"balance" : 10 , "last_sold" : int(time.time()), "workers" : 1, "machine_level" : 1, "storage" : 200, "last_daily" : 1, "last_weekly" : 1, "last_monthly" : 1, "prestige" : 0, "kitkats_sold" : 0, "last_cf": 1, "upgrade_cap" : 10, "sponsor" : 0, "chests" : 0, "fish" : {"last_fish" : 0, "rod_level" : 1, "tuna" : 0, "grouper" : 0, "snapper" : 0, "salmon" : 0, "cod" : 0}, "pets" : {"name": "", "type": "", "tier" : 0, "level": 0, "last_hunt" : 1}, "daily_streak" : 0}
+      self.bot.db["economy"][str(itx.user.id)] = {"balance" : 10 , "last_sold" : int(time.time()), "workers" : 1, "machine_level" : 1, "storage" : 200, "last_daily" : 1, "last_weekly" : 1, "last_monthly" : 1, "prestige" : 0, "kitkats_sold" : 0, "last_cf": 1, "upgrade_cap" : 10, "sponsor" : 0, "diamonds" : 0, "fish" : {"last_fish" : 0, "rod_level" : 1, "tuna" : 0, "grouper" : 0, "snapper" : 0, "salmon" : 0, "cod" : 0}, "pets" : {"name": "", "type": "", "tier" : 0, "level": 0, "last_hunt" : 1}, "daily_streak" : 0}
       embed = discord.Embed(
         title = "**Kitkat Factory**", 
         description = f"""
@@ -879,10 +960,8 @@ Current prestige: **[{prestige_icons[prestige]}]**
       await itx.response.send_message(embed = embed)
 
 
-  chest = app_commands.Group(name = "chest", description = "Chests commands")
-
-  @chest.command(name = "open")
-  async def open(self, itx: discord.Interaction):
+  @app_commands.command(name = "chest")
+  async def chest(self, itx: discord.Interaction):
     if str(itx.user.id) in self.bot.db["economy"]:
       diamonds = self.bot.db["economy"][str(itx.user.id)]["diamonds"]
       embed = discord.Embed(
@@ -896,7 +975,7 @@ Legendary Chest: **200{diamond}**
 """,
         color = blurple
       )
-      view = ChestButtons(itx.user.id, diamonds)
+      view = ChestButtons(itx, itx.user.id, diamonds)
       await itx.response.send_message(embed = embed, view = view)
       await view.wait()
       if view.value:

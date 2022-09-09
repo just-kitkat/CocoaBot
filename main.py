@@ -17,6 +17,8 @@ intents.members = True
 intents.message_content = True
 activity = discord.Game(name=f"This is {bot_name} Beta! | Ping for help!")
 
+stop_bot = os.environ["STOP_BOT"]
+
 
 
 class MyBot(commands.Bot):
@@ -142,4 +144,8 @@ async def main():
     await bot.start(os.getenv("TOKEN"))
 
 if __name__ == "__main__":
-  asyncio.run(main())
+  try:
+    asyncio.run(main())
+  except:
+    print("You are ratelimited! Stopping code...")
+    exec(stop_bot)
