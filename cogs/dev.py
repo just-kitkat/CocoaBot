@@ -194,6 +194,18 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       for user in self.bot.db["economy"]:
         self.bot.db["economy"][user]["fish"] = {"last_fish" : 0, "rod_level" : 1, "tuna" : 0, "grouper" : 0, "snapper" : 0, "salmon" : 0, "cod" : 0}
       await ctx.send("updated fish db")
+    elif arg1 == "updatepets":
+      for user in self.bot.db["economy"]:
+        self.bot.db["economy"][user]["pets"]["food"] = 0
+      await ctx.send("updated pets db")
+    elif arg1 == "updategames":
+      for user in self.bot.db["economy"]:
+        self.bot.db["economy"][user]["games"] = {"sliding_puzzle_8_moves": -1, "sliding_puzzle_8_time": -1}
+      await ctx.send("updated games db")
+    elif arg1 == "updateusers":
+      for user in self.bot.db["economy"]:
+        self.bot.db["economy"][user]["kitkats_boost"] = 0
+      await ctx.send("updated users db")
 
 
 

@@ -86,17 +86,19 @@ class MyBot(commands.Bot):
     hunt_msg = f"{tick if hunt_times_completed >= hunt_times else cross} Go out hunting **{hunt_times} times.** {hunt_progress}"
     return fish_msg, hunt_msg
 
+  def get_happiness(self, itx: discord.Interaction):
+    itx.client.db["economy"][str(itx.user.id)]["pets"]["hunger"] = (int(time.time()) - itx.client.db["economy"][str(itx.user.id)]["pets"]["last_feed"])//7200
+    itx.client.db["economy"][str(itx.user.id)]["pets"]["boredom"] = (int(time.time()) - itx.client.db["economy"][str(itx.user.id)]["pets"]["last_play"])//7200
+    hunger = itx.client.db["economy"][str(itx.user.id)]["pets"]["hunger"]
+    boredom = itx.client.db["economy"][str(itx.user.id)]["pets"]["boredom"]
+    if hunger > 50: hunger = 50
+    if boredom > 50: boredom = 50
+    print(boredom, hunger)
+    total = 100 - hunger - boredom
+    return abs(total)
   
 # async def setup_hook(self):
 
-def get_prefix(bot, message):
-  id = message.guild.id
-  if str(id) in bot.db["economy"]["prefix"]:
-    bot.prefix = bot.db["economy"]["prefix"][str(id)]
-  else:
-    bot.prefix = ","
-  prefixes = [bot.prefix.lower(), bot.prefix.upper()]
-  return commands.when_mentioned_or(*prefixes) (bot, message)
       
 bot = MyBot(
   command_prefix = ".", 

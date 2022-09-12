@@ -22,7 +22,7 @@ class AdoptButton(discord.ui.View):
   async def interaction_check(self, itx: discord.Interaction):
     if self.userID == itx.user.id:
       return True
-    return await itx_check(itx)
+    return await itx.client.itx_check(itx)
 
 class Buttons(discord.ui.View):
   def __init__(self, userID, disabled, *, timeout=120):
@@ -38,50 +38,16 @@ class Buttons(discord.ui.View):
       self.value = True
       self.stop()
       await itx.response.edit_message(view = self)
-      await itx.response.defer()
 
 class Pets(commands.Cog):
 
   def __init__(self, bot):
     self.bot = bot
 
-  @commands.group(aliases = ["pet"], invoke_without_command = True)
-  @factory_check()
-  async def placeholder(self, ctx, arg = None):
-    if arg is not None:
-      return
-    base_upgrade = 10000
-    upgrades_mult = 1.7
-    level = self.bot.db["economy"][str(itx.user.id)]["pets"]["level"]
-    
-    name = self.bot.db["economy"][str(itx.user.id)]["pets"]["name"]
-    type_ = self.bot.db["economy"][str(itx.user.id)]["pets"]["type"]
-    level = self.bot.db["economy"][str(itx.user.id)]["pets"]["level"]
-    upgrade_cost = math.floor(base_upgrade * upgrades_mult ** level)
-    if self.bot.db["economy"][str(itx.user.id)]["prestige"] == 0 and self.bot.db["economy"][str(itx.user.id)]["pets"]["level"] == 3:
-      upgrade_cost = "Max level"
-    elif self.bot.db["economy"][str(itx.user.id)]["prestige"] == 1 and self.bot.db["economy"][str(itx.user.id)]["pets"]["level"] == 5:
-      upgrade_cost = "Max level"
-    elif self.bot.db["economy"][str(itx.user.id)]["prestige"] >= 2 and self.bot.db["economy"][str(itx.user.id)]["pets"]["level"] == 10:
-      upgrade_cost = "Max level"
-    else:
-      cost1 = math.floor(base_upgrade * upgrades_mult ** level)
-      upgrade_cost = f"{cost1}{coin}"
-
-    embed = discord.Embed(
-      title = "Pets", 
-      description= f"""You currently own a **{type_}!**
-Name: **{name}**
-Type: **{type_}**
-Level: **{level}**
-Upgrade cost: **{upgrade_cost}**
-""", color = discord.Color.green())
-    embed.set_footer(text = f"Do {self.bot.prefix}help pets to view more commands!")
-    await ctx.reply(embed = embed, mention_author = False)
-
   pet = app_commands.Group(name = "pets", description = "Pet commands")
 
   @pet.command(name = "view")
+  @factory_check()
   @pet_check()
   async def view(self, itx: discord.Interaction):
     """View your pet's information"""
@@ -92,6 +58,7 @@ Upgrade cost: **{upgrade_cost}**
     name = self.bot.db["economy"][str(itx.user.id)]["pets"]["name"]
     type_ = self.bot.db["economy"][str(itx.user.id)]["pets"]["type"]
     level = self.bot.db["economy"][str(itx.user.id)]["pets"]["level"]
+    food = itx.client.db["economy"][str(itx.user.id)]["pets"]["food"]
     upgrade_cost = math.floor(base_upgrade * upgrades_mult ** level)
     if self.bot.db["economy"][str(itx.user.id)]["prestige"] == 0 and self.bot.db["economy"][str(itx.user.id)]["pets"]["level"] == 3:
       upgrade_cost = "Max level"
@@ -109,6 +76,8 @@ Upgrade cost: **{upgrade_cost}**
 Name: **{name}**
 Type: **{type_}**
 Level: **{level}**
+Happiness: **{self.bot.get_happiness(itx)}**
+Pet food: **{food} pet food**
 Upgrade cost: **{upgrade_cost}**
 """, color = discord.Color.green())
     embed.set_footer(text = f"Do {self.bot.prefix}help pets to view more commands!")
@@ -186,6 +155,8 @@ Pets available: Bee, Python, Seal, Eagle
         self.bot.db["economy"][str(itx.user.id)]["pets"]["type"] = pet
         self.bot.db["economy"][str(itx.user.id)]["pets"]["name"] = f"{str(itx.user.name)}'s pet"
         self.bot.db["economy"][str(itx.user.id)]["pets"]["last_hunt"] = 1
+        self.bot.db["economy"][str(itx.user.id)]["pets"]["last_feed"] = int(time.time())
+        self.bot.db["economy"][str(itx.user.id)]["pets"]["last_play"] = int(time.time())
         self.bot.db["economy"][str(itx.user.id)]["pets"]["tier"] = tier
         self.bot.db["economy"][str(itx.user.id)]["pets"]["level"] = 1
         self.bot.db["economy"][str(itx.user.id)]["balance"] -= pets_price[tier]
@@ -236,13 +207,45 @@ Pets available: Bee, Python, Seal, Eagle
         msg = f"**{name}** is level {pet_level} \nUpgrade cost: **{upgrade_cost:,}{coin}** \nBalance: **{balance:,}{coin}** \nYou do not have enough money to upgrade your pet!"
     embed = discord.Embed(title = "Pets Upgrade", description = msg, color = color)
     view = Buttons(itx.user.id, button_disabled)
-    await itx.response.send_message(embed = embed, mention_author = False, view = view)
+    await itx.response.send_message(embed = embed, view = view)
     await view.wait()
     if view.value:
       self.bot.db["economy"][str(itx.user.id)]["balance"] -= upgrade_cost
       self.bot.db["economy"][str(itx.user.id)]["pets"]["level"] += 1
       embed = discord.Embed(title = "Pet upgraded!", description = f"**{name}** has been upgraded to **level {pet_level + 1}**", color = green)
-      await itx.response.send_message(embed = embed)
+      await itx.edit_original_response(embed = embed)
+
+  @pet.command(name = "play")
+  @factory_check()
+  @pet_check()
+  async def play(self, itx: discord.Interaction):
+    """Play with your pet and keep it happy!"""
+    itx.client.db["economy"][str(itx.user.id)]["pets"]["last_play"] = int(time.time())
+    name = itx.client.db["economy"][str(itx.user.id)]["pets"]["name"]
+    embed = discord.Embed(title = "Pets", description = f"You played with **{name}**!", color = green)
+    await itx.response.send_message(embed = embed)
+
+  @pet.command(name = "feed")
+  @factory_check()
+  @pet_check()
+  async def feed(self, itx: discord.Interaction):
+    """Feed your pet to keep it happy and healthy!"""
+    color = red
+    food = itx.client.db["economy"][str(itx.user.id)]["pets"]["food"]
+    if food > 0:
+      if self.bot.get_happiness(itx) == 100:
+        msg = f"Your pet is already full! Don't overfeed it!"
+      else:
+        itx.client.db["economy"][str(itx.user.id)]["pets"]["food"] -= 1
+        itx.client.db["economy"][str(itx.user.id)]["pets"]["last_feed"] = int(time.time())
+        msg = f"You fed your pet **1 pet food**!"
+        color = green
+    else:
+      msg = f"You do not have any food to feed your pet! \nYou can obtain pet food by completing games and quests!"
+
+    embed = discord.Embed(title = "Pets", description = msg, color = color)
+    await itx.response.send_message(embed = embed)
+    
 
   @pet.command(name = "rename")
   @factory_check()
@@ -264,9 +267,10 @@ Pets available: Bee, Python, Seal, Eagle
   async def hunt(self, itx: discord.Interaction):
     """Go hunting with your pet and find some amazing rewards!"""
     color = red
+    happiness = self.bot.get_happiness(itx)
     name = self.bot.db["economy"][str(itx.user.id)]["pets"]["name"]
     level = self.bot.db["economy"][str(itx.user.id)]["pets"]["level"]
-    amt_of_coins = math.floor(random.randint(level * 800, (level + 10) * 1000))
+    amt_of_coins = math.floor(random.randint(level * 800, (level + 10) * 1000))//100*happiness
     tier = self.bot.db["economy"][str(itx.user.id)]["pets"]["tier"]
     if tier == 1:
       cooldown = 3600
@@ -277,10 +281,12 @@ Pets available: Bee, Python, Seal, Eagle
     if tier == 3:
       cooldown = 1800
       mins_ = 30
-    if int(time.time()) >= self.bot.db["economy"][str(itx.user.id)]["pets"]["last_hunt"] + cooldown:
+    if int(time.time()) >= self.bot.db["economy"][str(itx.user.id)]["pets"]["last_hunt"] + cooldown or 1:
       self.bot.db["economy"][str(itx.user.id)]["balance"] += amt_of_coins
       self.bot.db["economy"][str(itx.user.id)]["pets"]["last_hunt"] = time.time()
-      msg, color = f"**{name}** went out hunting and brought back **{amt_of_coins}{coin}!** You can upgrade your pet using `{self.bot.prefix}pet upgrade`.", green
+      msg, color = f"**{name}** went out hunting and brought back **{amt_of_coins}{coin}!** \nYou can upgrade your pet using `{self.bot.prefix}pet upgrade`.", green
+      if happiness <= 50:
+        msg += "\n**Your pet is very unhappy and this will impact your pet's hunting motivation!** \nTip: Feed your pet and play with it to keep it happy!"
 
     elif time.time() < self.bot.db["economy"][str(itx.user.id)]["pets"]["last_hunt"] + cooldown:
       currenttime = int(time.time())

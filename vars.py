@@ -24,17 +24,17 @@ chest_rewards = {
       "normal": {
         "common": ["Small Bag of Coins", "5x Pet Food", "Small Bag of Fish"],
         "rare": ["Medium Bag of Coins", "10x Pet Food", f"2 {diamond}"],
-        "legendary": ["Large Bag of Coins", "Free Worker Upgrade", "20x Pet Food", "Medium Bag of Fish"]
+        "legendary": ["Large Bag of Coins", "Free Worker Upgrade", "20x Pet Food", "Medium Bag of Fish", "2% Kitkat Multiplier"]
       },
       "rare": {
-        "common": ["Medium Bag of Coins", "8x Pet Food", "Small Bag of Fish"],
+        "common": ["Medium Bag of Coins", "8x Pet Food", "Small Bag of Fish", "2% Kikat Multiplier"],
         "rare": ["Large Bag of Coins", "15x Pet Food", "Free Worker Upgrade", "Medium Bag of Fish", f"20 {diamond}"],
-        "legendary": ["Cart Full of Coins", "Free Machine Upgrade", "20x Pet Food", f"69 {diamond}"]
+        "legendary": ["Cart Full of Coins", "Free Machine Upgrade", "20x Pet Food", f"69 {diamond}", "5% Kitkat Multiplier"]
       },
       "legendary": {
-        "common": ["Large Bag of Coins", "20x Pet Food", "Medium Bag of Fish", "Free Worker Upgrade", f"69 {diamond}"],
-        "rare": ["Cart Full of Coins", "40x Pet Food", "Free Machine Upgrade", "Large Bag of Fish", f"250 {diamond}"],
-        "legendary": ["House Full of Coins", "100x Pet Food", f"500 {diamond}"]
+        "common": ["Large Bag of Coins", "20x Pet Food", "Medium Bag of Fish", "Free Worker Upgrade", f"69 {diamond}", "2% Kitkat Multiplier"],
+        "rare": ["Cart Full of Coins", "40x Pet Food", "Free Machine Upgrade", "Large Bag of Fish", f"250 {diamond}", "6% Kitkat Multiplier"],
+        "legendary": ["House Full of Coins", "100x Pet Food", f"500 {diamond}", "10% Kitkat Multiplier"]
       }
     }
 prestige_icons = ["0", "I", "II", "III", "IV", "V"]

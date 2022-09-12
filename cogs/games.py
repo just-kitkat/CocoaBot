@@ -4,6 +4,140 @@ from discord import app_commands
 import random
 from vars import *
 from errors import *
+import time
+
+class Puzzle8Start(discord.ui.View):
+  def __init__(self, userID):
+    self.userID = userID
+    self.value = None
+    super().__init__(timeout=60*5)
+
+  @discord.ui.button(label = "Start Game", style = discord.ButtonStyle.success)
+  async def start_puzzle(self, itx: discord.Interaction, button: discord.ui.Button):
+    self.value = True
+    self.stop()
+    await itx.response.defer()
+
+  async def interaction_check(self, itx: discord.Interaction):
+    if self.userID == itx.user.id:
+      return True
+    return await itx.client.itx_check(itx)
+
+class Puzzle8Game(discord.ui.View):
+  def __init__(self, userID):
+    self.userID = userID
+    self.value = None
+    self.moves = 0
+    self.time_taken = time.time()
+    super().__init__(timeout=60*5)
+    while True:
+      self.board = [[],[],[]]
+      nums = [1,2,3,4,5,6,7,8,-1]
+      for y in range(3):
+        for x in range(3):
+          num = random.choice(nums)
+          nums.remove(num)
+          self.board[y].append(num)
+          self.add_item(Puzzle8Button(userID, x, y, num))
+      if self.isSolvable(self.board):
+        break
+      else:
+        self.clear_items()
+
+  def check_win(self):
+    return self.board == [[1,2,3], [4,5,6], [7,8,-1]]
+
+  def move(self, t, c, i):
+    if t == "up":
+      self.board[i][c], self.board[i+1][c] = self.board[i+1][c], self.board[i][c]
+    elif t == "down":
+      self.board[i][c], self.board[i-1][c] = self.board[i-1][c], self.board[i][c]
+    
+    elif t == "left":
+      self.board[i][c], self.board[i][c+1] = self.board[i][c+1], self.board[i][c]
+    elif t == "right":
+      self.board[i][c], self.board[i][c-1] = self.board[i][c-1], self.board[i][c]
+    self.moves += 1
+      
+
+  def get_direction(self, x: int, y: int):
+    direction = None
+    print(self.board)
+    for i in range(4):
+      try:
+        if i == 0 and self.board[y + 1][x] == -1: 
+          direction = "up"; break
+        if i == 1 and self.board[y - 1][x] == -1: 
+          direction = "down"; break
+        if i == 2 and self.board[y][x + 1] == -1: 
+          direction = "left"; break
+        if i == 3 and self.board[y][x - 1] == -1: 
+          direction = "right"; break
+      except Exception:
+        pass
+    return direction
+
+  def getInvCount(self, arr):
+    inv_count = 0
+    empty_value = -1
+    for i in range(0, 9):
+      for j in range(i + 1, 9):
+        if arr[j] != empty_value and arr[i] != empty_value and arr[i] > arr[j]:
+          inv_count += 1
+    return inv_count
+ 
+     
+  # This function returns true
+  # if given 8 puzzle is solvable.
+  def isSolvable(self, puzzle) :
+    # Count inversions in given 8 puzzle
+    inv_count = self.getInvCount([j for sub in puzzle for j in sub])
+    # return true if inversion count is even.
+    return (inv_count % 2 == 0)
+          
+class Puzzle8Button(discord.ui.Button):
+  def __init__(self, userID, x: int, y: int, num: int):
+    super().__init__(style=discord.ButtonStyle.secondary, label=num if num > 0 else '\u200b', row=y)
+    self.userID = userID
+    self.x = x
+    self.y = y
+
+  # Called when button pressed
+  # Game logic
+  async def callback(self, itx: discord.Interaction):
+    view: Puzzle8Game = self.view
+    direction = view.get_direction(self.x, self.y)
+    if direction is not None:
+      view.move(direction, self.x, self.y)
+      #(row_index * row_length) + col_index
+      for y_index, y in enumerate(view.board):
+        for x_index, x in enumerate(y):
+          view.children[(y_index * 3) + x_index].label = x if x != -1 else " "
+      await itx.response.edit_message(view = view)
+      if view.check_win():
+        for child in view.children:
+          child.disabled = True
+        pet_msg = ""
+        if str(itx.user.id) in itx.client.db["economy"] and itx.client.db["economy"][str(itx.user.id)]["pets"]["tier"] != 0:
+          pet_food = random.randint(1,4)
+          itx.client.db["economy"][str(itx.user.id)]["pets"]["food"] += pet_food
+          pet_msg = f"\nYou have recieved **{pet_food} pet food**!"
+        time_taken = round(time.time() - view.time_taken, 2)
+        if time_taken < itx.client.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_time"]: itx.client.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_time"] = time_taken
+        if view.moves < itx.client.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_moves"]: itx.client.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_moves"] = view.moves
+        embed = discord.Embed(title = "Sliding Puzzle 8", description = f"You win! \nMoves: **{view.moves}** \nTime taken: **{time_taken}s** {pet_msg}", color = blurple)
+        await itx.edit_original_response(embed = embed, view = view)
+        view.stop()
+    else:
+      await itx.response.send_message("Invalid Move!", ephemeral=True)
+      await itx.response.defer()
+      
+      
+
+  async def interaction_check(self, itx: discord.Interaction):
+    if self.userID == itx.user.id:
+      return True
+    return await itx.client.itx_check(itx)
 
 class TicTacToeRequest(discord.ui.View):
   def __init__(self, userID, opponent, *, timeout=180):
@@ -166,6 +300,20 @@ class Games(commands.Cog):
     else:
       embed = discord.Embed(title = "Tic Tac Toe", description = f"{user.mention} took too long to accept the match! To start a new game, use `/tictactoe`!", color = red)
       await itx.edit_original_response(embed = embed, view = None)
+
+  @app_commands.command(name = "slidingpuzzle")
+  async def slidingpuzzle(self, itx: discord.Interaction):
+    fewest_moves = self.bot.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_moves"]
+    best_time = self.bot.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_time"]
+    if best_time == -1: fewest_moves, best_time = "No games yet", "No games yet"
+    embed = discord.Embed(title = "Sliding Puzzle 8", description = f"Slide the number tiles into numerical order with the blank tile at the bottom right. \nBest Time: {best_time} \nFewest Moves: {fewest_moves} \nGood luck!", color = blurple)
+    view = Puzzle8Start(itx.user.id)
+    await itx.response.send_message(embed = embed, view = view)
+    await view.wait()
+    if view.value:
+      embed = discord.Embed(title = "Sliding Puzzle 8", description = "Slide the number tiles into numerical order with the blank tile at the bottom right. \nBest Time: WIP \nGood luck!", color = blurple)
+      view = Puzzle8Game(itx.user.id)
+      await itx.edit_original_response(embed = embed, view = view)
 
 async def setup(bot):
   await bot.add_cog(Games(bot))

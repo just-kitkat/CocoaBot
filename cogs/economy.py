@@ -69,7 +69,7 @@ Legendary Chest: **200{diamond}**
     if chance <= 60: luck = "common"
     if 60 < chance <= 99: luck = "rare"
     if chance == 100: luck = "legendary"
-    reward = random.choice(chest_rewards[self.chosen][luck])
+    reward = "5% Kitkat Multiplier" #random.choice(chest_rewards[self.chosen][luck])
 
     # Handle coins
     if reward.endswith("Coins"):
@@ -80,6 +80,12 @@ Legendary Chest: **200{diamond}**
       if reward.startswith("House"): amt = random.randint(2500000, 10000000)
       itx.client.db["economy"][str(itx.user.id)]["balance"] += amt
       msg = f"You have gained **{amt} {coin}**"
+
+    # Handle Kitkat Multipler
+    if reward.endswith("Kitkat Multiplier"):
+      mult = int(reward.split("%")[0])
+      itx.client.db["economy"][str(itx.user.id)]["kitkats_boost"] += mult
+      msg = f"You have recieved a **{mult}%** Kitkat Multiplier!"
 
     # Handle Pet Food
     if reward.endswith("Pet Food"):
@@ -288,7 +294,7 @@ class Economy(commands.Cog, name = "General Commands"):
   async def start(self, itx: discord.Interaction):
     """Start your kitkat journey here!"""
     if str(itx.user.id) not in self.bot.db["economy"]:
-      self.bot.db["economy"][str(itx.user.id)] = {"balance" : 10 , "last_sold" : int(time.time()), "workers" : 1, "machine_level" : 1, "storage" : 200, "last_daily" : 1, "last_weekly" : 1, "last_monthly" : 1, "prestige" : 0, "kitkats_sold" : 0, "last_cf": 1, "upgrade_cap" : 10, "sponsor" : 0, "diamonds" : 0, "fish" : {"last_fish" : 0, "rod_level" : 1, "tuna" : 0, "grouper" : 0, "snapper" : 0, "salmon" : 0, "cod" : 0}, "pets" : {"name": "", "type": "", "tier" : 0, "level": 0, "last_hunt" : 1}, "daily_streak" : 0}
+      self.bot.db["economy"][str(itx.user.id)] = {"balance" : 10 , "last_sold" : int(time.time()), "workers" : 1, "machine_level" : 1, "storage" : 200, "last_daily" : 1, "last_weekly" : 1, "last_monthly" : 1, "prestige" : 0, "kitkats_sold" : 0, "last_cf": 1, "upgrade_cap" : 10, "sponsor" : 0, "diamonds" : 0, "kitkats_boost" : 0, "fish" : {"last_fish" : 0, "rod_level" : 1, "tuna" : 0, "grouper" : 0, "snapper" : 0, "salmon" : 0, "cod" : 0}, "pets" : {"name": "", "type": "", "tier" : 0, "level": 0, "last_hunt" : 1, "last_feed": 1, "last_play": 1, "food": 0}, "daily_streak" : 0, "games" : {"sliding_puzzle_8_moves": -1, "sliding_puzzle_8_time": -1}}
       embed = discord.Embed(
         title = "**Kitkat Factory**", 
         description = f"""
@@ -349,37 +355,24 @@ You can view the leaderboard using `{self.bot.prefix}leaderboard` and prestige u
     storage = self.bot.db["economy"][str(itx.user.id)]["storage"]
 
     rate_of_kitkats = (workers + 2) * machine_lvl
+    kitkats_boost = self.bot.db["economy"][str(itx.user.id)]["kitkats_boost"]
     amt_sold = math.floor(time_diff / 60) * rate_of_kitkats
 
     if math.floor(amt_sold) <= 0:
       msg, color = f"You currently have no kitkats to sell!", red
     else:
-      if math.floor(amt_sold) > self.bot.db["economy"][str(itx.user.id)]["storage"]:
-        amt_sold_final = self.bot.db["economy"][str(itx.user.id)]["storage"]
-        self.bot.db["economy"][str(itx.user.id)]["balance"] += math.floor(amt_sold_final) * 2
-        self.bot.db["economy"][str(itx.user.id)]["last_sold"] = int(time.time())
-        self.bot.db["economy"][str(itx.user.id)]["kitkats_sold"] += math.floor(amt_sold_final)
-        if self.bot.db["economy"][str(itx.user.id)]["prestige"] >= 4:
-          self.bot.db["economy"][str(itx.user.id)]["balance"] += (math.floor(amt_sold_final * 2/100*10))
-          self.bot.db["economy"][str(itx.user.id)]["kitkats_sold"] += math.floor(amt_sold_final/100*10)
-          msg = f"You have sold {amt_sold_final}{choco} and have earned **{amt_sold_final * 2} {coin}** and an extra **{(math.floor(amt_sold_final * 2/100*5))}{coin}** as a prestige bonus! (`+5%`). You could have made more kitkats but your storage capacity could only hold **{storage}{choco}!** "
-        elif self.bot.db["economy"][str(itx.user.id)]["prestige"] < 4:
-          
-          msg = f"You have sold {amt_sold_final}{choco} and have earned **{amt_sold_final * 2} {coin}!** You could have made more kitkats but your storage capacity could only hold **{storage}{choco}!** Upgrade your storage capacity using `{self.bot.prefix}upgrade storage`."
-      else:
-        if self.bot.db["economy"][str(itx.user.id)]["prestige"] >= 4:
-          amt_sold_final = amt_sold
-          self.bot.db["economy"][str(itx.user.id)]["balance"] += math.floor(amt_sold_final) * 2
-          self.bot.db["economy"][str(itx.user.id)]["last_sold"] = int(time.time())
-          self.bot.db["economy"][str(itx.user.id)]["balance"] += (math.floor(amt_sold_final * 2/100*5))
-          self.bot.db["economy"][str(itx.user.id)]["kitkats_sold"] += math.floor(amt_sold_final/100*5)
-          msg = f"You have sold {amt_sold_final}{choco} and have earned **{amt_sold_final * 2} {coin}** and an extra **{(math.floor(amt_sold_final * 2/100*5))}{coin}** as a prestige bonus! (`+5%`)." 
-        elif self.bot.db["economy"][str(itx.user.id)]["prestige"] < 4:
-          amt_sold_final = amt_sold
-          self.bot.db["economy"][str(itx.user.id)]["balance"] += math.floor(amt_sold_final * 2)
-          self.bot.db["economy"][str(itx.user.id)]["last_sold"] = int(time.time())
-          self.bot.db["economy"][str(itx.user.id)]["kitkats_sold"] += math.floor(amt_sold_final)
-          msg = f"You have sold {amt_sold_final}{choco} and have earned **{math.floor(amt_sold_final * 2)} {coin}**! "
+      prestige_mult = 0
+      if self.bot.db["economy"][str(itx.user.id)]["prestige"] >= 4:
+        prestige_mult = 5
+      storage_warning = ""
+      if amt_sold > storage:
+        storage_warning = "\n*Your storage is full! Upgrade your storage to store more kitkats at once!*"
+        amt_sold = storage
+      self.bot.db["economy"][str(itx.user.id)]["balance"] += math.floor(amt_sold) * 2
+      self.bot.db["economy"][str(itx.user.id)]["last_sold"] = int(time.time())
+      self.bot.db["economy"][str(itx.user.id)]["balance"] += (math.floor(amt_sold * 2/100*5 + amt_sold//100*prestige_mult + amt_sold//100*kitkats_boost))
+      self.bot.db["economy"][str(itx.user.id)]["kitkats_sold"] += math.floor(amt_sold/100*5)
+      msg = f"You have sold {amt_sold}{choco} and have earned **{amt_sold * 2} {coin}** \nPersonal Multiplier: **{kitkats_boost}%** \nPrestige Multiplier: **{prestige_mult}%** {storage_warning}"
       
     msg += f"\n*You are currently producing `{str(rate_of_kitkats)}{choco} / minute`*"
     embed = discord.Embed(title = bot_name, description = msg, color = color)
@@ -597,10 +590,10 @@ Do `{self.bot.prefix}help economy` to see all economy commands!
     embed = discord.Embed(title = f"{user.name}'s balance", description = msg, color = green)
     await itx.response.send_message(embed = embed)
 
-  # Stats Command (def stats)
+  # Stats Command 
   @factory_check()
   @app_commands.command(name = "statistics")
-  async def statistics(self, itx: discord.Interaction, user: discord.Member = None):
+  async def stats(self, itx: discord.Interaction, user: discord.Member = None):
     """View someone's stats!"""
     if user is None:
       user = self.bot.get_user(itx.user.id)
@@ -619,6 +612,7 @@ Do `{self.bot.prefix}help economy` to see all economy commands!
     rate_of_kitkats = (workers + 2) * machine_lvl
     balance = self.bot.db["economy"][str(user.id)]["balance"]
     kitkats_sold = self.bot.db["economy"][str(user.id)]["kitkats_sold"]
+    kitkats_boost = self.bot.db["economy"][str(user.id)]["kitkats_boost"]
     prestige = self.bot.db["economy"][str(user.id)]["prestige"]
     rod_level = self.bot.db["economy"][str(user.id)]["fish"]["rod_level"]
     daily_streak = self.bot.db["economy"][str(user.id)]["daily_streak"]
@@ -630,6 +624,7 @@ Workers: `{workers}`
 Upgrade Capacity: `{upgrade_cap}`
 Kitkat Storage: `{storage}`
 Fishing Rod Level: `{rod_level}`
+Kitkats Multiplier: `{kitkats_boost}%`
 Daily Streak: `{daily_streak}`
 Total Kitkats Sold: `{kitkats_sold}{choco}`
 """
@@ -980,54 +975,6 @@ Legendary Chest: **200{diamond}**
       await view.wait()
       if view.value:
         pass
-        '''
-        self.bot.db["economy"][str(ctx.author.id)]["chests"] -= 1
-        looted = False
-        while not looted:
-          rarity = random.randint(1, 4)
-          item = random.randint(1, 4)
-          if rarity == 1:
-            if item == 1:
-              prize = f"small bag of coins (10,000{coin})"
-              self.bot.db["economy"][str(ctx.author.id)]["balance"] += 10000
-            if item == 2:
-              prize = f"medium bag of coins (100,000{coin})"
-              self.bot.db["economy"][str(ctx.author.id)]["balance"] += 100000
-            if item == 3:
-              prize = "capacity upgrade"
-              self.bot.db["economy"][str(ctx.author.id)]["upgrade_cap"] += 10
-            if item == 4:
-              prize = "storage upgrade"
-              self.bot.db["economy"][str(ctx.author.id)]["storage"] += self.bot.db["economy"][str(ctx.author.id)]["storage"] * 2
-            looted = True
-          if rarity == 2:
-            if item == 1:
-              prize = f"worker upgrade"
-              self.bot.db["economy"][str(ctx.author.id)]["workers"] += 1
-              looted = True
-            if item == 2:
-              prize = f"machine upgrade"
-              self.bot.db["economy"][str(ctx.author.id)]["machine_level"] += 1
-              looted = True
-            if item == 3:
-              if self.bot.db["economy"][str(ctx.author.id)]["rod_level"] < 3:
-                prize = "rod upgrade"
-                self.bot.db["economy"][str(ctx.author.id)]["rod_level"] += 1
-              else:
-                looted = False
-            if item == 4:
-              prize = "maxed out kitkat storage"
-              self.bot.db["economy"][str(ctx.author.id)]["last_sold"] = 1
-              looted = True
-  
-          embed = discord.Embed(
-            title = "Chest Reward",
-            description = f"You opened a chest and got a **{prize}**",
-            color = discord.Color.green()
-          )
-          await ctx.reply(embed = embed)
-          '''
-        await itx.channel.send("Chests are still a work in progreess and is disabled for now!")
           
        
 
