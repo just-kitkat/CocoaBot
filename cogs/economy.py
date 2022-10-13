@@ -365,38 +365,27 @@ You can view the leaderboard using `{self.bot.prefix}leaderboard` and prestige u
     await itx.response.send_message(embed = embed)
 
   @factory_check()
-  @app_commands.command(name = "sell")
-  async def sell(self, itx: discord.Interaction):
-    """Sell the kitkats that you have made!"""
+  @app_commands.command(name = "work")
+  async def work(self, itx: discord.Interaction):
+    """Work to sell chocolates to earn some money!"""
+    # to self: add multipliers and boosters
     color = blurple
     last_sold = self.bot.db["economy"][str(itx.user.id)]["last_sold"]
     time_diff = int(time.time()) - last_sold
-    
-    workers = self.bot.db["economy"][str(itx.user.id)]["workers"]
-    machine_lvl = self.bot.db["economy"][str(itx.user.id)]["machine_level"]
-    storage = self.bot.db["economy"][str(itx.user.id)]["storage"]
-
-    rate_of_kitkats = (workers + 2) * machine_lvl
-    kitkats_boost = self.bot.db["economy"][str(itx.user.id)]["kitkats_boost"]
-    amt_sold = math.floor(time_diff / 60) * rate_of_kitkats
-
-    if math.floor(amt_sold) <= 0:
-      msg, color = f"You currently have no kitkats to sell!", red
-    else:
-      prestige_mult = 0
-      if self.bot.db["economy"][str(itx.user.id)]["prestige"] >= 4:
-        prestige_mult = 5
-      storage_warning = ""
-      if amt_sold > storage:
-        storage_warning = "\n*Your storage is full! Upgrade your storage to store more kitkats at once!*"
-        amt_sold = storage
-      self.bot.db["economy"][str(itx.user.id)]["balance"] += math.floor(amt_sold) * 2
+    if time_diff >= 60*10:
+      workers = self.bot.db["economy"][str(itx.user.id)]["workers"]
+      machine_level = self.bot.db["economy"][str(itx.user.id)]["machine_level"]
+  
+      const = workers * machine_level * 1000
+      amt_sold = random.randint(const//2, const*2)
+  
+      self.bot.db["economy"][str(itx.user.id)]["balance"] += amt_sold
       self.bot.db["economy"][str(itx.user.id)]["last_sold"] = int(time.time())
-      self.bot.db["economy"][str(itx.user.id)]["balance"] += (math.floor(amt_sold * 2/100*5 + amt_sold//100*prestige_mult + amt_sold//100*kitkats_boost))
-      self.bot.db["economy"][str(itx.user.id)]["kitkats_sold"] += math.floor(amt_sold/100*5)
-      msg = f"You have sold {amt_sold}{choco} and have earned **{amt_sold * 2} {coin}** \nPersonal Multiplier: **{kitkats_boost}%** \nPrestige Multiplier: **{prestige_mult}%** {storage_warning}"
-      
-    msg += f"\n*You are currently producing `{str(rate_of_kitkats)}{choco} / minute`*"
+      balance = self.bot.db["economy"][str(itx.user.id)]["balance"]
+      msg = f"You worked hard and earned **{amt_sold}{coin}** \nBalance: **{balance:,}{coin}**" # add chocolates sold -> therefore amt earned
+    else:
+      msg = "You cannot work so soon! \nCooldown: `10 mins`" # cooldown based on level/patreon
+      color = red
     embed = discord.Embed(title = bot_name, description = msg, color = color)
     await itx.response.send_message(embed = embed)
   
