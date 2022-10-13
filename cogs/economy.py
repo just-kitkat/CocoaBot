@@ -130,12 +130,30 @@ Legendary Chest: **200{diamond}**
       return True
     return await itx.client.itx_check(itx)
 
+class CraftRod(discord.ui.Button):
+  def __init__(self, x: int, y: int):
+    super().__init__(style=discord.ButtonStyle.success, label=f" ")
+    self.x, self.y = x, y
+
+  async def callback(self, itx: discord.Interaction):
+    return
+    view: FishButtons = self.view
+    view.children[self.x*3 + self.y].label = ""
+    await itx.response.edit_message(view = view)
+    await view.sell_fish(view, itx, self.fish)
+
+  async def interaction_check(self, itx: discord.Interaction):
+    if self.userID == itx.user.id:
+      return True
+    return await itx.client.itx_check(itx)
+
 class FishButtons(discord.ui.View):
   def __init__(self, userID, cooldown, *, timeout=5*60):
     self.userID = userID
     self.value = None
     self.cooldown = cooldown
     super().__init__(timeout=timeout)
+    self.craft_rod.disabled = True
     
   @discord.ui.button(label="Fish Again", style = discord.ButtonStyle.green, emoji = "🎣")
   async def fish_again(self, itx:discord.Interaction, button:discord.ui.Button):
@@ -173,6 +191,10 @@ class FishButtons(discord.ui.View):
     embed.set_footer(text = "Upgrade your rod to unlock different kinds of fishes!")
     view = SellFish(itx.user.id, itx.client)
     await itx.response.send_message(embed = embed, view = view)
+
+  @discord.ui.button(label = "Craft New Rod", style = discord.ButtonStyle.blurple, emoji = "🧰")
+  async def craft_rod(self, itx: discord.Interaction, button: discord.ui.Button):
+    return
     
 
 
@@ -294,7 +316,7 @@ class Economy(commands.Cog, name = "General Commands"):
   async def start(self, itx: discord.Interaction):
     """Start your kitkat journey here!"""
     if str(itx.user.id) not in self.bot.db["economy"]:
-      self.bot.db["economy"][str(itx.user.id)] = {"balance" : 10 , "last_sold" : int(time.time()), "workers" : 1, "machine_level" : 1, "storage" : 200, "last_daily" : 1, "last_weekly" : 1, "last_monthly" : 1, "prestige" : 0, "kitkats_sold" : 0, "last_cf": 1, "upgrade_cap" : 10, "sponsor" : 0, "diamonds" : 0, "kitkats_boost" : 0, "fish" : {"last_fish" : 0, "rod_level" : 1, "tuna" : 0, "grouper" : 0, "snapper" : 0, "salmon" : 0, "cod" : 0}, "pets" : {"name": "", "type": "", "tier" : 0, "level": 0, "last_hunt" : 1, "last_feed": 1, "last_play": 1, "food": 0}, "daily_streak" : 0, "games" : {"sliding_puzzle_8_moves": -1, "sliding_puzzle_8_time": -1}}
+      self.bot.db["economy"][str(itx.user.id)] = {"balance" : 10 , "last_sold" : int(time.time()), "workers" : 1, "machine_level" : 1, "storage" : 200, "last_daily" : 1, "last_weekly" : 1, "last_monthly" : 1, "prestige" : 0, "kitkats_sold" : 0, "last_cf": 1, "upgrade_cap" : 10, "sponsor" : 0, "diamonds" : 0, "kitkats_boost" : 0, "income": 100, "fish" : {"last_fish" : 0, "rod_level" : 1, "tuna" : 0, "grouper" : 0, "snapper" : 0, "salmon" : 0, "cod" : 0}, "pets" : {"name": "", "type": "", "tier" : 0, "level": 0, "last_hunt" : 1, "last_feed": 1, "last_play": 1, "food": 0}, "daily_streak" : 0, "games" : {"sliding_puzzle_8_moves": -1, "sliding_puzzle_8_time": -1}}
       embed = discord.Embed(
         title = "**Kitkat Factory**", 
         description = f"""
@@ -844,6 +866,7 @@ Current prestige: **[{prestige_icons[prestige]}]**
     prestige_confirm = await itx.response.send_message(embed = embed, view = view)
     await view.wait()
     if view.value:
+      #self.bot.db["economy"][str(itx.user.id)] = {"balance" : 10 , "last_sold" : int(time.time()), "workers" : 1, "machine_level" : 1, "storage" : 200, "last_daily" : 1, "last_weekly" : 1, "last_monthly" : 1, "prestige" : 0, "kitkats_sold" : 0, "last_cf": 1, "upgrade_cap" : 10, "sponsor" : 0, "diamonds" : 0, "kitkats_boost" : 0, "fish" : {"last_fish" : 0, "rod_level" : 1, "tuna" : 0, "grouper" : 0, "snapper" : 0, "salmon" : 0, "cod" : 0}, "pets" : {"name": "", "type": "", "tier" : 0, "level": 0, "last_hunt" : 1, "last_feed": 1, "last_play": 1, "food": 0}, "daily_streak" : 0, "games" : {"sliding_puzzle_8_moves": -1, "sliding_puzzle_8_time": -1}}
       self.bot.db["economy"][str(itx.user.id)]["balance"] = 0
       self.bot.db["economy"][str(itx.user.id)]["last_sold"] = int(time.time())
       self.bot.db["economy"][str(itx.user.id)]["workers"] = 1
@@ -854,8 +877,8 @@ Current prestige: **[{prestige_icons[prestige]}]**
       self.bot.db["economy"][str(itx.user.id)]["last_weekly"] = 1
       self.bot.db["economy"][str(itx.user.id)]["last_monthly"] = 1
       self.bot.db["economy"][str(itx.user.id)]["prestige"] += 1
-      self.bot.db["economy"][str(itx.user.id)]["fish"] = {"last_fish" : 1, "rod_level" : 1}
-      self.bot.db["economy"][str(itx.user.id)]["pets"] = {"name": "", "type": "", "tier" : 0, "level": 0, "last_hunt" : 1}
+      self.bot.db["economy"][str(itx.user.id)]["fish"] = {"last_fish" : 0, "rod_level" : 1, "tuna" : 0, "grouper" : 0, "snapper" : 0, "salmon" : 0, "cod" : 0}
+      self.bot.db["economy"][str(itx.user.id)]["pets"] = {"name": "", "type": "", "tier" : 0, "level": 0, "last_hunt" : 1, "food": 0, "last_feed": 0, "last_play": 0}
       self.bot.db["economy"][str(itx.user.id)]["daily_streak"] = 0
         
       new_embed = discord.Embed(

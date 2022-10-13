@@ -156,7 +156,7 @@ Pets available: Bee, Python, Seal, Eagle
         self.bot.db["economy"][str(itx.user.id)]["pets"]["name"] = f"{str(itx.user.name)}'s pet"
         self.bot.db["economy"][str(itx.user.id)]["pets"]["last_hunt"] = 1
         self.bot.db["economy"][str(itx.user.id)]["pets"]["last_feed"] = int(time.time())
-        self.bot.db["economy"][str(itx.user.id)]["pets"]["last_play"] = int(time.time())
+        self.bot.db["economy"][str(itx.user.id)]["pets"]["last_play"] = 1
         self.bot.db["economy"][str(itx.user.id)]["pets"]["tier"] = tier
         self.bot.db["economy"][str(itx.user.id)]["pets"]["level"] = 1
         self.bot.db["economy"][str(itx.user.id)]["balance"] -= pets_price[tier]
@@ -220,9 +220,13 @@ Pets available: Bee, Python, Seal, Eagle
   @pet_check()
   async def play(self, itx: discord.Interaction):
     """Play with your pet and keep it happy!"""
-    itx.client.db["economy"][str(itx.user.id)]["pets"]["last_play"] = int(time.time())
-    name = itx.client.db["economy"][str(itx.user.id)]["pets"]["name"]
-    embed = discord.Embed(title = "Pets", description = f"You played with **{name}**!", color = green)
+    last_play = itx.client.db["economy"][str(itx.user.id)]["pets"]["last_play"]
+    if int(time.time()) >= last_play + 3600:
+      itx.client.db["economy"][str(itx.user.id)]["pets"]["last_play"] = int(time.time())
+      name = itx.client.db["economy"][str(itx.user.id)]["pets"]["name"]
+      embed = discord.Embed(title = "Pets", description = f"You played with **{name}**!", color = green)
+    else:
+      embed = discord.Embed(title = "Pets", description = f"Your pet is tired and need to rest! \nYou cannot play with your pet more than once every hour.", color = red)
     await itx.response.send_message(embed = embed)
 
   @pet.command(name = "feed")

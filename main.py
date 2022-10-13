@@ -87,6 +87,9 @@ class MyBot(commands.Bot):
     return fish_msg, hunt_msg
 
   def get_happiness(self, itx: discord.Interaction):
+    """
+    Gets a pet's happiness based on it's hunger and boredom levels
+    """
     itx.client.db["economy"][str(itx.user.id)]["pets"]["hunger"] = (int(time.time()) - itx.client.db["economy"][str(itx.user.id)]["pets"]["last_feed"])//7200
     itx.client.db["economy"][str(itx.user.id)]["pets"]["boredom"] = (int(time.time()) - itx.client.db["economy"][str(itx.user.id)]["pets"]["last_play"])//7200
     hunger = itx.client.db["economy"][str(itx.user.id)]["pets"]["hunger"]
@@ -96,8 +99,17 @@ class MyBot(commands.Bot):
     print(boredom, hunger)
     total = 100 - hunger - boredom
     return abs(total)
+
+  def get_income(userid):
+    """
+    Gets user's income based on upgrades and boosters
+    """
+    #income = bot.db["economy"][str(userid)]["income"]
+    #income += boost stuff
+    return 0
   
-# async def setup_hook(self):
+  #async def setup_hook(self):
+    
 
       
 bot = MyBot(

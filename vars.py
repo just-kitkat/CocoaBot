@@ -6,6 +6,7 @@ cross = "❌"
 tick = "✅"
 coin = ":coin:"
 choco = "🍫"
+red_square, yellow_square, green_square = "🟥", "🟨", "🟩"
 trashcan = "🗑️"
 diamond = "<:diamond:1017435757616570409>"
 unix_day = 1661788800

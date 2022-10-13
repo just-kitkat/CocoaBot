@@ -1,7 +1,7 @@
 import discord
 from vars import *
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 class Events(commands.Cog):
 
@@ -12,11 +12,14 @@ class Events(commands.Cog):
   @commands.Cog.listener()
   async def on_ready(self):
     print("We have logged in as {0.user}".format(self.bot))
+    await self.tasksloop.start()
 
   @commands.Cog.listener()
   async def on_app_command_completion(self, itx: discord.Interaction, command):
     print(f"slash after_invoke ({command})")
     await self.bot.save_db()
+    if self.bot.dbo["others"]["last_income"] + 3600 > int(time.time()):
+      await self.tasksloop.start()
 
   @commands.Cog.listener()
   async def on_message(self, ctx):
@@ -69,7 +72,30 @@ class Events(commands.Cog):
       message += "\nPlease report this to kitkat3141"
     embed = discord.Embed(title = "An error occured", description = message, color = red)
     await ctx.reply(embed = embed, mention_author = False)
-  
+
+  @tasks.loop(seconds = 60*60, reconnect = True) # hourly loop
+  async def tasksloop(self):
+    # await self.bot.wait_until_ready()
+    guild = self.bot.get_guild(923013388966166528)
+    #await self.bot.check_blacklists()
+    last_income = self.bot.dbo["others"]["last_income"]
+    if int(time.time()) - last_income >= 3600:
+      income_channel = self.bot.get_channel(1030085358299385866)
+      income_missed = (int(time.time()) - last_income) // 3600 # hours missed
+      inactive_users = 0
+      for i in range(income_missed):
+        for user in self.bot.db["economy"]:
+          income = await self.bot.get_income(user)
+          self.bot.db["economy"][user]["balance"] += income
+          
+      self.bot.dbo["others"]["last_income"] = last_income + income_missed * 3600
+      users = len(self.bot.db["economy"])
+      await self.bot.save_db()
+      embed = discord.Embed(
+        title = f"Hourly Income",
+        description = f"__**{users}**__ have received their hourly income! \n<t:{int(time.time())}:R> \nMissed: {income_missed}"
+      )
+      await income_channel.send(embed = embed)
 
 async def setup(bot):
   await bot.add_cog(Events(bot))

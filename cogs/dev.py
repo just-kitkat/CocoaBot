@@ -170,6 +170,13 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     elif arg1 == "restart":
       await ctx.send("Restarting bot... `This might take a few seconds`")
       os.execv(sys.executable, ['python'] + sys.argv)
+    elif arg1 == "task":
+      events = self.bot.get_cog("events")
+      try:
+        await events.tasksloop()
+        await ctx.send("Task has started")
+      except:
+        await ctx.send("Task already running")
     elif arg1 == "updatequest":
       for user in self.bot.db["economy"]:
         self.bot.db["economy"][user]["quest"] = {
@@ -204,8 +211,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       await ctx.send("updated games db")
     elif arg1 == "updateusers":
       for user in self.bot.db["economy"]:
-        self.bot.db["economy"][user]["kitkats_boost"] = 0
-      await ctx.send("updated users db")
+        self.bot.db["economy"][user]["income"] = 100
+      await ctx.send("updated users db (income)")
 
 
 

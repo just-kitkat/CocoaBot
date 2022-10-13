@@ -4,17 +4,101 @@ from discord import app_commands
 import random
 from vars import *
 from errors import *
+from dump.wordle_list import words, valid_words
 import time
+import copy
+
+class WordleGuess(discord.ui.Modal, title='Wordle Guess'):
+  value = False
+  guess = discord.ui.TextInput(
+    label='Guess',
+    placeholder='Your guess here... ',
+    min_length = 5,
+    max_length = 5,
+    required = True
+  )
+  async def on_submit(self, itx: discord.Interaction):
+    if str(self.guess).lower() in valid_words+words:
+      self.value = str(self.guess).upper()
+      await itx.response.defer()
+      self.stop()
+    else:
+      await itx.response.send_message("This word does not exist", ephemeral = True)
+
+class WordleButton(discord.ui.View):
+  def __init__(self, userID, answer, guesses = 6):
+    self.userID = userID
+    self.value = False
+    self.guesses = guesses
+    self.guessed = []
+    self.answer = answer
+    super().__init__(timeout=60*10)
+
+  @discord.ui.button(label = "Guess a Word", style = discord.ButtonStyle.success)
+  async def guess_wordle(self, itx: discord.Interaction, button: discord.ui.Button):
+    wmodal = WordleGuess()
+    await itx.response.send_modal(wmodal)
+    await wmodal.wait()
+    if wmodal.value != False:
+      guess = wmodal.value
+      for letter in guess:
+        if letter not in self.guessed: self.guessed.append(letter)
+      unused_letters = [":regional_indicator_" + chr(i) + ":" for i in range(ord('a'),ord('z')+1) if chr(i).upper() not in self.guessed]
+      
+      embed = (await (await itx.original_response()).fetch()).embeds[0]
+      words_display = ""
+      temp = {i: {"letter": guess[i], "color": "red"} for i in range(5)}
+      temp_letters = [i for i in self.answer]
+      for i in range(2):
+        for index in temp:
+          if temp[index]["letter"] == self.answer[index] and i == 0:
+            temp[index]["color"] = "green"
+            temp_letters.remove(temp[index]["letter"])
+          if temp[index]["letter"] in self.answer and i == 1 and temp[index]["color"] == "red" and temp[index]["letter"] in temp_letters:
+            temp[index]["color"] = "yellow"
+            temp_letters.remove(temp[index]["letter"])
+      words_display = ""
+      for index in temp:
+        words_display += f":regional_indicator_{temp[index]['letter'].lower()}: :{temp[index]['color']}_square: "
+      embed.description = "\n".join(embed.description.split("\n")[:-2]) + f"\n{words_display}" + "\nUnused Letters: \n" + " ".join(unused_letters)
+      self.guesses -= 1
+      if guess == self.answer:
+        embed.description += f"\n**You won!**"
+        self.value = True
+        button.disabled = True
+      elif self.guesses <= 0:
+        embed.description += f"\n**You have lost! The word was *{self.answer}***"
+        button.disabled = True
+      await itx.edit_original_response(embed = embed, view = self)
+
+  @discord.ui.button(label = "View Stats", style = discord.ButtonStyle.success)
+  async def view_stats(self, itx: discord.Interaction, button: discord.ui.Button):
+    await itx.response.send_message("Coming soon!", ephemeral = True)
+  
+  async def interaction_check(self, itx: discord.Interaction):
+    if self.userID == itx.user.id:
+      return True
+    return await itx.client.itx_check(itx)
 
 class Puzzle8Start(discord.ui.View):
   def __init__(self, userID):
     self.userID = userID
-    self.value = None
+    self.value = False
     super().__init__(timeout=60*5)
 
-  @discord.ui.button(label = "Start Game", style = discord.ButtonStyle.success)
-  async def start_puzzle(self, itx: discord.Interaction, button: discord.ui.Button):
-    self.value = True
+  @discord.ui.button(label = "Start 3x3 Puzzle", style = discord.ButtonStyle.success)
+  async def start_puzzle_3(self, itx: discord.Interaction, button: discord.ui.Button):
+    self.value = 3
+    self.stop()
+    await itx.response.defer()
+  @discord.ui.button(label = "Start 4x4 Puzzle", style = discord.ButtonStyle.success)
+  async def start_puzzle_4(self, itx: discord.Interaction, button: discord.ui.Button):
+    self.value = 4
+    self.stop()
+    await itx.response.defer()
+  @discord.ui.button(label = "Start 5x5 Puzzle", style = discord.ButtonStyle.success)
+  async def start_puzzle_5(self, itx: discord.Interaction, button: discord.ui.Button):
+    self.value = 5
     self.stop()
     await itx.response.defer()
 
@@ -24,17 +108,23 @@ class Puzzle8Start(discord.ui.View):
     return await itx.client.itx_check(itx)
 
 class Puzzle8Game(discord.ui.View):
-  def __init__(self, userID):
+  def __init__(self, userID, type_ = 3):
     self.userID = userID
     self.value = None
     self.moves = 0
+    self.type_ = type_
     self.time_taken = time.time()
-    super().__init__(timeout=60*5)
+    self.pos_nums = [None, None, None,
+      [1,2,3,4,5,6,7,8,-1],
+      [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,-1],
+      [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,-1],
+    ]
+    super().__init__(timeout=60*10)
     while True:
-      self.board = [[],[],[]]
-      nums = [1,2,3,4,5,6,7,8,-1]
-      for y in range(3):
-        for x in range(3):
+      self.board = [copy.deepcopy([]) for i in range(type_)]
+      nums = self.pos_nums[type_].copy()
+      for y in range(type_):
+        for x in range(type_):
           num = random.choice(nums)
           nums.remove(num)
           self.board[y].append(num)
@@ -43,9 +133,14 @@ class Puzzle8Game(discord.ui.View):
         break
       else:
         self.clear_items()
+    
 
   def check_win(self):
-    return self.board == [[1,2,3], [4,5,6], [7,8,-1]]
+    temp_board = []
+    for row in self.board:
+      for item in row:
+        temp_board.append(item)
+    return temp_board in self.pos_nums
 
   def move(self, t, c, i):
     if t == "up":
@@ -77,23 +172,44 @@ class Puzzle8Game(discord.ui.View):
         pass
     return direction
 
+  # Python3 program to check if a given instance of N*N-1
+  # puzzle is solvable or not
   def getInvCount(self, arr):
-    inv_count = 0
-    empty_value = -1
-    for i in range(0, 9):
-      for j in range(i + 1, 9):
-        if arr[j] != empty_value and arr[i] != empty_value and arr[i] > arr[j]:
-          inv_count += 1
-    return inv_count
- 
-     
-  # This function returns true
-  # if given 8 puzzle is solvable.
-  def isSolvable(self, puzzle) :
-    # Count inversions in given 8 puzzle
-    inv_count = self.getInvCount([j for sub in puzzle for j in sub])
-    # return true if inversion count is even.
-    return (inv_count % 2 == 0)
+  	arr1=[]
+  	for y in arr:
+  		for x in y:
+  			arr1.append(x)
+  	arr=arr1
+  	inv_count = 0
+  	for i in range(self.type_ * self.type_ - 1):
+  		for j in range(i + 1,self.type_ * self.type_):
+  			# count pairs(arr[i], arr[j]) such that
+  			# i < j and arr[i] > arr[j]
+  			if (arr[j] and arr[i] and arr[i] > arr[j]):
+  				inv_count+=1
+  	return inv_count
+  # find Position of blank from bottom
+  def findXPosition(self, puzzle):
+  	# start from bottom-right corner of matrix
+  	for i in range(self.type_ - 1,-1,-1):
+  		for j in range(self.type_ - 1,-1,-1):
+  			if (puzzle[i][j] == -1):
+  				return self.type_ - i
+  # This function returns true if given
+  # instance of N*N - 1 puzzle is solvable
+  def isSolvable(self, puzzle):
+  	# Count inversions in given puzzle
+  	invCount = self.getInvCount(puzzle)
+  	# If grid is odd, return true if inversion
+  	# count is even.
+  	if (self.type_ & 1):
+  		return ~(invCount & 1)
+  	else: # grid is even
+  		pos = self.findXPosition(puzzle)
+  		if (pos & 1):
+  			return ~(invCount & 1)
+  		else:
+  			return invCount & 1
           
 class Puzzle8Button(discord.ui.Button):
   def __init__(self, userID, x: int, y: int, num: int):
@@ -112,8 +228,8 @@ class Puzzle8Button(discord.ui.Button):
       #(row_index * row_length) + col_index
       for y_index, y in enumerate(view.board):
         for x_index, x in enumerate(y):
-          view.children[(y_index * 3) + x_index].label = x if x != -1 else " "
-      await itx.response.edit_message(view = view)
+          view.children[(y_index * view.type_) + x_index].label = x if x != -1 else " "
+      await itx.response.edit_message(view = view)  
       if view.check_win():
         for child in view.children:
           child.disabled = True
@@ -130,7 +246,6 @@ class Puzzle8Button(discord.ui.Button):
         view.stop()
     else:
       await itx.response.send_message("Invalid Move!", ephemeral=True)
-      await itx.response.defer()
       
       
 
@@ -306,14 +421,41 @@ class Games(commands.Cog):
     fewest_moves = self.bot.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_moves"]
     best_time = self.bot.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_time"]
     if best_time == -1: fewest_moves, best_time = "No games yet", "No games yet"
-    embed = discord.Embed(title = "Sliding Puzzle 8", description = f"Slide the number tiles into numerical order with the blank tile at the bottom right. \nBest Time: {best_time} \nFewest Moves: {fewest_moves} \nGood luck!", color = blurple)
+    embed = discord.Embed(title = "Sliding Puzzle 8", description = f"Slide the number tiles into numerical order with the blank tile at the bottom right. \nBest Time: {best_time} \nFewest Moves: {fewest_moves} \n**Note: 5x5 does not work for mobile!**\nGood luck!", color = blurple)
     view = Puzzle8Start(itx.user.id)
     await itx.response.send_message(embed = embed, view = view)
     await view.wait()
-    if view.value:
+    if view.value != False:
       embed = discord.Embed(title = "Sliding Puzzle 8", description = "Slide the number tiles into numerical order with the blank tile at the bottom right. \nBest Time: WIP \nGood luck!", color = blurple)
-      view = Puzzle8Game(itx.user.id)
+      view = Puzzle8Game(itx.user.id, view.value)
       await itx.edit_original_response(embed = embed, view = view)
+
+  @app_commands.command(name = "wordle")
+  async def wordle(self, itx: discord.Interaction):
+    """Play a game of wordle!"""
+    answer = random.choice(words).upper()
+    all_letters = [":regional_indicator_" + chr(i) + ":" for i in range(ord('a'),ord('z')+1)]
+    embed = discord.Embed(
+      title = "Wordle",
+      description = f"""
+Guess the correct word to win!
+{red_square}: Letter is not in the word
+{yellow_square}: Correct letter but wrong position
+{green_square}: Correct letter and correct position
+\u200b
+Unused Letters: 
+{' '.join(all_letters)}
+""",
+      color = blurple
+    )
+    view = WordleButton(itx.user.id, answer)
+    await itx.response.send_message(embed = embed, view = view)
+    await view.wait()
+    if view.value == False:
+      embed = (await (await itx.original_response()).fetch()).embeds[0]
+      embed.description += f"\n**Answer: {answer} \nThis wordle game has timed out. Start a new one!**"
+      await itx.edit_original_response(embed = embed)
+      
 
 async def setup(bot):
   await bot.add_cog(Games(bot))
