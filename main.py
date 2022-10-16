@@ -100,7 +100,7 @@ class MyBot(commands.Bot):
     total = 100 - hunger - boredom
     return abs(total)
 
-  def get_income(userid):
+  async def get_income(self, userid):
     """
     Gets user's income based on upgrades and boosters
     """

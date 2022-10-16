@@ -475,6 +475,7 @@ You can view the leaderboard using `{self.bot.prefix}leaderboard` and prestige u
   @app_commands.command(name = "upgrade")
   async def upgrade(self, itx: discord.Interaction, name: Optional[Literal["workers", "machines", "storage", "capacity", "rod"]]):
     """Upgrades!!!"""
+    # TODO: Cocoa bean grinder, chocolate moudling machine, storage tank, 
     workers = self.bot.db["economy"][str(itx.user.id)]["workers"]
     machine_lvl = self.bot.db["economy"][str(itx.user.id)]["machine_level"]
     storage = self.bot.db["economy"][str(itx.user.id)]["storage"]
