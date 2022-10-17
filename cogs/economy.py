@@ -5,6 +5,9 @@ from discord import app_commands
 from typing import Literal, Optional
 from datetime import timedelta, date, datetime
 from discord.ext import commands
+from PIL import ImageFont, ImageDraw, Image
+from pilmoji import Pilmoji
+
 
 class ChestButtons(discord.ui.View):
   def __init__(self, itx, userID, diamonds, recall = False):
@@ -472,10 +475,11 @@ You can view the leaderboard using `{self.bot.prefix}leaderboard` and prestige u
         
   # Upgrades Command
   @factory_check()
+  @is_owner()
   @app_commands.command(name = "upgrade")
   async def upgrade(self, itx: discord.Interaction, name: Optional[Literal["workers", "machines", "storage", "capacity", "rod"]]):
     """Upgrades!!!"""
-    # TODO: Cocoa bean grinder, chocolate moudling machine, storage tank, 
+    # TODO: Cocoa bean grinder, chocolate moudling machine, storage tank, chocolate freezer, packaging machine, workers
     workers = self.bot.db["economy"][str(itx.user.id)]["workers"]
     machine_lvl = self.bot.db["economy"][str(itx.user.id)]["machine_level"]
     storage = self.bot.db["economy"][str(itx.user.id)]["storage"]
@@ -567,7 +571,7 @@ Do `{self.bot.prefix}help economy` to see all economy commands!
         title, msg, color = "Upgrade Successful!", f"Upgrade successfull! You spent {cap_upgrade:,}{coin} to upgrade your upgrades capacity! \nCurrent Capacity: `{upgrade_cap + 10}`", green
       else: 
         msg = f"You do not have enough coins to upgrade your capacity! You need **{(cap_upgrade - balance):,}{coin}** more! Do `{self.bot.prefix}help economy` to explore other commands!"
-    elif name == "rod":
+    else: #rod 
       if rod_level < 5:
         if balance >= rod_upgrade_:
           self.bot.db["economy"][str(itx.user.id)]["balance"] -= rod_upgrade_
@@ -583,8 +587,40 @@ Do `{self.bot.prefix}help economy` to see all economy commands!
           msg = f"You do not have enough coins to upgrade your fishing rod! You need **{(rod_upgrade_ - balance):,}{coin}** more! Do `{self.bot.prefix}help economy` to explore other commands!"
       else: 
         msg = "Your fishing rod is already maxed out!"
+
+    
+    img = Image.open("images/upgrade_factory.png")
+    
+    draw = ImageDraw.Draw(img)
+    
+    # Choose a font
+    coins = "\U0001FA99"
+    machines = {
+      "bean_grinder": {"name": f"Bean Grinder", "income": 100, "cost": 500, "coords": (250, 200)},
+      "chocolate_moulder": {"name": f"Chocolate Moulder", "income": 250, "cost": 1200, "coords": (800, 200)},
+      "chocolate_freezer": {"name": f"Chocolate Freezer", "income": 420, "cost": 3600, "coords": (860, 300)},
+           }
+    font = ImageFont.truetype('fonts/arial.ttf', 24)
+
+    for machine in machines:
+      text = f"""
+{machines[machine]['name']}
+Income: {machines[machine]['income']} {coin} / hr
+Cost: {machines[machine]['cost']} {coin}
+"""
+      with Pilmoji(img) as pilmoji:
+        pilmoji.text(machines[machine]["coords"], text.strip(), (0, 0, 0), font)
+    
+    # Draw the text
+    #draw.text((250, 200), "hi", (0, 0, 0), font=font)
+    
+    # Save the image
+    img.save("images/to_send.png")
+    
+    file = discord.File("images/to_send.png", filename="temp.png")
     embed = discord.Embed(title = title, description = msg, color = color)
-    await itx.response.send_message(embed = embed)
+    embed.set_image(url="attachment://temp.png")
+    await itx.response.send_message(file=file, embed = embed)
 
   # Balance Command
   @app_commands.command(name = "balance")

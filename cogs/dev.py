@@ -212,6 +212,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     elif arg1 == "updateusers":
       for user in self.bot.db["economy"]:
         self.bot.db["economy"][user]["income"] = 100
+        self.bot.dbo["others"]["last_income"] = 1665903600
       await ctx.send("updated users db (income)")
 
 
