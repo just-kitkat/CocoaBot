@@ -319,7 +319,38 @@ class Economy(commands.Cog, name = "General Commands"):
   async def start(self, itx: discord.Interaction):
     """Start your kitkat journey here!"""
     if str(itx.user.id) not in self.bot.db["economy"]:
-      self.bot.db["economy"][str(itx.user.id)] = {"balance" : 10 , "last_sold" : int(time.time()), "workers" : 1, "machine_level" : 1, "storage" : 200, "last_daily" : 1, "last_weekly" : 1, "last_monthly" : 1, "prestige" : 0, "kitkats_sold" : 0, "last_cf": 1, "upgrade_cap" : 10, "sponsor" : 0, "diamonds" : 0, "kitkats_boost" : 0, "income": 100, "fish" : {"last_fish" : 0, "rod_level" : 1, "tuna" : 0, "grouper" : 0, "snapper" : 0, "salmon" : 0, "cod" : 0}, "pets" : {"name": "", "type": "", "tier" : 0, "level": 0, "last_hunt" : 1, "last_feed": 1, "last_play": 1, "food": 0}, "daily_streak" : 0, "games" : {"sliding_puzzle_8_moves": -1, "sliding_puzzle_8_time": -1}}
+      self.bot.db["economy"][str(itx.user.id)] = {
+        "balance": 10 , "last_sold": int(time.time()), 
+        "last_daily": 1, "last_weekly": 1, "last_monthly": 1, "daily_streak": 0, 
+        "prestige": 0, "kitkats_sold": 0, "last_cf": 1, 
+        "sponsor": 0, "diamonds": 0, "kitkats_boost": 0, "income": 100, 
+        "unlocked_upgrades": ["farm"],
+        "upgrades": {
+          "farm": {
+            "farmer": {"name": f"Farmer", "max": 10, "level": 1},
+            "store": {"name": f"Store", "max": 8, "level": 1}, 
+            "van": {"name": f"Delivery Van", "max": 6, "level": 0},
+            "storage_tank": {"name": f"Storage Tank", "max": 8, "level": 1},
+            "warehouse": {"name": f"Warehouse", "max": 12, "level": 1},
+           },
+          "factory": {
+            "bean_grinder": {"name": f"Bean Grinder", "max": 10, "level": 1},
+            "chocolate_moulder": {"name": f"Chocolate Moulder", "max": 8, "level": 1},
+            "chocolate_freezer": {"name": f"Chocolate Freezer", "max": 5, "level": 1},
+            "workers": {"name": f"Worker", "max": 12, "level": 1},
+            "chocolate_packager": {"name": f"Chocolate Packager", "max": 5, "level": 1},
+          }
+        }, 
+        "fish": {
+          "last_fish": 0, "rod_level": 1, "tuna": 0, "grouper": 0, "snapper": 0, "salmon": 0, "cod": 0
+        }, 
+        "pets": {
+          "name": "", "type": "", "tier": 0, "level": 0, "last_hunt": 1, "last_feed": 1, "last_play": 1, "food": 0
+        },
+        "games": {
+          "sliding_puzzle_8_moves": -1, "sliding_puzzle_8_time": -1
+        }
+      }
       embed = discord.Embed(
         title = "**Kitkat Factory**", 
         description = f"""
@@ -477,145 +508,69 @@ You can view the leaderboard using `{self.bot.prefix}leaderboard` and prestige u
   @factory_check()
   @is_owner()
   @app_commands.command(name = "upgrade")
-  async def upgrade(self, itx: discord.Interaction, name: Optional[Literal["workers", "machines", "storage", "capacity", "rod"]]):
+  async def upgrade(self, itx: discord.Interaction, name: Optional[Literal["farmer", "store", "van", "storage_tank", "warehouse", "bean_grinder", "chocolate_moulder", "chocolate_freezer", "workers", "chocolate_packager"]]):
     """Upgrades!!!"""
     # TODO: Cocoa bean grinder, chocolate moudling machine, storage tank, chocolate freezer, packaging machine, workers
-    workers = self.bot.db["economy"][str(itx.user.id)]["workers"]
-    machine_lvl = self.bot.db["economy"][str(itx.user.id)]["machine_level"]
-    storage = self.bot.db["economy"][str(itx.user.id)]["storage"]
-    total_upgrades = workers + machine_lvl
-    balance = self.bot.db["economy"][str(itx.user.id)]["balance"]
-    upgrade_cap = self.bot.db["economy"][str(itx.user.id)]["upgrade_cap"]
-    title, color = "Upgrades", red
-  
-    upgrades_mult = 1.96
-  
-    rate_of_kitkats = (workers + 2) * machine_lvl
-    machine_base_upgrade = 20
-    workers_base_upgrade = 10
-    storage_base_upgrade = 50
-    cap_base_upgrade = 10
-    machine_upgrade = math.floor(machine_base_upgrade * upgrades_mult ** machine_lvl)
-    workers_upgrade = math.floor(workers_base_upgrade * upgrades_mult ** workers)
-    cap_upgrade = math.floor((upgrade_cap - 5) ** 4)
-    storage_upgrade = storage_base_upgrade * 2 + storage
-    rod_level = self.bot.db["economy"][str(itx.user.id)]["fish"]["rod_level"]
-    if rod_level < 5:
-      rod_upgrade_ = 10000 * 4 ** rod_level
-      rod_upgrade = f"{rod_upgrade_}{coin}"
-    else: 
-      rod_upgrade = "Max Level"
-    if name is None:
-      title = "Upgrades avaliable:"
-      msg = f"""
-Machine Upgrade: **{machine_upgrade}{coin}**
-Machine Level: **{machine_lvl}**
-Command: `{self.bot.prefix}upgrade machine`
-
-Hire Workers: **{workers_upgrade}{coin}**
-Number of workers: **{workers}**
-Command: `{self.bot.prefix}upgrade workers`
-
-Capacity Upgrade: **{cap_upgrade}{coin}**
-Upgrades Capacity: **{upgrade_cap}**
-Command: `{self.bot.prefix}upgrade capacity`
-
-Storage Upgrade: **{storage_upgrade}{coin}**
-Storage capacity: **{storage:,}**
-Command: `{self.bot.prefix}upgrade storage`
-
-Fishing Rod Upgrade: **{rod_upgrade}{coin}**
-FIshing Rod level: **{rod_level}**
-Command: `{self.bot.prefix}upgrade rod`
-
-To upgrade your pet, you can use `{self.bot.prefix}pet upgrade`.
-
-Current balance: **{balance:,}{coin}**  |  `{rate_of_kitkats:,}{choco} / minute`
-Do `{self.bot.prefix}help economy` to see all economy commands!
-"""
-      color = discord.Color.blurple()
-    elif name == "workers":
-      if balance >= workers_upgrade:
-        if upgrade_cap > total_upgrades:
-          self.bot.db["economy"][str(itx.user.id)]["balance"] -= workers_upgrade
-          self.bot.db["economy"][str(itx.user.id)]["workers"] += 1
-          title = "Upgrade Successful!"
-          msg, color = f"You spent {workers_upgrade:,}{coin} to hire another worker! \n`Total workers: {workers + 1}`", green
-        else:
-          msg = f"Your upgrade capacity is full! Do `{self.bot.prefix}upgrade capacity` to increase it."
-      else: 
-        msg = f"You do not have enough coins to hire another worker! You need **{(workers_upgrade - balance):,}{coin}** more! Do `{self.bot.prefix}help economy` to explore other commands!"
-  
-    elif name == "storage":
-      if balance >= storage_upgrade:
-        self.bot.db["economy"][str(itx.user.id)]["balance"] -= storage_upgrade
-        self.bot.db["economy"][str(itx.user.id)]["storage"] += storage * 2
-        title, msg, color = "Upgrade Successful!", f"Upgrade successfull! You spent {storage_upgrade:,}{coin} to upgrade your storage capacity! \n`Storage capacity: {storage * 2}`", green
-      else: 
-        msg = f"You do not have enough coins to upgrade your storage! You need **{(storage_upgrade - balance):,}{coin}** more! Do `{self.bot.prefix}help economy` to explore other commands!"
-  
-    elif name == "machines":
-      if balance >= machine_upgrade:
-        if upgrade_cap > total_upgrades:
-          self.bot.db["economy"][str(itx.user.id)]["balance"] -= machine_upgrade
-          self.bot.db["economy"][str(itx.user.id)]["machine_level"] += 1
-          title, msg, color = "Upgrade Successful!", f"Upgrade successfull! You spent {machine_upgrade:,}{coin} to upgrade your machine! \nMachine level: `{machine_lvl + 1}`", green
-        else:
-          msg = f"Your upgrade capacity is full! Do `{self.bot.prefix}upgrade capacity` to increase it."
-      else: 
-        msg = f"You do not have enough coins to upgrade your machine! You need **{(machine_upgrade - balance):,}{coin} more!** Do `{self.bot.prefix}help economy` to explore other commands!"
-    elif name == "capacity":
-      if balance >= cap_upgrade:
-        self.bot.db["economy"][str(itx.user.id)]["balance"] -= cap_upgrade
-        self.bot.db["economy"][str(itx.user.id)]["upgrade_cap"] += 10
-        title, msg, color = "Upgrade Successful!", f"Upgrade successfull! You spent {cap_upgrade:,}{coin} to upgrade your upgrades capacity! \nCurrent Capacity: `{upgrade_cap + 10}`", green
-      else: 
-        msg = f"You do not have enough coins to upgrade your capacity! You need **{(cap_upgrade - balance):,}{coin}** more! Do `{self.bot.prefix}help economy` to explore other commands!"
-    else: #rod 
-      if rod_level < 5:
-        if balance >= rod_upgrade_:
-          self.bot.db["economy"][str(itx.user.id)]["balance"] -= rod_upgrade_
-          self.bot.db["economy"][str(itx.user.id)]["fish"]["rod_level"] += 1
-          if rod_level + 1 == 3:
-            extra = "\n**Congratulations, you have unlocked the ability to catch a *Salmon***!"
-          elif rod_level + 1 == 5:
-            extra = "\n**Congratulations, you have unlocked the ability to catch a *LEGENDARY Cod Fish***!"
-          else:
-            extra = "\n**Your fishing cooldown has decreased!**"
-          title, msg, color = "Upgrade Successful!", f"Upgrade successfull! You spent **{rod_upgrade_:,}{coin}** to upgrade your fishing rod! \nFishing rod level: `{rod_level + 1}` {extra}", green
-        else: 
-          msg = f"You do not have enough coins to upgrade your fishing rod! You need **{(rod_upgrade_ - balance):,}{coin}** more! Do `{self.bot.prefix}help economy` to explore other commands!"
-      else: 
-        msg = "Your fishing rod is already maxed out!"
-
+    # Formula for upgrades: base_cost * multiplier ** level (start from 1)
+    title, color, multiplier = "Upgrades", blurple, 1.96
+    upgrades_map = {
+      "farm": ["farmer", "store", "van", "storage_tank", "warehouse"],
+      "factory": ["bean_grinder", "chocolate_moulder", "chocolate_freezer", "workers", "chocolate_packager"]
+    }
+    if name is not None and (upgrade_type := list(upgrades_map.keys())[list(upgrades_map.values()).index(name)]) in self.bot.db["economy"][str(itx.user.id)]["unlocked_upgrades"]: # gets location of upgrade from name (key from value)
+      embed = discord.Embed(title=tite, description=f"{cross} You have not unlocked the **{upgrade_type}** yet! \nSee `{self.bot.prefix}upgrade` for available upgrades.")
+      await itx.response.send_message(embed=embed, ephemeral=True)
     
-    img = Image.open("images/upgrade_factory.png")
+    img = Image.open("images/upgrade_farm_g.png")
     
     draw = ImageDraw.Draw(img)
-    
-    # Choose a font
     coins = "\U0001FA99"
-    machines = {
-      "bean_grinder": {"name": f"Bean Grinder", "income": 100, "cost": 500, "coords": (250, 200)},
-      "chocolate_moulder": {"name": f"Chocolate Moulder", "income": 250, "cost": 1200, "coords": (800, 200)},
-      "chocolate_freezer": {"name": f"Chocolate Freezer", "income": 420, "cost": 3600, "coords": (860, 300)},
-           }
-    font = ImageFont.truetype('fonts/arial.ttf', 24)
 
-    for machine in machines:
-      text = f"""
-{machines[machine]['name']}
-Income: {machines[machine]['income']} {coin} / hr
-Cost: {machines[machine]['cost']} {coin}
+    base_upgrades = {
+      "farmer": 50, "store": 250, "van": 800, "storage_tank": 550, "warehouse": 350,
+      "bean_grinder": 2500, "chocolate_moudler": 6500, "chocolate_freezer": 9000, "workers": 25000, "chocolate_packager": 12000
+    }
+    
+    farm_upgrades = self.bot.db["economy"][str(itx.user.id)]["upgrades"]["farm"]
+    farm_upgrades["farmer"]["income"] = 20
+    farm_upgrades["farmer"]["coords"] = (250, 200)
+    farm_upgrades["store"]["income"] = 50
+    farm_upgrades["store"]["coords"] = (800, 200)
+    farm_upgrades["van"]["income"] = 120
+    farm_upgrades["van"]["coords"] = (860, 300)
+    farm_upgrades["storage_tank"]["income"] = 100
+    farm_upgrades["storage_tank"]["coords"] = (1000, 500)
+    farm_upgrades["warehouse"]["income"] = 90
+    farm_upgrades["warehouse"]["coords"] = (400, 500)
+    
+    factory_upgrades = self.bot.db["economy"][str(itx.user.id)]["upgrades"]["factory"]
+    factory_upgrades["bean_grinder"]["income"] = 100
+    factory_upgrades["bean_grinder"]["coords"] = (250, 200)
+    factory_upgrades["chocolate_moulder"]["income"] = 250
+    factory_upgrades["chocolate_moulder"]["coords"] = (800, 200)
+    factory_upgrades["chocolate_freezer"]["income"] = 420
+    factory_upgrades["chocolate_freezer"]["coords"] = (800, 350)
+    factory_upgrades["workers"]["income"] = 600 #workers more = less mech breakdown
+    factory_upgrades["workers"]["coords"] = (800, 450)
+    factory_upgrades["chocolate_packager"]["income"] = 550
+    factory_upgrades["chocolate_packager"]["coords"] = (250, 450)
+    
+    font = ImageFont.truetype('fonts/arial.ttf', 24)
+    
+    with Pilmoji(img) as pilmoji:
+      for upgrade in farm_upgrades:
+        cost = int(base_upgrades[upgrade]*1.8**(farm_upgrades[upgrade]["level"] - 1))
+        text = f"""
+{farm_upgrades[upgrade]['name']}
+Income: {farm_upgrades[upgrade]['income']} {coins} / hr
+Cost: {cost} {coins}
 """
-      with Pilmoji(img) as pilmoji:
-        pilmoji.text(machines[machine]["coords"], text.strip(), (0, 0, 0), font)
-    
-    # Draw the text
-    #draw.text((250, 200), "hi", (0, 0, 0), font=font)
-    
+        pilmoji.text(farm_upgrades[upgrade]["coords"], text.strip(), (0, 0, 0), font)
+        
     # Save the image
     img.save("images/to_send.png")
+
+    msg = ""
     
     file = discord.File("images/to_send.png", filename="temp.png")
     embed = discord.Embed(title = title, description = msg, color = color)
@@ -892,7 +847,6 @@ Current prestige: **[{prestige_icons[prestige]}]**
     prestige_confirm = await itx.response.send_message(embed = embed, view = view)
     await view.wait()
     if view.value:
-      #self.bot.db["economy"][str(itx.user.id)] = {"balance" : 10 , "last_sold" : int(time.time()), "workers" : 1, "machine_level" : 1, "storage" : 200, "last_daily" : 1, "last_weekly" : 1, "last_monthly" : 1, "prestige" : 0, "kitkats_sold" : 0, "last_cf": 1, "upgrade_cap" : 10, "sponsor" : 0, "diamonds" : 0, "kitkats_boost" : 0, "fish" : {"last_fish" : 0, "rod_level" : 1, "tuna" : 0, "grouper" : 0, "snapper" : 0, "salmon" : 0, "cod" : 0}, "pets" : {"name": "", "type": "", "tier" : 0, "level": 0, "last_hunt" : 1, "last_feed": 1, "last_play": 1, "food": 0}, "daily_streak" : 0, "games" : {"sliding_puzzle_8_moves": -1, "sliding_puzzle_8_time": -1}}
       self.bot.db["economy"][str(itx.user.id)]["balance"] = 0
       self.bot.db["economy"][str(itx.user.id)]["last_sold"] = int(time.time())
       self.bot.db["economy"][str(itx.user.id)]["workers"] = 1
@@ -903,8 +857,8 @@ Current prestige: **[{prestige_icons[prestige]}]**
       self.bot.db["economy"][str(itx.user.id)]["last_weekly"] = 1
       self.bot.db["economy"][str(itx.user.id)]["last_monthly"] = 1
       self.bot.db["economy"][str(itx.user.id)]["prestige"] += 1
-      self.bot.db["economy"][str(itx.user.id)]["fish"] = {"last_fish" : 0, "rod_level" : 1, "tuna" : 0, "grouper" : 0, "snapper" : 0, "salmon" : 0, "cod" : 0}
-      self.bot.db["economy"][str(itx.user.id)]["pets"] = {"name": "", "type": "", "tier" : 0, "level": 0, "last_hunt" : 1, "food": 0, "last_feed": 0, "last_play": 0}
+      self.bot.db["economy"][str(itx.user.id)]["fish"] = {"last_fish": 0, "rod_level": 1, "tuna": 0, "grouper": 0, "snapper": 0, "salmon": 0, "cod": 0}
+      self.bot.db["economy"][str(itx.user.id)]["pets"] = {"name": "", "type": "", "tier": 0, "level": 0, "last_hunt": 1, "food": 0, "last_feed": 0, "last_play": 0}
       self.bot.db["economy"][str(itx.user.id)]["daily_streak"] = 0
         
       new_embed = discord.Embed(

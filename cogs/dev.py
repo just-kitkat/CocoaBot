@@ -220,13 +220,12 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   @commands.command()
   @commands.is_owner()
   async def backup(self, ctx):
-    data = self.bot.db["economy"]
     today = date.today()
     timestamp = today.strftime("%d %B %Y, %A")
     with open("backup.txt", "w") as backup:
         backup.truncate(0)
-        data = db["economy"]
-        data2 = dbo["others"]
+        data = self.bot.db["economy"]
+        data2 = self.bot.dbo["others"]
         backup.write("Economy: \n" + str(data) + "\nOthers: \n" + str(data2) + f"\n[{int(time.time())}]")
         await ctx.send(file=discord.File("backup.txt"))
         os.remove("backup.txt")
