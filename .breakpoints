@@ -3,9 +3,9 @@
     "cogs/economy.py": [
       {
         "id": "09733f50-2a4f-4311-8aec-2059c93652d1",
-        "line": 984,
-        "version": 22615,
-        "index": 45154
+        "line": 812,
+        "version": 26638,
+        "index": 36264
       }
     ]
   }

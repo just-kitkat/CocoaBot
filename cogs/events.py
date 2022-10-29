@@ -1,6 +1,7 @@
 import discord
 import asyncio
 from vars import *
+import time
 from discord import app_commands
 from discord.ext import commands, tasks
 
@@ -74,7 +75,7 @@ class Events(commands.Cog):
     embed = discord.Embed(title = "An error occured", description = message, color = red)
     await ctx.reply(embed = embed, mention_author = False)
 
-  @tasks.loop(hours = 1, reconnect = True) # hourly loop
+  @tasks.loop(seconds = 30, reconnect = True) # loop for hourly income
   async def tasksloop(self):
     # await self.bot.wait_until_ready()
     guild = self.bot.get_guild(923013388966166528)
@@ -98,8 +99,6 @@ class Events(commands.Cog):
       )
       await income_channel.send(embed = embed)
       await self.bot.save_db()
-    else:
-      await asyncio.sleep(3600 - int(time.time()) - last_income)
 
 async def setup(bot):
   await bot.add_cog(Events(bot))

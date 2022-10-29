@@ -1,11 +1,13 @@
 import discord, os, sys, asyncio
 from datetime import date
 from vars import *
+from utils import *
 from errors import *
 from discord import Object, app_commands
 from discord.ext import commands
 from importlib import reload
 from typing import Optional, Literal
+import importlib
 
 class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
@@ -103,19 +105,31 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     else:
       await ctx.reply("You do not have permission to create codes!")
   
-  @commands.command()
+  @commands.command(name="reload")
   @commands.is_owner()
-  async def reload(self, ctx, name = None):
-    others = ["errors", "vars"]
+  async def _reload(self, ctx, name = None):
+    others = ["errors", "vars", "utils"]
     if name is None:
-      message = ""
-      for file in os.listdir("./cogs"):
-        if file.endswith(".py"):
+      for _ in range(2): # Need to reload modules 2 times for changes to show
+        message = ""
+        message += "\n**Other reloaded files:** \n"
+        for module in others:
           try:
-            await self.bot.reload_extension(f"cogs.{file[:-3]}")
-            message += f"{tick} Reloaded {file}! \n"
+            actual_module = sys.modules[module]
+            importlib.reload(actual_module)
+            message += f"{tick} Reloaded `{module}.py`! \n"
           except Exception as e:
-            message += f"{cross} Failed to reload {file} \nERROR: {e} \n"
+            message += f"{cross} failed to reload `{module}.py` \nERROR: {e} \n"
+        message += "\n**Reloaded Cogs:** \n"
+        for file in os.listdir("./cogs"):
+          if file.endswith(".py"):
+            try:
+              await self.bot.reload_extension(f"cogs.{file[:-3]}")
+              message += f"{tick} Reloaded `{file}`! \n"
+            except Exception as e:
+              message += f"{cross} Failed to reload `{file}` \nERROR: {e} \n"
+      
+          
     elif f"{name}.py" in os.listdir("./cogs"):
       await self.bot.reload_extension(f"cogs.{name}")
       message = f"{tick} Cog reloaded!"
@@ -211,9 +225,15 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       await ctx.send("updated games db")
     elif arg1 == "updateusers":
       for user in self.bot.db["economy"]:
-        self.bot.db["economy"][user]["income"] = 100
+        self.bot.db["economy"][user]["levels"] = {"xp" : 0, "xp_mult" : 1, "level" : 1}
         self.bot.dbo["others"]["last_income"] = 1665903600
       await ctx.send("updated users db (income)")
+    elif arg1 == "resetdaily":
+      if arg2 is None:
+        self.bot.db["economy"][str(ctx.author.id)]["last_daily"] = int(time.time()) - 3600*24
+      else:
+        self.bot.db["economy"][str(ctx.author.id)]["last_daily"] = 1
+      await ctx.send("Daily cooldown has been reset!")
 
 
 

@@ -1,10 +1,12 @@
-import time, discord
+import time
+import discord
+import asyncio
 
 bot_name = "KitkatBot"
 
 cross = "❌"
 tick = "✅"
-coin = ":coin:"
+coin = "🪙"
 choco = "🍫"
 red_square, yellow_square, green_square = "🟥", "🟨", "🟩"
 trashcan = "🗑️"
@@ -48,3 +50,4 @@ binvite = "None"
 adv_msg = f"Useful Links: [Invite me]({binvite}) | [Support server]({sinvite})" # Voting link not yet
 
 # 947474270991310891
+

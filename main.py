@@ -1,4 +1,4 @@
-import os, asyncio, time, random
+import os, asyncio, time, random, math
 #os.system("pip install git+https://github.com/Rapptz/discord.py")
 from vars import *
 import pymongo, dns
@@ -100,13 +100,49 @@ class MyBot(commands.Bot):
     total = 100 - hunger - boredom
     return abs(total)
 
+  async def check_xp(self, user, amt : int):
+    """
+    Add + check xp of a user and return a xp msg
+    """
+    # REMEMBER TO ADD GUILD MULT
+    level = bot.db["economy"][str(user)]["levels"]["level"]
+    xp = bot.db["economy"][str(user)]["levels"]["xp"]
+    xp_mult = bot.db["economy"][str(user)]["levels"]["xp_mult"]
+    updated_xp = round(xp + amt * (xp_mult)) # + guild mult
+    #await bot.guild_xp(ctx, round(amt * (xp_mult + guild_mult)))
+    base = 10
+    xp_needed = math.floor(base*1.5*(level**1.2))
+    xp = updated_xp
+    if updated_xp >= xp_needed:
+      bot.db["economy"][str(user)]["levels"]["level"] += 1
+      bot.db["economy"][str(user)]["levels"]["xp"] = 0 + updated_xp - xp_needed
+      if level+1 == 2:
+        msg = f"\nYou have earned **1000 {coin}**!"
+        bot.db["economy"][str(user)]["balance"] += 1000
+      elif level+1 == 5:
+        msg = f"\nYou have earned **10,000 {coin}**!"
+        bot.db["economy"][str(user)]["balance"] += 10000
+      elif level+1 == 10:
+        msg = f"\nYou have unlocked monthly rewards! Use `{bot.prefix}monthly` to claim it!"
+      elif level+1 == 20:
+        msg = f"\nYou have unlocked **Expeditions**! Use `{bot.prefix}expedition` to get started!"
+      elif level+1 == 30:
+        msg = f"\nYou have earned **1,000,000 {coin}**!"
+        bot.db["economy"][str(user)]["balance"] += 1000000
+      else:
+        msg = ""
+      return f"\nYou leveled up! You are now level **{level + 1}** {msg} "
+    else:
+      bot.db["economy"][str(user)]["levels"]["xp"] = updated_xp
+      return f"\nXp Earned: **{round(amt * (xp_mult))} 🔹** `{updated_xp} / {xp_needed}`"
+
   async def get_income(self, userid):
     """
     Gets user's income based on upgrades and boosters
     """
     #income = bot.db["economy"][str(userid)]["income"]
     #income += boost stuff
-    return 0
+    return 100
   
   #async def setup_hook(self):
     
@@ -160,6 +196,7 @@ async def main():
 if __name__ == "__main__":
   try:
     asyncio.run(main())
-  except:
+  except Exception as e:
+    print("Bot ran into error:", e)
     print("You are ratelimited! Stopping code...")
     exec(stop_bot)
