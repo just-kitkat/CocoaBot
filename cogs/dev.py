@@ -19,7 +19,12 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   async def test(self, ctx):
     await ctx.reply("Raising an error...", mention_author = False)
     a
-    await ctx.reply("No error raised? :O")
+
+  @app_commands.command()
+  @is_owner()
+  async def slashtest(self, itx: discord.Interaction, test_arg: Optional[str]=None):
+    await itx.response.send_message("Raising an error...")
+    a
 
   @commands.command()
   @commands.guild_only()
@@ -81,7 +86,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   async def adddiamonds(self, itx: discord.Interaction, user:discord.Member, amt:int):
     diamonds = self.bot.db["economy"][str(user.id)]["diamonds"]
     self.bot.db["economy"][str(user.id)]["diamonds"] += amt
-    await itx.response.send_message(f"Added **{amt} {diamond}** to **{user}**. **{user.name}** now has **{diamonds +  amt} {diamond}**!")
+    await itx.response.send_message(f"Added **{amt} {diamond}** to **{user}**. \n**{user.name}** now has **{diamonds +  amt} {diamond}**!")
 
   @commands.command()
   @commands.is_owner()
@@ -170,6 +175,11 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     embed = discord.Embed(title = "Developer Tools", description = message, color = discord.Color.blurple())
     await ctx.reply(embed = embed, mention_author = False)
 
+  @commands.command()
+  @commands.is_owner()
+  async def leaveserver(self, ctx, guild_id):
+      await self.bot.get_guild(int(guild_id)).leave()
+      await ctx.send(f"Successfully left {guild_id}")
 
   @commands.command()
   @commands.is_owner()
@@ -191,6 +201,17 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         await ctx.send("Task has started")
       except:
         await ctx.send("Task already running")
+    elif arg1 == "resetdbo":
+      await ctx.send("Resetting dbo...")
+      self.bot.dbo = {
+        "others":
+        {
+          "user_blacklists": {},
+          "server_blacklists": {},
+          "last_income": int(time.time()) - (int(time.time()%3600)), # makes it the nearest hour
+          "error_count": 1
+        }
+      }
     elif arg1 == "updatequest":
       for user in self.bot.db["economy"]:
         self.bot.db["economy"][user]["quest"] = {
@@ -203,10 +224,21 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
             "times": 1,
             "times_completed": 0,
             "completed": False
+          },
+          "income" : {
+            "times": 1,
+            "times_completed": 0,
+            "completed": False
           }
         }
         self.bot.db["economy"][user]["last_quest"] = 1
       await ctx.reply("updated database!")
+    elif arg1 == "viewdbo":
+      print(self.bot.dbo["others"])
+      await ctx.send("dbo in console!")
+    elif arg1 == "updatedbo":
+      self.bot.dbo["others"].pop("bugs")
+      await ctx.send("dbo updated!")
     elif arg1 == "updatechests":
       for user in self.bot.db["economy"]:
         self.bot.db["economy"][user].pop("chests")
@@ -234,7 +266,14 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       else:
         self.bot.db["economy"][str(ctx.author.id)]["last_daily"] = 1
       await ctx.send("Daily cooldown has been reset!")
-
+    elif arg1 == "resetrod":
+      self.bot.db["economy"][str(ctx.author.id)]["fish"]["rod_level"] = 1
+      await ctx.send("rod level set to **1**")
+    elif arg1 == "locreq":
+      self.bot.db["economy"][str(ctx.author.id)]["levels"]["level"] = 100
+      self.bot.db["economy"][str(ctx.author.id)]["balance"] = 2_500_000
+      self.bot.db["economy"][str(ctx.author.id)]["golden_ticket"] = 10
+      await ctx.send("Location requirements given")
 
 
   @commands.command()

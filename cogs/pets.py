@@ -82,7 +82,8 @@ Upgrade cost: **{upgrade_cost}**
 """, color = discord.Color.green())
     embed.set_footer(text = f"Do {self.bot.prefix}help pets to view more commands!")
     await itx.response.send_message(embed = embed)
-  
+
+  @is_owner()
   @pet.command(name = "list")
   async def list(self, itx: discord.Interaction):
     """A list of all pets up for adoption :D"""
@@ -122,6 +123,7 @@ Pets available: Bee, Python, Seal, Eagle
 
   @pet.command(name = "adopt")
   @factory_check()
+  @is_owner()
   async def adopt(self, itx: discord.Interaction, pet: Literal["dog", "cat", "hampter", "CookieMonster", "monkey", "lion", "tiger", "bee", "python", "seal", "eagle"]):
     """Adopt your very own pet!"""
     color = red
@@ -271,6 +273,7 @@ Pets available: Bee, Python, Seal, Eagle
   async def hunt(self, itx: discord.Interaction):
     """Go hunting with your pet and find some amazing rewards!"""
     color = red
+    quest_msg = get_quest_rewards(itx, "hunt")
     happiness = self.bot.get_happiness(itx)
     name = self.bot.db["economy"][str(itx.user.id)]["pets"]["name"]
     level = self.bot.db["economy"][str(itx.user.id)]["pets"]["level"]
@@ -288,7 +291,9 @@ Pets available: Bee, Python, Seal, Eagle
     if int(time.time()) >= self.bot.db["economy"][str(itx.user.id)]["pets"]["last_hunt"] + cooldown or 1:
       self.bot.db["economy"][str(itx.user.id)]["balance"] += amt_of_coins
       self.bot.db["economy"][str(itx.user.id)]["pets"]["last_hunt"] = time.time()
+      self.bot.db["economy"][str(itx.user.id)]["counting"]["hunt"] += 1
       msg, color = f"**{name}** went out hunting and brought back **{amt_of_coins}{coin}!** \nYou can upgrade your pet using `{self.bot.prefix}pet upgrade`.", green
+      quest_msg = get_quest_rewards(itx, "hunt", True)
       if happiness <= 50:
         msg += "\n**Your pet is very unhappy and this will impact your pet's hunting motivation!** \nTip: Feed your pet and play with it to keep it happy!"
 
@@ -298,6 +303,7 @@ Pets available: Bee, Python, Seal, Eagle
       mins_left = str(math.floor((mins_ - ((currenttime - last_hunt) % 3600) / 60)))
       secs_left = str(math.floor((60 - ((currenttime - last_hunt) % 3600) % 60)))
       msg = f"**{name}** just went out to hunt and needs to rest! **{name}** will be ready to hunt again in `{mins_left}m {secs_left}s`"
+    msg += quest_msg
     embed = discord.Embed(title = "Hunting", description = msg, color = color)
     if random.randint(1, 2) == 1:
       embed.set_footer(text = f"Tip: Set your pet's name using {self.bot.prefix}pet name <name>")
