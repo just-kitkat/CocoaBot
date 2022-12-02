@@ -157,7 +157,6 @@ class Puzzle8Game(discord.ui.View):
 
   def get_direction(self, x: int, y: int):
     direction = None
-    print(self.board)
     for i in range(4):
       try:
         if i == 0 and self.board[y + 1][x] == -1: 
@@ -418,6 +417,7 @@ class Games(commands.Cog):
 
   @app_commands.command(name = "slidingpuzzle")
   async def slidingpuzzle(self, itx: discord.Interaction):
+    """Play a quick sliding puzzle game!"""
     fewest_moves = self.bot.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_moves"]
     best_time = self.bot.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_time"]
     if best_time == -1: fewest_moves, best_time = "No games yet", "No games yet"

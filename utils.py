@@ -27,6 +27,7 @@ def fetch_stats_page(itx: discord.Interaction, user: int=None, page: Optional[Li
   for type_ in boosts:
     for boost in range(len(boosts[type_])): # boost = {mult: duration}
       for k in boosts[type_][boost]:
+        print(k, type_)
         if type_ == "income":
           personal_inc += float(k)
         else:
@@ -37,6 +38,7 @@ def fetch_stats_page(itx: discord.Interaction, user: int=None, page: Optional[Li
     xp_bar += xp_emoji
   for i in range(0, 10 - levels):
     xp_bar += no_xp_emoji
+  print(db['levels']['xp_mult'], personal_xp, boosts)
   base = f"""
 Balance: **{db['balance']:,} {coin} | {db['income']:,} {coin} / hour**
 Diamonds: **{db['diamonds']:,} {diamond}**
@@ -617,6 +619,7 @@ async def get_upgrade(itx: discord.Interaction, type: str, name: str):
       view = BackButton()
       await itx.response.send_message(embed = embed, view=view) #file=file when img added
     else:
+      view = None
       cost = upgrades[name]["cost"]
       balance = itx.client.db["economy"][str(itx.user.id)]["balance"]
       if balance >= cost and upgrades[name]["level"] < upgrades[name]["max"]:
@@ -636,7 +639,10 @@ async def get_upgrade(itx: discord.Interaction, type: str, name: str):
         msg, color, ephemeral = f"You do not have enough money for this upgrade! \nBalance: **{balance} {coin}** \nAmount needed: **{cost} {coin}**", red, True
       embed = discord.Embed(title = "Upgrade", description = msg, color = color)
       try: #itx.response.is_done
-        await itx.response.send_message(embed=embed, ephemeral=ephemeral, view=view)
+        if view is None:
+          await itx.response.send_message(embed=embed, ephemeral=ephemeral)
+        else:
+          await itx.response.send_message(embed=embed, ephemeral=ephemeral, view=view)
       except Exception:
         await itx.followup.send(embed=embed, ephemeral=ephemeral, view=view)
       if view is None: break

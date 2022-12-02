@@ -203,7 +203,7 @@ class Economy(commands.Cog, name = "General Commands"):
     """Start your chocolate journey here!"""
     if str(itx.user.id) not in self.bot.db["economy"]:
       self.bot.db["economy"][str(itx.user.id)] = {
-        "balance": 10 , "last_sold": int(time.time()), "last_quest": 1, "last_clean": 1,
+        "balance": 100 , "last_sold": int(time.time()), "last_quest": 1, "last_clean": 1,
         "last_daily": 1, "last_weekly": 1, "last_monthly": 1, "daily_streak": 0, 
         "last_cf": 1, "cleanliness": 100,
         "golden_ticket": 0, "claimed_ticket": False, "account_age": int(time.time()),
@@ -337,7 +337,20 @@ Benefits:
   async def view_upgrades(self, itx: discord.Interaction, location: Optional[Literal["Farm", "Factory", "Distribution Center"]]="Farm"):
     """View all upgrades!"""
     await get_upgrade(itx, "view", location)
-  
+
+
+  @factory_check()
+  @app_commands.command(name="clean")
+  async def clean(self, itx: discord.Interaction):
+    """Clean your farm!"""
+    last_clean = self.bot.db["economy"][str(itx.user.id)]["last_clean"]
+    if last_clean + 3600*6 <= int(time.time()):
+      self.bot.db["economy"][str(itx.user.id)]["cleanliness"] = 100
+      self.bot.db["economy"][str(itx.user.id)]["last_clean"] = int(time.time())
+      embed = discord.Embed(title="What a clean place!", description="You have cleaned your farm! \nCleanliness: **100%**", color=green)
+    else:
+      embed = discord.Embed(title = "Too clean!", description = "You cannot clean your farm so often! \nCooldown: `6 hours`", color=red)
+    await itx.response.send_message(embed=embed)
 
   @factory_check()
   @app_commands.command(name="location")
@@ -347,14 +360,14 @@ Benefits:
       "farm": {"perks": [None], "requirements": [None]}, 
       "factory": {
         "perks": [
-          "0.2x income boost", "0.25x XP boost", "More upgrades", f"20 {diamond}"
+          "0.5x income boost", "0.25x XP boost", "More upgrades", f"20 {diamond}"
           ], 
         "requirements": [
           f"500,000 {coin}", f"3 {ticket}", "Level 25"
           ]}, 
       "distribution center": {
         "perks": [
-          "0.25x income boost", "0.5x XP boost", "More upgrades", f"50 {diamond}"
+          "0.75x income boost", "0.5x XP boost", "More upgrades", f"50 {diamond}"
           ],
         "requirements": [
           f"2,500,000 {coin}", f"8 {ticket}", "Level 50"
@@ -476,7 +489,7 @@ Cost: **{items[item]} {ticket}**
     View your active boosts!
     """
     msg = ""
-    boosts = self.bot.db["economy"][str(itx.user.id)]["boosts"]
+    boosts = self.bot.db["economy"][str(itx.user.id)]["boosts"].copy()
     boosts["global"] = [self.bot.dbo["others"]["global_income_boost"]]
     # boosts = {"income": [{mult: duration}, {x: y}], "xp": [{x: y}]}
     for type_ in boosts:
@@ -658,6 +671,7 @@ Cost: **{items[item]} {ticket}**
 
   @app_commands.command(name = "chest")
   async def chest(self, itx: discord.Interaction):
+    """Open some chests!"""
     if str(itx.user.id) in self.bot.db["economy"]:
       diamonds = self.bot.db["economy"][str(itx.user.id)]["diamonds"]
       embed = discord.Embed(

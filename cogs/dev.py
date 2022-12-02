@@ -319,6 +319,10 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
             if self.bot.db["economy"][user]["boosts"][type_][boost][k] <= 0:
               self.bot.db["economy"][user]["boosts"][type_].pop(boost)
       await ctx.send("1h of income boost removed from everyone")
+    elif arg1 == "rmglobal":
+      for user in self.bot.db["economy"]:
+        self.bot.db["economy"][user]["boosts"].pop("global")
+      await ctx.send("Global income boost removed (from user db)")
 
 
   @commands.command()

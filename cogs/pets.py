@@ -116,6 +116,7 @@ Hunt Cooldown: 30 mins
 Pets available: Bee, Python, Seal, Eagle
 
 **Warning:** Buying a pet will automatically abandon your previous pet and all it's levels :(
+This pets system is currently under development and will more than likely be reset in the future.
 """, 
         color = discord.Color.blue()
       )
