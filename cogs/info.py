@@ -1,4 +1,7 @@
-import discord, time, math
+import discord
+import time
+import math
+import psutil
 from datetime import timedelta
 from vars import *
 from errors import *
@@ -27,6 +30,40 @@ class Info(commands.Cog, name = "Information Commands"):
                                  color = green)
     await msg.edit(embed = updated_embed)
 
+  @commands.hybrid_command(aliases = ["about"])
+  async def info(self, ctx):
+    "Get bot's statistics"
+    users = len(self.bot.db["economy"])
+    guilds = len(list(self.bot.guilds))
+    ram = psutil.virtual_memory()[2]
+    cpu = psutil.cpu_percent()
+    cmds_ran = self.bot.dbo["others"]["total_commands_ran"]
+    embed = discord.Embed(
+      title = f"{bot_name} Information",
+      description = adv_msg,
+      color = discord.Color.green()
+    )
+    embed.add_field(name = "**👥 Users**", value = "∟ " + f"{users:,}", inline = True)
+    embed.add_field(name = "**💳 Guilds**", value = "∟ " + f"{guilds:,}", inline = True)
+    embed.add_field(name = "**👑 Creator**", value = "∟ kitkat3141#0422" , inline = True)
+    embed.add_field(name = "**💻 Memory used**", value = f"∟ {ram}MB", inline = True)
+    embed.add_field(name = "**📇 Cpu**", value = f"∟ {cpu}%", inline = True)
+    
+    embed.add_field(name = "**🤖 Commands ran**", value = f"∟ {cmds_ran:,}", inline = True)
+    await ctx.reply(embed = embed, mention_author = False)
+
+  @app_commands.command(name="alert")
+  async def alert(self, itx: discord.Interaction):
+    """
+    View alerts from the developer!
+    """
+    self.bot.dbo["others"]["read_alert"].append(itx.user.id)
+    embed = discord.Embed(
+      title = "New Alert",
+      description = self.bot.dbo["others"]["alert_msg"].replace("\\n", "\n"),
+      color = blurple
+    )
+    await itx.response.send_message(embed=embed)
 
     
 async def setup(bot):

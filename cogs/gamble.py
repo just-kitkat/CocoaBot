@@ -24,7 +24,7 @@ class Gamble(commands.Cog):
     elif amt < 0:
       msg = f"Why are you betting a negative value? Please bet a positive value! `{self.bot.prefix}coinflip <heads/tails> <amount>.`"
     elif amt == 0:
-      msg = f"Nice try but KitkatBot cannot be fooled! Please make sure your bet is more than 0{coin}! `{self.bot.prefix}coinflip <heads/tails> <amount>.`"
+      msg = f"Nice try but CocoaBot cannot be fooled! Please make sure your bet is more than 0{coin}! `{self.bot.prefix}coinflip <heads/tails> <amount>.`"
     else:
       last_cf = self.bot.db["economy"][str(itx.user.id)]["last_cf"]
       currenttime = int(time.time())

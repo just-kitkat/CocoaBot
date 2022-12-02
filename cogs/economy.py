@@ -15,6 +15,28 @@ from discord.app_commands import Choice, Group, command
 from PIL import ImageFont, ImageDraw, Image
 from pilmoji import Pilmoji
 
+async def buy_item(itx, item: str):
+  """
+  Handles shop purchases
+  """
+  if item.endswith(diamond) or item.endswith(coin):
+    amt = int(item.split(" ")[0])
+    itx.client.db["economy"][str(itx.user.id)]["balance" if item.endswith(coin) else "diamonds"] += amt
+  else:
+    dur_def = {"h": 1, "d": 24, "w": 24*7}
+    info = item.split(" ")
+    mult = info[0][:-1]
+    duration = int(info[-1][1:-2])*int(dur_def[info[-1][-2]])
+    type_ = info[2]
+    mag = info[1]
+
+    if mag == "personal":
+      itx.client.db["economy"][str(itx.user.id)]["boosts"][type_.lower()].append(
+        {mult: duration}
+      )
+    elif mag == "global":
+      itx.client.dbo["others"]["global_income_boost"] = {mult: duration}
+
 class LocationButtons(discord.ui.View):
   def __init__(self, userID, next_location=None, disabled=True):
     self.userID = userID
@@ -118,7 +140,7 @@ Legendary Chest: **200{diamond}**
     if reward.endswith("Income Multiplier"):
       mult = int(reward.split("%")[0])
       itx.client.db["economy"][str(itx.user.id)]["income_boost"] += mult
-      msg = f"You have recieved a **{mult}%** Kitkat Multiplier!"
+      msg = f"You have recieved a **{mult}%** Income Multiplier!"
 
     # Handle Pet Food
     if reward.endswith("Pet Food"):
@@ -176,7 +198,6 @@ class Economy(commands.Cog, name = "General Commands"):
   def __init__(self, bot):
     self.bot = bot
 
-  @is_owner()
   @app_commands.command(name = "start")
   async def start(self, itx: discord.Interaction):
     """Start your chocolate journey here!"""
@@ -184,12 +205,14 @@ class Economy(commands.Cog, name = "General Commands"):
       self.bot.db["economy"][str(itx.user.id)] = {
         "balance": 10 , "last_sold": int(time.time()), "last_quest": 1, "last_clean": 1,
         "last_daily": 1, "last_weekly": 1, "last_monthly": 1, "daily_streak": 0, 
-        "kitkats_sold": 0, "last_cf": 1, "cleanliness": 100,
+        "last_cf": 1, "cleanliness": 100,
         "golden_ticket": 0, "claimed_ticket": False, "account_age": int(time.time()),
+        "bought_from_shop": [],
         "sponsor": 0, "diamonds": 0, "income_boost": 0, "income": 100, "bugs_found": 0,
         "unlocked_upgrades": ["farm"],
         "counting": {"work": 0, "hunt": 0, "fish": 0},
         "levels": {"xp" : 0, "xp_mult" : 1, "level" : 1, "xp_needed" : 20}, 
+        "boosts": {"income": [], "xp": []}, # "income": [{mult: duration (s)}]
         "upgrades": {
           "farm": {
             "farmer": {"name": f"Farmer", "max": 10, "level": 1},
@@ -240,7 +263,7 @@ class Economy(commands.Cog, name = "General Commands"):
   @factory_check()
   @app_commands.command()
   async def tutorial(self, itx: discord.Interaction):
-    """A brief guide to KitkatBot!"""
+    """A brief guide to CocoaBot!"""
 
     income = self.bot.db["economy"][str(itx.user.id)]["income"]
     embed = discord.Embed(
@@ -248,7 +271,7 @@ class Economy(commands.Cog, name = "General Commands"):
       description = f"""
 Hello {itx.user.mention}, it looks like you are lost! Do not worry, `{self.bot.prefix}tutorial` will always be avaliable to you! 
 
-➼ You are earning hourly income at a rate of `{income} {coin} / hour`! 
+➼ You are earning hourly income at a rate of **{income} {coin} / hour**! 
 ➼ You can **work** for extra income! (`{self.bot.prefix}work`)
 ➼ Upgrade your farm using `{self.bot.prefix}upgrade`, which will increase your hourly income.
 ➼ Unlock new locations with `{self.bot.prefix}location`
@@ -277,7 +300,6 @@ Benefits:
   
   @app_commands.command(name = "fish")
   @factory_check()
-  @is_owner()
   async def fish(self, itx: discord.Interaction):
     """Take a break and go fishing!"""
     await get_fish(itx)
@@ -286,7 +308,6 @@ Benefits:
   upgrades_group = Group(name="upgrades", description="Upgrades!! :D")
   
   @factory_check()
-  @is_owner()
   @upgrades_group.command(name="buy")
   @app_commands.choices(
     name = [
@@ -312,7 +333,6 @@ Benefits:
     await get_upgrade(itx, "buy", name)
 
   @factory_check()
-  @is_owner()
   @upgrades_group.command(name="view")
   async def view_upgrades(self, itx: discord.Interaction, location: Optional[Literal["Farm", "Factory", "Distribution Center"]]="Farm"):
     """View all upgrades!"""
@@ -375,18 +395,109 @@ Benefits:
     await itx.response.send_message(embed=embed, view=view)
     await view.wait()
     if view.value:
-      self.bot.db["economy"][str(itx.user.id)]["unlocked_upgrades"].append(next_location)
+      self.bot.db["economy"][str(itx.user.id)]["unlocked_upgrades"].append(next_location.replace(" ", "_"))
       for reward in locations[next_location]["perks"]:
         if reward.endswith("income boost"): self.bot.db["economy"][str(itx.user.id)]["income_boost"] += float(reward.split("x")[0])
         if reward.endswith("XP boost"): self.bot.db["economy"][str(itx.user.id)]["levels"]["xp_mult"] += float(reward.split("x")[0])
         if reward.endswith(diamond): self.bot.db["economy"][str(itx.user.id)]["diamonds"] += int(reward.split(diamond)[0][:-1]) # [:-1] is to remove the space, i.e. "50 " -> "50"
-      msg = f"You have unlocked the **{next_location}** and recieved your rewards! \nUse `{prefix}upgrades` to see your new upgrades!"
+      msg = f"You have unlocked the **{next_location}** and recieved your rewards! \nUse `{prefix}upgrades view` to see your new upgrades!"
       embed = discord.Embed(title="New Location Unlocked", description=msg, color=green)
       await itx.followup.send(embed=embed)
-        
+
+
+  # Shop
+  @app_commands.command(name = "shop")
+  @factory_check()
+  async def shop(self, itx: discord.Interaction):
+    """
+    Check out your shop offers!
+    """
+    items = self.bot.dbo["others"]["shop_items"]
+    bought = self.bot.db["economy"][str(itx.user.id)]["bought_from_shop"]
+    msg = "Welcome to the shop! \nWe offer new items everyday so come back tomorrow for even more deals! \n"
+
+    for item in items:
+      msg += f"""
+{':lock: ' if item in bought else ''}**{item}**
+Cost: **{items[item]} {ticket}**
+
+"""
+    msg += f"Buy items using `{prefix}buy <item>` \nShop reset <t:{self.bot.dbo['others']['last_shop_reset'] + 3600*24}:R>"
+    embed = discord.Embed(
+      title = "Shop",
+      description = msg,
+      color = blurple
+    )
+    await itx.response.send_message(embed=embed)
+
+  # Buy
+  @app_commands.command(name = "buy")
+  @factory_check()
+  async def buy(self, itx: discord.Interaction, item: str):
+    """
+    Buy an item from the shop!
+    """
+    color = red
+    if item in self.bot.dbo["others"]["shop_items"]:
+      if item in self.bot.db["economy"][str(itx.user.id)]["bought_from_shop"]:
+        msg = f"You have already bought this item from the shop! \nUse `{prefix}shop` to check out your shop offers again."
+      else:
+        cost = self.bot.dbo["others"]["shop_items"][item]
+        if cost > self.bot.db["economy"][str(itx.user.id)]["golden_ticket"]:
+          msg = f"You don't have enough money to buy this item! \nYou need **{cost} {ticket}** to buy it."
+        else:
+          if item.split(" ")[1] == "global" and self.bot.dbo["others"]["global_income_boost"] == {}:
+            self.bot.db["economy"][str(itx.user.id)]["golden_ticket"] -= cost
+            self.bot.db["economy"][str(itx.user.id)]["bought_from_shop"].append(item)
+            await buy_item(itx, item)
+            msg = f"You have bought **{item}** from the shop! \nUse `{prefix}shop` to check out your shop offers again."
+            color = green
+          else:
+            msg = "There is already a global income boost active! Wait until the boost finishes before buying another global boost!"
+    else:
+      msg = f"That item is not available! \nUse `{prefix}shop` to check out your shop offers again."
+    embed = discord.Embed(
+      title = "Shop Purchase",
+      description = msg,
+      color = color
+    )
+    await itx.response.send_message(embed=embed)
+
+  @buy.autocomplete("item")
+  async def ac_buy_callback(self, itx: discord.Interaction, content: str):
+    items = self.bot.dbo["others"]["shop_items"]
+    return [Choice(name=item, value=item) for item in items]
+    
+  # View boosts
+  @app_commands.command(name="boosts")
+  @factory_check()
+  async def boosts(self, itx: discord.Interaction):
+    """
+    View your active boosts!
+    """
+    msg = ""
+    boosts = self.bot.db["economy"][str(itx.user.id)]["boosts"]
+    boosts["global"] = [self.bot.dbo["others"]["global_income_boost"]]
+    # boosts = {"income": [{mult: duration}, {x: y}], "xp": [{x: y}]}
+    for type_ in boosts:
+      msg += f"\n**{type_.title()}: ** \n" # boosts[type_] = [{mult: duration}, {x: y}]
+      print(boosts[type_])
+      if boosts[type_] in ([], [{}]):
+        msg += f"You do not have any active boosts! \n"
+      else:
+        for boost in boosts[type_]: # boosts[type_][boost] = {mult: duration}
+          msg += f"- **{list(boost.keys())[0]}x** boost ends in **{list(boost.values())[0]} hour(s)** \n"
+      
+
+    embed = discord.Embed(
+      title = "Active Boosts",
+      description = msg,
+      color = blurple
+    )
+    await itx.response.send_message(embed=embed)
 
   # Balance Command
-  @app_commands.command(name = "balance")
+  @app_commands.command(name="balance")
   @factory_check()
   async def balance(self, itx: discord.Interaction, user: discord.Member = None):
     """View a user's balance or your own!"""
@@ -464,7 +575,6 @@ Benefits:
 
   @app_commands.command(name = "quests")
   @factory_check()
-  @is_owner()
   async def quests(self, itx: discord.Interaction):
     """View your daily quests here!"""
     await get_quests(itx)
@@ -479,7 +589,7 @@ Benefits:
       if type == "balance":
         lb_dump[user] = self.bot.db["economy"][user]["balance"]
         emoji = coin
-        note = f"There are currently `{len(self.bot.db['economy'])}` users producing kitkats!"
+        note = f"There are currently `{len(self.bot.db['economy'])}` users producing chocolates!"
       elif type == "bugs":
         lb_dump[user] = self.bot.db["economy"][user]["bugs_found"]
         emoji = ":bug:"
@@ -497,7 +607,7 @@ Benefits:
       elif type == "levels":
         lb_dump[user] = self.bot.db["economy"][user]["levels"]["level"]
         emoji = " levels placeholder"
-        note = f"There are currently `{len(self.bot.db['economy'])}` users producing kitkats!"
+        note = f"There are currently `{len(self.bot.db['economy'])}` users producing chocolates!"
         
     lb = {users: balance for users, balance in reversed(sorted(lb_dump.items(), key=lambda item: item[1]))}
     
@@ -521,7 +631,7 @@ Benefits:
   @factory_check()
   @app_commands.command(name = "redeem")
   async def redeem(self, itx: discord.Interaction, code: str):
-    """Redeem your KitkatBot code here!"""
+    """Redeem your CocoaBot code here!"""
     if code in self.bot.dbo["others"]["code"] and code is not None and str(itx.user.id) in self.bot.db["economy"]:
       money = self.bot.dbo["others"]["code"][code]
       self.bot.dbo["others"]["code"].pop(code)
@@ -567,16 +677,5 @@ Legendary Chest: **200{diamond}**
       if view.value:
         pass
           
-       
-
-  @app_commands.command(name = "totalkitkats")
-  async def totalkitkats(self, itx: discord.Interaction):
-    """Total number of kitkats ever made!"""
-    total = 0
-    for user in self.bot.db["economy"]:
-      total += self.bot.db["economy"][user]["kitkats_sold"]
-    kitkats = f"{total:,}"
-    await itx.response.send_message(f"A total of **{kitkats}{choco}** has been made!")
-    
 async def setup(bot):
   await bot.add_cog(Economy(bot))

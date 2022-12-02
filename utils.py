@@ -8,7 +8,7 @@ import random
 import math
 from vars import *
 
-def fetch_stats_page(itx, user: int=None, page: Optional[Literal["Main Stats", "Command Stats", "Guild Stats", "Pet Stats"]]="Main Stats"): # game stats?
+def fetch_stats_page(itx: discord.Interaction, user: int=None, page: Optional[Literal["Main Stats", "Command Stats", "Guild Stats", "Pet Stats"]]="Main Stats"): # game stats?
   """
   Returns user stats
   """
@@ -20,6 +20,18 @@ def fetch_stats_page(itx, user: int=None, page: Optional[Literal["Main Stats", "
   level = db["levels"]["level"]
   xp_needed = math.floor(xp_needed_base*1.5*(level**1.2))
   xp_bar = ""
+  global_income_boost = list(itx.client.dbo["others"]["global_income_boost"].keys())[0]
+  personal_inc = 0
+  personal_xp = 0
+  boosts = db["boosts"]
+  for type_ in boosts:
+    for boost in range(len(boosts[type_])): # boost = {mult: duration}
+      for k in boosts[type_][boost]:
+        if type_ == "income":
+          personal_inc += float(k)
+        else:
+          personal_xp += float(k)
+  
   levels = int(xp/xp_needed * 10)
   for i in range(0, levels):
     xp_bar += xp_emoji
@@ -28,7 +40,7 @@ def fetch_stats_page(itx, user: int=None, page: Optional[Literal["Main Stats", "
   base = f"""
 Balance: **{db['balance']:,} {coin} | {db['income']:,} {coin} / hour**
 Diamonds: **{db['diamonds']:,} {diamond}**
-Level: **{db['levels']['level']:,}** (`{db['levels']['xp_mult']}x`)
+Level: **{db['levels']['level']:,}** (`{db['levels']['xp_mult'] + personal_xp}x`)
 {xp_bar} `{xp:,} / {xp_needed:,}`
 """
 
@@ -36,8 +48,8 @@ Level: **{db['levels']['level']:,}** (`{db['levels']['xp_mult']}x`)
     "Main Stats": f"""
 Golden Tickets: **{db['golden_ticket']:,} {ticket}**
 Reputation: **WIP**
-Personal Income Multiplier: **{db['income_boost']}x**
-Global Income Multiplier: **WIP**
+Personal Income Multiplier: **{db['income_boost'] + personal_inc}x**
+Global Income Multiplier: **{global_income_boost}x**
 Daily Streak: **{db['daily_streak']:,} :arrow_up:**
 
 **Happiness: {db['cleanliness']}%** 
@@ -515,10 +527,10 @@ async def get_stats(itx, user=None):
     description = f"Getting {user.name}'s statistics...", 
     color = discord.Color.blue()
   )
-  embed.set_footer(text = f"Do {itx.client.prefix}profile <@user> to check someone's profile!")
+  embed.set_footer(text = f"Do {itx.client.prefix}stats <@user> to check someone's profile!")
   await itx.response.send_message(embed=embed)
-  new_embed = discord.Embed(title=f"{user.name}'s Stats'", description=fetch_stats_page(itx, user.id), color=blurple)
-  new_embed.set_footer(text = f"Do {itx.client.prefix}profile <@user> to check someone's profile!")
+  new_embed = discord.Embed(title=f"{user.name}'s Stats", description=fetch_stats_page(itx, user.id), color=blurple)
+  new_embed.set_footer(text = f"Do {itx.client.prefix}stats <@user> to check someone's profile!")
   view = StatsButtons(user)
   await itx.edit_original_response(embed=new_embed, view=view)
 
@@ -539,7 +551,7 @@ async def get_upgrade(itx: discord.Interaction, type: str, name: str):
         upgrade_type = upgrade_location
         break
   else:
-    upgrade_type = name.lower()
+    upgrade_type = name.lower().replace(" ", "_")
   if name is not None and upgrade_type not in itx.client.db["economy"][str(itx.user.id)]["unlocked_upgrades"]:
     embed = discord.Embed(title=title, description=f"{cross} You have not unlocked the **{upgrade_type.replace('_', ' ')}** yet! \nUnlock more upgrades using `{itx.client.prefix}location`.", color=red)
     await itx.response.send_message(embed=embed, ephemeral=True)
@@ -599,7 +611,7 @@ async def get_upgrade(itx: discord.Interaction, type: str, name: str):
       msg = ""
       for upgrade in upgrades_map[upgrade_type]:
         msg += f"{upgrades[upgrade]['name']} | `{upgrades[upgrade]['level']}/{upgrades[upgrade]['max']}` \nIncome: **{upgrades[upgrade]['income']} {coin} / hr** \nCost: **{upgrades[upgrade]['cost']} {coin}** \n\n"
-      msg += f"Upgrade using `{prefix}upgrade buy <upgrade>`"
+      msg += f"\nView more upgrades using `{prefix}upgrades view <location>` \nUpgrade using `{prefix}upgrades buy <upgrade>`"
       embed = discord.Embed(title = f"{name} Upgrades", description = msg, color = color)
       #embed.set_image(url="attachment://temp.png")
       view = BackButton()
@@ -748,7 +760,7 @@ async def get_work(itx: discord.Interaction):
   quest_msg = await get_quest_rewards(itx, "income")
   last_sold = itx.client.db["economy"][str(itx.user.id)]["last_sold"]
   time_diff = int(time.time()) - last_sold
-  if time_diff >= 60*10 or True: # for testing
+  if time_diff >= 60*10: # for testing
 
     income = itx.client.db["economy"][str(itx.user.id)]["income"]
     amt_sold = random.randint(income//6, income*3)

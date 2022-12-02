@@ -93,7 +93,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   async def dropcode(self, ctx, channel : discord.TextChannel, code, amount : int):
     embed = discord.Embed(
       title = "New Code Drop!",
-      description = f"A KitkatBot code has appeared! \nCode: `{code}` \nReward: **{amount} {coin}** \nClaim the code using `{self.bot.prefix}redeem <code>`", 
+      description = f"A CocoaBot code has appeared! \nCode: `{code}` \nReward: **{amount} {coin}** \nClaim the code using `{self.bot.prefix}redeem <code>`", 
       color = discord.Color.blurple()
     )
     embed.set_footer(text = "The code is only valid for one person. Good luck!")
@@ -181,6 +181,21 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       await self.bot.get_guild(int(guild_id)).leave()
       await ctx.send(f"Successfully left {guild_id}")
 
+  @app_commands.command(name="createalert")
+  @is_owner()
+  async def create_alert(self, itx: discord.Interaction, alert: str):
+    self.bot.dbo["others"]["alert_msg"] = alert
+    self.bot.dbo["others"]["read_alert"] = []
+    self.bot.dbo["others"]["alert_ping"] = True
+    await itx.response.send_message(f"Alert created! \nAlert: \n{alert}")
+
+  @commands.command(aliases=["mm"])
+  @commands.is_owner()
+  async def maintenancemode(self, ctx):
+    self.bot.dbo["others"]["maintenancemode"] = not self.bot.dbo["others"]["maintenancemode"]
+    mm = self.bot.dbo["others"]["maintenancemode"]
+    await ctx.send(f"Maintenance mode set to {mm}!")
+
   @commands.command()
   @commands.is_owner()
   async def dev(self, ctx, arg1 = None, arg2 = None):
@@ -203,15 +218,34 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         await ctx.send("Task already running")
     elif arg1 == "resetdbo":
       await ctx.send("Resetting dbo...")
+      try:
+        total_cmds_ran = self.bot.dbo["others"]["total_commands_ran"]
+      except Exception:
+        total_cmds_ran = -1
       self.bot.dbo = {
         "others":
         {
-          "user_blacklists": {},
+          "alert_msg": "Hello there! \nIf you see this, I probably made a mistake somewhere... (oops) \nPlease pretend this doesn't exist :)",
+          "read_alert": [], # list of user IDs
+          "alert_ping": False,
+          "lottery": {
+            "cost": 1,
+            "msgid": None,
+            "end": 1
+          },
+          "total_commands_ran": 0,
+          "global_income_boost": {}, # {mult: duration (h)} 
+          "global_xp_boost": 0, # XP BOOST NOT IMPLEMENTED
+          "maintenancemode": False,
+          "shop_items": {},
+          "last_shop_reset": 1669564800,
+          "user_blacklist": {},
           "server_blacklists": {},
           "last_income": int(time.time()) - (int(time.time()%3600)), # makes it the nearest hour
           "error_count": 1
         }
       }
+      await ctx.send("DBO reset! \nTotal commands ran: " + str(total_cmds_ran))
     elif arg1 == "updatequest":
       for user in self.bot.db["economy"]:
         self.bot.db["economy"][user]["quest"] = {
@@ -272,8 +306,19 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     elif arg1 == "locreq":
       self.bot.db["economy"][str(ctx.author.id)]["levels"]["level"] = 100
       self.bot.db["economy"][str(ctx.author.id)]["balance"] = 2_500_000
-      self.bot.db["economy"][str(ctx.author.id)]["golden_ticket"] = 10
+      self.bot.db["economy"][str(ctx.author.id)]["golden_ticket"] += 100
       await ctx.send("Location requirements given")
+    elif arg1 == "rm1boost":
+      boosts = self.bot.db["economy"][str(ctx.author.id)]["boosts"]
+      type_ = "income"
+      for user in self.bot.db["economy"]:
+        for boost in range(len(boosts[type_])): # boost = {mult: duration}
+          for k in boosts[type_][boost]:
+            self.bot.db["economy"][user]["boosts"][type_][boost][k] -= 1
+    
+            if self.bot.db["economy"][user]["boosts"][type_][boost][k] <= 0:
+              self.bot.db["economy"][user]["boosts"][type_].pop(boost)
+      await ctx.send("1h of income boost removed from everyone")
 
 
   @commands.command()
@@ -281,16 +326,77 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   async def backup(self, ctx):
     today = date.today()
     timestamp = today.strftime("%d %B %Y, %A")
-    with open("backup.txt", "w") as backup:
-        backup.truncate(0)
-        data = self.bot.db["economy"]
-        data2 = self.bot.dbo["others"]
-        backup.write("Economy: \n" + str(data) + "\nOthers: \n" + str(data2) + f"\n[{int(time.time())}]")
-        await ctx.send(file=discord.File("backup.txt"))
-        os.remove("backup.txt")
     await ctx.message.delete()
-    await ctx.send(file=discord.File("backup.txt"))
-    os.remove("backup.txt")
+    data = self.bot.db["economy"]
+    data2 = self.bot.dbo["others"]
+    with open("dump/backup.txt", "w") as backup:
+      backup.truncate(0)
+      backup.write("Economy: \n" + str(data) + "\nOthers: \n" + str(data2) + f"\n[{int(time.time())}]")
+    await ctx.send(file=discord.File("dump/backup.txt"))
+    os.remove("dump/backup.txt")
+
+  @commands.command()
+  @commands.is_owner()
+  async def blacklist(self, ctx, user : discord.Member, duration, * ,reason):
+    timings = {"s": 1, "m" : 60, "h" : 3600, "d" : 86400, "w" : 604800, "mo" : 2592000, "y" : 31104000}
+    time_names = {"s": "second", "m" : "minute", "h" : "hour", "d" : "day", "w" : "week", "mo" : "month", "y" : "year"}
+    duration_s = int(time.time()) + int(duration[:-1]) * timings[duration[-1]]
+    self.bot.dbo["others"]["user_blacklist"][str(user.id)] = {"reason" : reason, "time" : duration_s}
+    title, color = bot_name, discord.Color.green()
+    message = f"{tick} Successfully blacklisted **{user}** for **{duration[:-1]} {time_names[duration[-1]]}(s)**"
+    embed = discord.Embed(
+      title = title, color = color, 
+      description = message
+    )
+    await ctx.reply(embed = embed, mention_author = False)
+    user_embed = discord.Embed(
+      title = bot_name, color = discord.Color.red(),
+      description = f"You have been blacklisted from {bot_name}! \nDuration: **{duration[:-1]} {time_names[duration[-1]]}(s)** \nReason: **{reason}** \n*To appeal, join our support server [here]({disc_invite}) and create a ticket.*"
+    )
+    await user.send(embed = user_embed)
+  
+  @commands.command()
+  @commands.is_owner()
+  async def unblacklist(self, ctx, user : discord.Member, *, reason):
+    if str(user.id) in self.bot.dbo["others"]["user_blacklist"]:
+      self.bot.dbo["others"]["user_blacklist"].pop(str(user.id))
+      dm_embed = discord.Embed(
+        title = bot_name,
+        description = f"You have been unblacklisted from {bot_name}. \nReason: **{reason}**",
+        color = discord.Color.green()
+      )
+      embed = discord.Embed(
+        title = bot_name,
+        description = f"You have unblacklisted **{user}** for **{reason}**.",
+        color = discord.Color.green()
+      )
+      await user.send(embed = dm_embed)
+      await ctx.reply(embed = embed, mention_author = False)
+    else:
+      embed = discord.Embed(
+        title = bot_name, 
+        description = f"{cross} **{user}** is not blacklisted!",
+        color = discord.Color.red()
+      )
+      await ctx.reply(embed = embed, mention_author = False)
+  
+  @commands.command()
+  @commands.is_owner()
+  async def blacklists(self, ctx):
+    message, count = "", 1
+    if self.bot.dbo["others"]["user_blacklist"] != {}:
+      for user in self.bot.dbo["others"]["user_blacklist"]:
+        username = self.bot.get_user(int(user))
+        message += f"\n{count}. **{username}**"
+        count += 1
+    else:
+      message = "No one is currently blacklisted! :D"
+    embed = discord.Embed(
+      title = f"{bot_name} blacklists",
+      description = message,
+      color = discord.Color.blue()
+    )
+    await ctx.reply(embed = embed, mention_author = False)
   
   @commands.command()
   @commands.is_owner()
@@ -349,109 +455,38 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       except asyncio.TimeoutError:
           await ctx.reply("You did not react in time.")
 
-  @commands.command()
-  async def lottery(self, ctx, duration=None, *, price : int=None):
-    if ctx.author.id == 915156033192734760:
-      lottery_channel = 923121739637088256 #924492712328171530
-      lottery_role = "" #924492846550114365
-      if duration is None:
-          return await ctx.send(
-              f"Please enter a time and a prize! (`{self.bot.prefix}lottery <time> <prize> | s = seconds, m = minutes, h = hours, d = days`)"
-          )
-      elif price is None:
-          await ctx.send(f"Please enter a prize! (`{self.bot.prefix}gcreate <time> <prize>`)")
-  
-      time_convert = {"s": 1, "m": 60, "h": 3600, "d": 86400}
-      lottery_time = int(duration[:-1]) * time_convert[duration
-      [-1]]
-      ends = int(time.time()) + lottery_time
-      embed = discord.Embed(
-          title="Lottery Posted!",
-          description=
-          f"Your lottery was posted in <#{lottery_channel}>",
-          color=discord.Color.blue())
-      embed.set_author(name=ctx.message.author,
-                        url=ctx.author.avatar,
-                        icon_url=ctx.author.avatar)
-      await ctx.send(embed=embed)
-      embed = discord.Embed(
-          title=f"Lottery",
-          description=
-          f"React with :tickets: to purchase a lottery ticket! The cost will be deducted from your balance right before the lottery ends! \nEnds: <t:{ends}:R> | <t:{ends}> \nCurrent prize pool: `No one has bought a ticket!` \nCost: {price}{coin}",
-          color=discord.Color.green())
-      embed.set_footer(text = "If you do not have enough money, your entry will not be registered!")
-      lottery_msg = await ctx.guild.get_channel(lottery_channel).send(f"<@&{lottery_role}>", embed=embed)
-      await lottery_msg.add_reaction("🎟️")
-  
-      count = 0
-      while count < lottery_time:
-        count += 60
-        users = 0
-        channel_posted = ctx.guild.get_channel(lottery_channel)
-        new_lottery_msg = await channel_posted.fetch_message(lottery_msg.id)
-        user_list = [
-          u async for u in new_lottery_msg.reactions[0].users()
-          if u != self.bot.user
-        ]
-        user_list_copy = user_list.copy()
-        for i in user_list_copy:
-          if self.bot.db["economy"][str(i.id)]["balance"] >= price:
-            users += 1
-            user_list.remove(i)
-        if users <= 1:
-          new_embed = discord.Embed(
-          title=f"Lottery",
-          description=
-          f"React with :tickets: to purchase a lottery ticket! The cost will be deducted from your balance right before the lottery ends! \nEnds: <t:{ends}:R> | <t:{ends}> \nCurrent prize pool: `Not enough tickets purchased!` \nCost: {price}{coin} \nNumber of tickets bought: `{users}`",
-          color=discord.Color.green())
-          new_embed.set_footer(text = "If you do not have enough money, your entry will not be registered!")
-        else:
-          new_embed = discord.Embed(
-          title=f"Lottery",
-          description=
-          f"React with :tickets: to purchase a lottery ticket! The cost will be deducted from your balance right before the lottery ends! \nEnds: <t:{ends}:R> | <t:{ends}> \nCurrent prize pool: **{users * price}{coin}** \nCost: **{price}{coin}** \nNumber of tickets bought: `{users}`",
-          color=discord.Color.green())
-          new_embed.set_footer(text = "If you do not have enough money, your entry will not be registered!")
-        
-        await new_lottery_msg.edit(embed = new_embed)
-        await asyncio.sleep(60)
-  
-      channel_posted = ctx.guild.get_channel(lottery_channel)
-      new_lottery_msg = await channel_posted.fetch_message(lottery_msg.id)
-      user_list = [u async for u in new_lottery_msg.reactions[0].users() if u != self.bot.user]
-      user_list_copy = user_list.copy()
-      for i in user_list_copy:
-        if self.bot.db["economy"][str(i.id)]["balance"] <= price:
-          user_list.remove(i)
-      if len(user_list) <= 1:
-          await lottery_msg.reply("Not enough people joined the lottery.")
-      else:
-          winner = random.choice(user_list)
-          for user in user_list:
-            self.bot.db["economy"][str(user.id)]["balance"] -= price
-          prize = len(user_list) * price
-          await lottery_msg.reply(f"{winner.mention} has won **{prize}{coin}**! (Tickets purchased: {len(user_list)})")
-          self.bot.db["economy"][str(winner.id)]["balance"] += prize
-          channel_posted = ctx.guild.get_channel(lottery_channel)
-          new_lottery_msg = await channel_posted.fetch_message(lottery_msg.id)
-          final_embed = discord.Embed(
-          title=f"Lottery",
-          description=
-          f"The lottery ended <t:{ends}:R> | <t:{ends}>! \nPrize pool: **{users * price}{coin}** \nWinner: `{winner}` \nNumber of tickets bought: `{users}`",
-          color=discord.Color.green())
-          await new_lottery_msg.edit(embed = final_embed)
-  """
-  @commands.command(aliases = ["mm"])
-  @commands.is_owner()
-  async def maintenancemode(self, ctx):
-    maintenance = self.bot.db["economy"]["maintenance"]
-    self.bot.db["economy"]["maintenance"] = not maintenance
+  @app_commands.command(name="lottery")
+  @is_owner()
+  async def lottery(self, itx: discord.Interaction, duration: str, *, price : int):
+    lottery_role = 924492846550114365
+    time_convert = {"s": 1, "m": 60, "h": 3600, "d": 86400}
+    lottery_time = int(duration[:-1]) * time_convert[duration
+    [-1]]
+    ends = int(time.time()) + lottery_time
     embed = discord.Embed(
-      title = bot_name,
-      description = f"Set bot's maintenance to **{not maintenance}**!",
-      color = discord.Color.green()
-    )
-    await ctx.reply(embed = embed)"""
+        title="Lottery Posted!",
+        description=
+        f"Your lottery was posted in <#{lottery_channel}>",
+        color=discord.Color.blue())
+    embed.set_author(name=itx.user,
+                      url=itx.user.avatar,
+                      icon_url=itx.user.avatar)
+    await itx.response.send_message(embed=embed)
+    embed = discord.Embed(
+        title=f"Lottery",
+        description=
+        f"React with :tickets: to purchase a lottery ticket! The cost will be deducted from your balance right before the lottery ends! \nEnds: <t:{ends}:R> | <t:{ends}> \nCurrent prize pool: `No one has bought a ticket!` \nCost: {price}{coin}",
+        color=discord.Color.green())
+    embed.set_footer(text = "If you do not have enough money, your entry will not be registered!")
+    lottery_msg = await self.bot.get_channel(lottery_channel).send(f"<@&{lottery_role}>", embed=embed)
+    await lottery_msg.add_reaction("🎟️")
+    self.bot.dbo["others"]["lottery"] = {
+      "msgid": lottery_msg.id,
+      "end": ends,
+      "cost": price
+    }
+
+    
     
 async def setup(bot):
   await bot.add_cog(Dev(bot))

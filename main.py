@@ -4,10 +4,12 @@ import time
 import random
 import math
 from vars import *
+from errors import *
 import pymongo
 import dns
 from pymongo import MongoClient
 import discord
+from discord import app_commands
 from discord.ext import commands, tasks
 
 
@@ -20,7 +22,7 @@ logging.basicConfig(level=logging.INFO)
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
-activity = discord.Game(name=f"This is {bot_name} Beta! | Ping for help!")
+activity = discord.Game(name=f"This is {bot_name}! | Type / to get started!")
 
 stop_bot = os.environ["STOP_BOT"]
 
@@ -30,6 +32,9 @@ class MyBot(commands.Bot):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
 
+  async def interaction_check(self, itx: discord.Interaction) -> bool:
+    return False
+
   # Functions 
   async def save_db(self):
     try:
@@ -37,8 +42,9 @@ class MyBot(commands.Bot):
       collection.replace_one({"_id" : 64}, {"_id" : 64, "others" : bot.dbo["others"]})
     except Exception as e:
       log_channel = bot.get_channel(1030104234278014976)
-      embed = discord.Embed(title="DB Error", description=e)
-      await channel.send(embed=embed)
+      #print(bot.db, bot.dbo)
+      embed = discord.Embed(title="DB Error", description=f"{e}")
+      await log_channel.send(embed=embed)
       exec(stop_bot)
 
   async def itx_check(self, itx: discord.Interaction, msg: str=None, failed: bool = True):
@@ -127,7 +133,7 @@ class MyBot(commands.Bot):
     total = 100 - hunger - boredom
     return abs(total)
 
-  async def check_xp(self, user, amt : int):
+  async def check_xp(self, user, amt : int) -> str:
     """
     Add + check xp of a user and return a xp msg
     """
@@ -135,7 +141,15 @@ class MyBot(commands.Bot):
     level = bot.db["economy"][str(user)]["levels"]["level"]
     xp = bot.db["economy"][str(user)]["levels"]["xp"]
     xp_mult = bot.db["economy"][str(user)]["levels"]["xp_mult"]
-    updated_xp = round(xp + amt * (xp_mult)) # + guild mult
+    personal_mult = 0
+    boosts = bot.db["economy"][str(user)]["boosts"]
+    type_ = "income"
+    for user in bot.db["economy"]:
+      for boost in range(len(boosts[type_])): # boost = {mult: duration}
+        for k in boosts[type_][boost]:
+          personal_mult += float(k)
+    total_mult = round(amt * (xp_mult + personal_mult))
+    updated_xp = round(xp + total_mult) # + guild mult
     #await bot.guild_xp(ctx, round(amt * (xp_mult + guild_mult)))
     xp_needed = math.floor(xp_needed_base*1.5*(level**1.2))
     xp = updated_xp
@@ -163,20 +177,60 @@ class MyBot(commands.Bot):
       return f"\nYou leveled up! You are now level **{level}** \n{msg}"
     else:
       bot.db["economy"][str(user)]["levels"]["xp"] = updated_xp
-      return f"\nXp Earned: **{round(amt * (xp_mult))} 🔹** `{updated_xp} / {xp_needed}`"
+      return f"\nXp Earned: **{total_mult} 🔹** `{updated_xp} / {xp_needed}`"
 
   async def get_income(self, userid):
     """
     Gets user's income based on upgrades and boosters
     """
-    income = bot.db["economy"][str(userid)]["income"]
-    xp_mult = bot.db["economy"][str(userid)]["levels"]["xp_mult"]
-    global_boost = 0 # 0 = no global boost
-    income = income * (xp_mult + global_boost)
-    return income
+    userid = str(userid)
+    income = bot.db["economy"][userid]["income"]
+    income_boost = bot.db["economy"][userid]["income_boost"]
+    if bot.dbo["others"]["global_income_boost"] != {}:
+      global_boost = float(list(bot.dbo["others"]["global_income_boost"].keys())[0])
+    else:
+      global_boost = 0
+    personal_mult = 0
+    boosts = bot.db["economy"][userid]["boosts"]
+    type_ = "income"
+    for user in bot.db["economy"]:
+      for boost in range(len(boosts[type_])): # boost = {mult: duration}
+        for k in boosts[type_][boost]:
+          personal_mult += float(k)
+    income = income * (income_boost + global_boost + personal_mult)
+    return income, (income_boost, global_boost, personal_mult)
   
   #async def setup_hook(self):
+
+
+class MyTree(app_commands.CommandTree):
+  async def interaction_check(self, itx: discord.Interaction) -> bool:
+    """
+    Checks for blacklisted users, maintenance mode and alerts
+    """
+    blacklist = itx.client.dbo["others"]["user_blacklist"]
+    if str(itx.user.id) in blacklist:
+      if int(time.time()) < blacklist[str(itx.user.id)]["time"]:
+        duration = blacklist[str(itx.user.id)]["time"]
+        reason = blacklist[str(itx.user.id)]["reason"]
+        await itx.response.send_message(f"""
+You are currently blacklisted! 
+Reason: {reason}
+Blacklist ends <t:{duration}:R>
+Dm me `.info` to join the support server!"""
+  )
+        return False
+      else:
+        itx.client.dbo["others"]["user_blacklist"].pop(str(itx.user.id))
+      
     
+    itx.client.dbo["others"]["total_commands_ran"] += 1
+    if itx.client.dbo["others"]["maintenancemode"] and itx.user.id != 915156033192734760:
+      await itx.response.send_message("I am currently on maintenance mode! Join my support server for more info. \nDm me `.info` to join the support server!")
+      return False
+    if itx.user.id not in itx.client.dbo["others"]["read_alert"] and itx.client.dbo["others"]["alert_ping"]:
+      await itx.channel.send(f"{itx.user.mention}, there is an important alert! \nUse `{prefix}alert` to view it!")
+    return True
 
       
 bot = MyBot(
@@ -184,7 +238,8 @@ bot = MyBot(
   intents=intents, 
   case_insensitive = True, 
   activity = activity,
-  strip_after_prefix = True
+  strip_after_prefix = True,
+  tree_cls = MyTree
 )
 bot.db, bot.dbo = {}, {}
 bot.cache = {
@@ -197,7 +252,7 @@ bot.giving_income = False
 # MC Connection
 mcs = os.getenv("mcs")
 cluster = pymongo.MongoClient(mcs)
-database = cluster["KitkatBot"]
+database = cluster["CocoaBot"]
 collection = database["db"]
 results = collection.find({"_id" : 63})
 #create a conection to mongodb cluster 
