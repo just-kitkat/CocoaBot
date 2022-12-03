@@ -17,7 +17,7 @@ from pilmoji import Pilmoji
 
 async def buy_item(itx, item: str):
   """
-  Handles shop purchases
+  Handles shop purchases!
   """
   if item.endswith(diamond) or item.endswith(coin):
     amt = int(item.split(" ")[0])
