@@ -123,7 +123,7 @@ Legendary Chest: **200{diamond}**
     if chance <= 60: luck = "common"
     if 60 < chance <= 99: luck = "rare"
     if chance == 100: luck = "legendary"
-    random.choice(chest_rewards[self.chosen][luck])
+    reward = random.choice(chest_rewards[self.chosen][luck])
 
     # Handle coins
     if reward.endswith("Coins"):
@@ -494,7 +494,6 @@ Cost: **{items[item]} {ticket}**
     # boosts = {"income": [{mult: duration}, {x: y}], "xp": [{x: y}]}
     for type_ in boosts:
       msg += f"\n**{type_.title()}: ** \n" # boosts[type_] = [{mult: duration}, {x: y}]
-      print(boosts[type_])
       if boosts[type_] in ([], [{}]):
         msg += f"You do not have any active boosts! \n"
       else:

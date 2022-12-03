@@ -12,6 +12,8 @@ def fetch_stats_page(itx: discord.Interaction, user: int=None, page: Optional[Li
   """
   Returns user stats
   """
+  if str(user) not in itx.client.db["economy"]:
+    return f"{cross} It seems like this user does not own a farm!"
   userID = itx.user.id if user is None else int(user)
   db = itx.client.db["economy"][str(userID)]
   xp_emoji = "🟩"
@@ -20,14 +22,14 @@ def fetch_stats_page(itx: discord.Interaction, user: int=None, page: Optional[Li
   level = db["levels"]["level"]
   xp_needed = math.floor(xp_needed_base*1.5*(level**1.2))
   xp_bar = ""
-  global_income_boost = list(itx.client.dbo["others"]["global_income_boost"].keys())[0]
+  global_income_boost = list(itx.client.dbo["others"]["global_income_boost"].keys())
+  global_income_boost = 0 if global_income_boost == [] else global_income_boost[0]
   personal_inc = 0
   personal_xp = 0
   boosts = db["boosts"]
   for type_ in boosts:
     for boost in range(len(boosts[type_])): # boost = {mult: duration}
       for k in boosts[type_][boost]:
-        print(k, type_)
         if type_ == "income":
           personal_inc += float(k)
         else:
@@ -38,7 +40,6 @@ def fetch_stats_page(itx: discord.Interaction, user: int=None, page: Optional[Li
     xp_bar += xp_emoji
   for i in range(0, 10 - levels):
     xp_bar += no_xp_emoji
-  print(db['levels']['xp_mult'], personal_xp, boosts)
   base = f"""
 Balance: **{db['balance']:,} {coin} | {db['income']:,} {coin} / hour**
 Diamonds: **{db['diamonds']:,} {diamond}**
@@ -531,7 +532,7 @@ async def get_stats(itx, user=None):
   )
   embed.set_footer(text = f"Do {itx.client.prefix}stats <@user> to check someone's profile!")
   await itx.response.send_message(embed=embed)
-  new_embed = discord.Embed(title=f"{user.name}'s Stats", description=fetch_stats_page(itx, user.id), color=blurple)
+  new_embed = discord.Embed(title=f"{user.name}'s Stats", description=fetch_stats_page(itx, user.id), color=discord.Color.blue())
   new_embed.set_footer(text = f"Do {itx.client.prefix}stats <@user> to check someone's profile!")
   view = StatsButtons(user)
   await itx.edit_original_response(embed=new_embed, view=view)
