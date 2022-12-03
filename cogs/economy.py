@@ -591,7 +591,8 @@ Cost: **{items[item]} {ticket}**
   async def quests(self, itx: discord.Interaction):
     """View your daily quests here!"""
     await get_quests(itx)
-        
+
+  # Leaderboards
   @factory_check()
   @app_commands.command(name = "leaderboard")
   async def leaderboard(self, itx: discord.Interaction, type: Optional[Literal["balance", "levels", "bugs", "sponsors"]]="balance"):
@@ -603,7 +604,7 @@ Cost: **{items[item]} {ticket}**
         lb_dump[user] = self.bot.db["economy"][user]["balance"]
         emoji = coin
         note = f"There are currently `{len(self.bot.db['economy'])}` users producing chocolates!"
-      elif type == "bugs":
+      elif type == "bugs": 
         lb_dump[user] = self.bot.db["economy"][user]["bugs_found"]
         emoji = ":bug:"
         count = 0
