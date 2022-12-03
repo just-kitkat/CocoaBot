@@ -26,13 +26,14 @@ class WordleGuess(discord.ui.Modal, title='Wordle Guess'):
       await itx.response.send_message("This word does not exist", ephemeral = True)
 
 class WordleButton(discord.ui.View):
-  def __init__(self, userID, answer, guesses = 6):
+  def __init__(self, userID: int, itx: discord.Interaction, answer: str, guesses: int=6):
     self.userID = userID
     self.value = False
     self.guesses = guesses
     self.guessed = []
     self.answer = answer
-    super().__init__(timeout=60*10)
+    self.latest_itx = itx
+    super().__init__(timeout=60*12)
 
   @discord.ui.button(label = "Guess a Word", style = discord.ButtonStyle.success)
   async def guess_wordle(self, itx: discord.Interaction, button: discord.ui.Button):
@@ -63,12 +64,16 @@ class WordleButton(discord.ui.View):
       embed.description = "\n".join(embed.description.split("\n")[:-2]) + f"\n{words_display}" + "\nUnused Letters: \n" + " ".join(unused_letters)
       self.guesses -= 1
       if guess == self.answer:
-        embed.description += f"\n**You won!**"
+        embed.description += f"\n**You won! \nThe word was *{self.answer}***"
         self.value = True
-        button.disabled = True
+        for child in self.children:
+          child.disabled = True
+        self.stop()
       elif self.guesses <= 0:
         embed.description += f"\n**You have lost! The word was *{self.answer}***"
-        button.disabled = True
+        for child in self.children:
+          child.disabled = True
+        self.stop()
       await itx.edit_original_response(embed = embed, view = self)
 
   @discord.ui.button(label = "View Stats", style = discord.ButtonStyle.success)
@@ -77,8 +82,16 @@ class WordleButton(discord.ui.View):
   
   async def interaction_check(self, itx: discord.Interaction):
     if self.userID == itx.user.id:
+      self.latest_itx = itx
       return True
     return await itx.client.itx_check(itx)
+
+  async def on_timeout(self):
+    for child in self.children:
+      child.disabled = True
+    embed = (await (await self.latest_itx.original_response()).fetch()).embeds[0]
+    embed.description += f"\n**Answer: {self.answer} \nThis wordle game has timed out. Start a new one!**"
+    await self.latest_itx.edit_original_response(embed=embed, view=self)
 
 class Puzzle8Start(discord.ui.View):
   def __init__(self, userID):
@@ -448,13 +461,9 @@ Unused Letters:
 """,
       color = blurple
     )
-    view = WordleButton(itx.user.id, answer)
+    view = WordleButton(itx.user.id, itx, answer)
     await itx.response.send_message(embed = embed, view = view)
     await view.wait()
-    if view.value == False:
-      embed = (await (await itx.original_response()).fetch()).embeds[0]
-      embed.description += f"\n**Answer: {answer} \nThis wordle game has timed out. Start a new one!**"
-      await itx.edit_original_response(embed = embed)
       
 
 async def setup(bot):

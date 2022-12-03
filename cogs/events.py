@@ -187,9 +187,10 @@ Command used: {ctx.message.content}```
         await lottery_msg.edit(embed = new_embed)
       else:
         print(user_list)
-        if len(user_list) <= 1:
+        if users <= 1:
           await lottery_msg.reply("Not enough people joined the lottery.")
         else:
+          user_list = user_list_copy
           winner = random.choice(user_list)
           for user in user_list:
             self.bot.db["economy"][str(user.id)]["balance"] -= price

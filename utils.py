@@ -612,14 +612,19 @@ async def get_upgrade(itx: discord.Interaction, type: str, name: str):
     if type == "view":
       msg = ""
       for upgrade in upgrades_map[upgrade_type]:
-        msg += f"{upgrades[upgrade]['name']} | `{upgrades[upgrade]['level']}/{upgrades[upgrade]['max']}` \nIncome: **{upgrades[upgrade]['income']} {coin} / hr** \nCost: **{upgrades[upgrade]['cost']} {coin}** \n\n"
+        maxed = upgrades[upgrade]['level'] >= upgrades[upgrade]['max']
+        msg += f"""
+{upgrades[upgrade]['name']} | `{upgrades[upgrade]['level']}/{upgrades[upgrade]['max']}` 
+Income: **{upgrades[upgrade]['income']} {coin} / hr** 
+Cost: **{upgrades[upgrade]['cost'] if not maxed else 'Maxed!'} {coin if not maxed else ''}** \n
+"""
       msg += f"\nView more upgrades using `{prefix}upgrades view <location>` \nUpgrade using `{prefix}upgrades buy <upgrade>`"
       embed = discord.Embed(title = f"{name} Upgrades", description = msg, color = color)
       #embed.set_image(url="attachment://temp.png")
       view = BackButton()
       await itx.response.send_message(embed = embed, view=view) #file=file when img added
     else:
-      view = None
+      view = discord.utils.MISSING
       cost = upgrades[name]["cost"]
       balance = itx.client.db["economy"][str(itx.user.id)]["balance"]
       if balance >= cost and upgrades[name]["level"] < upgrades[name]["max"]:
@@ -639,13 +644,11 @@ async def get_upgrade(itx: discord.Interaction, type: str, name: str):
         msg, color, ephemeral = f"You do not have enough money for this upgrade! \nBalance: **{balance} {coin}** \nAmount needed: **{cost} {coin}**", red, True
       embed = discord.Embed(title = "Upgrade", description = msg, color = color)
       try: #itx.response.is_done
-        if view is None:
-          await itx.response.send_message(embed=embed, ephemeral=ephemeral)
-        else:
-          await itx.response.send_message(embed=embed, ephemeral=ephemeral, view=view)
+        await itx.response.send_message(embed=embed, ephemeral=ephemeral, view=view)
       except Exception:
         await itx.followup.send(embed=embed, ephemeral=ephemeral, view=view)
-      if view is None: break
+      if view is discord.utils.MISSING: 
+        break
       await view.wait()
       # looped
 

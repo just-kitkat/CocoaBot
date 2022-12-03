@@ -35,6 +35,12 @@ class Info(commands.Cog, name = "Information Commands"):
     "Get bot's statistics"
     users = len(self.bot.db["economy"])
     guilds = len(list(self.bot.guilds))
+    uptime = (int(time.time()) - self.bot.cache["uptime"])
+    td = timedelta(seconds=uptime)
+    hour = td.seconds // 3600
+    min = (td.seconds % 3600) // 60
+    sec = td.seconds % 60
+    uptime = f"{hour}h {min}m {sec}s"
     ram = psutil.virtual_memory()[2]
     cpu = psutil.cpu_percent()
     cmds_ran = self.bot.dbo["others"]["total_commands_ran"]
@@ -50,6 +56,8 @@ class Info(commands.Cog, name = "Information Commands"):
     embed.add_field(name = "**📇 Cpu**", value = f"∟ {cpu}%", inline = True)
     
     embed.add_field(name = "**🤖 Commands ran**", value = f"∟ {cmds_ran:,}", inline = True)
+    embed.add_field(name = "**🕙 Uptime**", value = f"∟ {uptime}", inline = True)
+    embed.add_field(name = "**👨‍💻 Code**", value = f"∟ Over 3,600 lines", inline = True)
     await ctx.reply(embed = embed, mention_author = False)
 
   @app_commands.command(name="alert")

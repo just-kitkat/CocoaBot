@@ -230,6 +230,10 @@ Dm me `.info` to join the support server!"""
       return False
     if itx.user.id not in itx.client.dbo["others"]["read_alert"] and itx.client.dbo["others"]["alert_ping"]:
       await itx.channel.send(f"{itx.user.mention}, there is an important alert! \nUse `{prefix}alert` to view it!")
+
+    # cleanliness warning
+    if itx.client.db["economy"][str(itx.user.id)]["cleanliness"] <= 25:
+      await itx.channel.send(f"{itx.user.mention}, you have not cleaned your farm for a long time... This impacts your hourly income! \nUse `{prefix}clean` to clean your farm!")
     return True
 
       
@@ -243,7 +247,8 @@ bot = MyBot(
 )
 bot.db, bot.dbo = {}, {}
 bot.cache = {
-  "fishing_cooldown" : {"users" : {}}
+  "fishing_cooldown" : {"users" : {}},
+  "uptime": int(time.time())
 }
 bot.prefix = "/"
 bot.giving_income = False
