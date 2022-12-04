@@ -143,7 +143,7 @@ class MyBot(commands.Bot):
     xp_mult = bot.db["economy"][str(user)]["levels"]["xp_mult"]
     personal_mult = 0
     boosts = bot.db["economy"][str(user)]["boosts"]
-    type_ = "income"
+    type_ = "xp"
     for user in bot.db["economy"]:
       for boost in range(len(boosts[type_])): # boost = {mult: duration}
         for k in boosts[type_][boost]:
@@ -232,7 +232,7 @@ Dm me `.info` to join the support server!"""
       await itx.channel.send(f"{itx.user.mention}, there is an important alert! \nUse `{prefix}alert` to view it!")
 
     # cleanliness warning
-    if itx.client.db["economy"][str(itx.user.id)]["cleanliness"] <= 25:
+    if str(itx.user.id) in itx.client.db["economy"] and itx.client.db["economy"][str(itx.user.id)]["cleanliness"] <= 25:
       await itx.channel.send(f"{itx.user.mention}, you have not cleaned your farm for a long time... This impacts your hourly income! \nUse `{prefix}clean` to clean your farm!")
     return True
 
@@ -248,7 +248,8 @@ bot = MyBot(
 bot.db, bot.dbo = {}, {}
 bot.cache = {
   "fishing_cooldown" : {"users" : {}},
-  "uptime": int(time.time())
+  "uptime": int(time.time()),
+  "logged_restart": False
 }
 bot.prefix = "/"
 bot.giving_income = False

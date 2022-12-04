@@ -17,6 +17,7 @@ xp_needed_base = 10
 unix_day = 1661788800
 eco_prestige = [0, 1000000, 2500000, 5000000, 10000000, 20000000]
 lottery_channel = 924492712328171530
+restart_log_channel = 927434363317157899
 custom_emojis = {
   "726965815265722390" : "<:trolllol:944407059443617792>"
 }

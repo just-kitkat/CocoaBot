@@ -17,14 +17,14 @@ class Info(commands.Cog, name = "Information Commands"):
   @commands.hybrid_command()
   async def ping(self, ctx):
     """Gets the bot's latency"""
-    ping = round(self.bot.latency * 1000)
+    ping = round(self.bot.latency * 1000, 1)
     embed = discord.Embed(title = bot_name, 
                          description = f"Ping: **{ping}ms** \nResponse time: **Calculating...**",
                          color = red)
     start = time.time()
     msg = await ctx.reply(embed = embed, mention_author = False)
     end = time.time()
-    responsetime = round((end - start) * 1000)
+    responsetime = round((end - start) * 1000, 1)
     updated_embed = discord.Embed(title = bot_name,
                                  description = f"Ping: **{ping}ms** \nResponse time: **{responsetime}ms**",
                                  color = green)

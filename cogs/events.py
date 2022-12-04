@@ -16,6 +16,15 @@ class Events(commands.Cog):
   @commands.Cog.listener()
   async def on_ready(self):
     print("We have logged in as {0.user}".format(self.bot))
+    if not self.bot.cache["logged_restart"]:
+      embed = discord.Embed(
+        title=f"{bot_name} Restart", 
+        description=f"{bot_name} restarted <t:{int(time.time())}:R> \nPing: `{round(self.bot.latency*1000, 1)}ms`", 
+        color=blurple
+      )
+      await self.bot.get_channel(restart_log_channel).send(embed=embed)
+      self.bot.cache["logged_restart"] = True
+
     await self.tasksloop.start()
 
   @commands.Cog.listener()
