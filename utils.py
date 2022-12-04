@@ -9,6 +9,27 @@ import math
 import copy
 from vars import *
 
+def get_counter(t: int, cooldown: Optional[int]=0) -> str:
+  """
+  Return a countdown message for a given time.
+  t: last_x_seconds ago
+  """
+  td = timedelta(
+    seconds = cooldown - int(time.time()) + t \
+    if cooldown > 0 else \
+    int(time.time()) - t
+  )
+  hour = td.seconds // 3600
+  min = (td.seconds % 3600) // 60
+  sec = td.seconds % 60
+  res = ""
+  if hour > 0:
+    res += f"{hour}h "
+  if min > 0:
+    res += f"{min}m "
+  res += f"{sec}s"
+  return res
+
 def fetch_stats_page(itx: discord.Interaction, user: int=None, page: Optional[Literal["Main Stats", "Command Stats", "Guild Stats", "Pet Stats"]]="Main Stats"): # game stats?
   """
   Returns user stats
@@ -562,7 +583,7 @@ async def get_upgrade(itx: discord.Interaction, type: str, name: str):
     return
 
   base_upgrades = {
-    "farmer": 50, "store": 250, "van": 5000, "storage_tank": 12000, "warehouse": 55000,
+    "farmer": 50, "store": 250, "van": 4500, "storage_tank": 10000, "warehouse": 40000,
     "bean_grinder": 12000, "chocolate_moulder": 25000, "chocolate_freezer": 38000, "workers": 45000, "chocolate_packager": 36_000, "fork_lifts": 50_000, "packaging_machine": 90_000, "storage_shelves": 220_000, "trucks": 350_000, "managers": 400_000
   }
   upgrade_again = True
@@ -771,7 +792,8 @@ async def get_work(itx: discord.Interaction):
   quest_msg = await get_quest_rewards(itx, "income")
   last_work = itx.client.db["economy"][str(itx.user.id)]["last_work"]
   time_diff = int(time.time()) - last_work
-  if time_diff >= 60*10: # for testing
+  cooldown = 60*10
+  if time_diff >= cooldown: 
 
     income = itx.client.db["economy"][str(itx.user.id)]["income"]
     amt_sold = random.randint(income//6, income*3)
@@ -784,7 +806,8 @@ async def get_work(itx: discord.Interaction):
     xp_msg = await itx.client.check_xp(itx.user.id, random.randint(1, 4))
     msg = f"You worked hard and earned **{amt_sold}{coin}** \nBalance: **{balance:,}{coin}** {xp_msg}" # add chocolates sold -> therefore amt earned
   else:
-    msg = "You cannot work so soon! \nCooldown: `10 mins`" # cooldown based on level/patreon
+    cooldown_msg = get_counter(last_work, cooldown)
+    msg = f"You cannot work so soon! \nCooldown: `{cooldown_msg}`" # cooldown based on level/patreon
     color = red
 
   msg += quest_msg

@@ -4,6 +4,7 @@ import math
 import psutil
 from datetime import timedelta
 from vars import *
+from utils import *
 from errors import *
 from discord import app_commands
 from discord.ext import commands
@@ -35,12 +36,7 @@ class Info(commands.Cog, name = "Information Commands"):
     "Get bot's statistics"
     users = len(self.bot.db["economy"])
     guilds = len(list(self.bot.guilds))
-    uptime = (int(time.time()) - self.bot.cache["uptime"])
-    td = timedelta(seconds=uptime)
-    hour = td.seconds // 3600
-    min = (td.seconds % 3600) // 60
-    sec = td.seconds % 60
-    uptime = f"{hour}h {min}m {sec}s"
+    uptime = get_counter(self.bot.cache["uptime"])
     ram = psutil.virtual_memory()[2]
     cpu = psutil.cpu_percent()
     cmds_ran = self.bot.dbo["others"]["total_commands_ran"]

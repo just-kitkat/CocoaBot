@@ -1,6 +1,7 @@
 import discord
 import math, time, asyncio, random
 from vars import *
+from utils import *
 from errors import *
 from typing import Optional, Literal
 from discord import app_commands
@@ -270,9 +271,33 @@ This pets system is currently under development and will more than likely be res
 
   @app_commands.command(name = "hunt")
   @factory_check()
-  @pet_check()
+  #@pet_check()
   async def hunt(self, itx: discord.Interaction):
-    """Go hunting with your pet and find some amazing rewards!"""
+    """Go hunting and find some amazing rewards!"""
+    quest_msg = await get_quest_rewards(itx, "hunt")
+    last_hunt = self.bot.db["economy"][str(itx.user.id)]["pets"]["last_hunt"]
+    cooldown = 60*10 # 10 mins
+    if last_hunt + cooldown < int(time.time()):
+      quest_msg = await get_quest_rewards(itx, "hunt", True)
+      income = self.bot.db["economy"][str(itx.user.id)]["income"]
+      amt = random.randint(income//2, income*3)
+      msg = f"You went hunting and earned **{amt} {coin}**"
+      color = green
+      self.bot.db["economy"][str(itx.user.id)]["pets"]["last_hunt"] = int(time.time())
+    else:
+      msg = f"You cannot go hunting again so soon! \nCooldown: `{get_counter(last_hunt, cooldown)}`"
+      color = red
+    msg += f"\n{quest_msg}"
+    embed = discord.Embed(
+      title = "Hunting", 
+      description = msg, 
+      color = color
+    )
+    embed.set_footer(text="This hunting feature is a placeholder. Hunting is a pet feature and will be properly implemented once pets have been added!")
+    await itx.response.send_message(embed=embed)
+    
+    """ CODE FOR WHEN PETS RELEASE
+    
     color = red
     quest_msg = get_quest_rewards(itx, "hunt")
     happiness = self.bot.get_happiness(itx)
@@ -308,7 +333,7 @@ This pets system is currently under development and will more than likely be res
     embed = discord.Embed(title = "Hunting", description = msg, color = color)
     if random.randint(1, 2) == 1:
       embed.set_footer(text = f"Tip: Set your pet's name using {self.bot.prefix}pet name <name>")
-    await itx.response.send_message(embed = embed)
+    await itx.response.send_message(embed = embed)"""
 
 async def setup(bot):
   await bot.add_cog(Pets(bot))
