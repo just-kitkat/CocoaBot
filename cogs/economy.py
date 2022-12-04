@@ -203,7 +203,7 @@ class Economy(commands.Cog, name = "General Commands"):
     """Start your chocolate journey here!"""
     if str(itx.user.id) not in self.bot.db["economy"]:
       self.bot.db["economy"][str(itx.user.id)] = {
-        "balance": 100 , "last_sold": int(time.time()), "last_quest": 1, "last_clean": 1,
+        "balance": 100, "last_work": 1, "last_quest": int(time.time()), "last_clean": 1,
         "last_daily": 1, "last_weekly": 1, "last_monthly": 1, "daily_streak": 0, 
         "last_cf": 1, "cleanliness": 100,
         "golden_ticket": 0, "claimed_ticket": False, "account_age": int(time.time()),
@@ -244,8 +244,8 @@ class Economy(commands.Cog, name = "General Commands"):
         },
         "quest": {
           "fish": {"name": "tuna", "times": 5, "completed": False},
-          "hunt": {"times": 1, "times_completed": 0, "completed": False},
-          "income": {"times": 1, "times_completed": 0, "completed": False}
+          "hunt": {"times": 6, "times_completed": 0, "completed": False},
+          "income": {"times": 5, "times_completed": 0, "completed": False}
         },
         "games": {
           "sliding_puzzle_8_moves": -1, "sliding_puzzle_8_time": -1

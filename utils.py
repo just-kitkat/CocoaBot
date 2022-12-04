@@ -96,7 +96,7 @@ async def get_quest_rewards(itx: discord.Interaction, type_: Optional[Literal["f
       itx.client.db["economy"][str(itx.user.id)]["golden_ticket"] += 1
       itx.client.db["economy"][str(itx.user.id)]["claimed_ticket"] = True
       xp_msg = await itx.client.check_xp(itx.user.id, random.randint(8, 20))
-      return f"You have recieved **1 {ticket}** for completing all the daily quests! Check `{prefix}shop` to view available items."
+      return f"You have recieved **1 {ticket}** for completing all the daily quests! Check `{prefix}shop` to view available items. \n{xp_msg}"
     return f"To claim a {ticket}, complete all daily quests!"
 
   add = 1 if to_add else 0
@@ -768,15 +768,15 @@ async def get_work(itx: discord.Interaction):
   # to self: add multipliers and boosters
   color = blurple
   quest_msg = await get_quest_rewards(itx, "income")
-  last_sold = itx.client.db["economy"][str(itx.user.id)]["last_sold"]
-  time_diff = int(time.time()) - last_sold
+  last_work = itx.client.db["economy"][str(itx.user.id)]["last_work"]
+  time_diff = int(time.time()) - last_work
   if time_diff >= 60*10: # for testing
 
     income = itx.client.db["economy"][str(itx.user.id)]["income"]
     amt_sold = random.randint(income//6, income*3)
 
     itx.client.db["economy"][str(itx.user.id)]["balance"] += amt_sold
-    itx.client.db["economy"][str(itx.user.id)]["last_sold"] = int(time.time())
+    itx.client.db["economy"][str(itx.user.id)]["last_work"] = int(time.time())
     itx.client.db["economy"][str(itx.user.id)]["counting"]["work"] += 1
     balance = itx.client.db["economy"][str(itx.user.id)]["balance"]
     quest_msg = await get_quest_rewards(itx, "income", True) 

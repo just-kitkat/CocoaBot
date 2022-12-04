@@ -291,8 +291,11 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       await ctx.send("updated games db")
     elif arg1 == "updateusers":
       for user in self.bot.db["economy"]:
-        self.bot.db["economy"][user]["levels"] = {"xp" : 0, "xp_mult" : 1, "level" : 1}
-        self.bot.dbo["others"]["last_income"] = 1665903600
+        self.bot.db["economy"][user]["last_work"] = 1
+        try:
+          self.bot.db["economy"][user].pop("last_sold")
+        except:
+          pass
       await ctx.send("updated users db (income)")
     elif arg1 == "resetdaily":
       if arg2 is None:
@@ -323,6 +326,11 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       for user in self.bot.db["economy"]:
         self.bot.db["economy"][user]["boosts"].pop("global")
       await ctx.send("Global income boost removed (from user db)")
+    elif arg1 == "addglobalboost":
+      self.bot.dbo["others"]["global_income_boost"] = {"2": 24}
+      await ctx.send("Global boost added (2x, 1d)")
+
+
 
 
   @commands.command()
