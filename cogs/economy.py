@@ -489,25 +489,7 @@ Cost: **{items[item]} {ticket}**
     """
     View your active boosts!
     """
-    msg = ""
-    boosts = self.bot.db["economy"][str(itx.user.id)]["boosts"].copy()
-    boosts["global"] = [self.bot.dbo["others"]["global_income_boost"]]
-    # boosts = {"income": [{mult: duration}, {x: y}], "xp": [{x: y}]}
-    for type_ in boosts:
-      msg += f"\n**{type_.title()}: ** \n" # boosts[type_] = [{mult: duration}, {x: y}]
-      if boosts[type_] in ([], [{}]):
-        msg += f"You do not have any active boosts! \n"
-      else:
-        for boost in boosts[type_]: # boosts[type_][boost] = {mult: duration}
-          msg += f"- **{list(boost.keys())[0]}x** boost ends in **{list(boost.values())[0]} hour(s)** \n"
-      
-
-    embed = discord.Embed(
-      title = "Active Boosts",
-      description = msg,
-      color = blurple
-    )
-    await itx.response.send_message(embed=embed)
+    await get_boosts(itx)
 
   # Balance Command
   @app_commands.command(name="balance")

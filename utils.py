@@ -476,6 +476,10 @@ class StatsButtons(discord.ui.View):
   async def to_work(self, itx: discord.Interaction, button: discord.ui.Button):
     await get_work(itx)
 
+  @discord.ui.button(label = "Boosts", style = discord.ButtonStyle.success)
+  async def to_boosts(self, itx: discord.Interaction, button: discord.ui.Button):
+    await get_boosts(itx)
+
 class UpgradesButton(discord.ui.View):
   def __init__(self, userID):
     self.userID = userID
@@ -814,3 +818,24 @@ async def get_work(itx: discord.Interaction):
   embed = discord.Embed(title = bot_name, description = msg, color = color)
   view = BackButton()
   await itx.response.send_message(embed=embed, view=view)
+
+async def get_boosts(itx: discord.Interaction):
+  msg = ""
+  boosts = itx.client.db["economy"][str(itx.user.id)]["boosts"].copy()
+  boosts["global"] = [itx.client.dbo["others"]["global_income_boost"]]
+  # boosts = {"income": [{mult: duration}, {x: y}], "xp": [{x: y}]}
+  for type_ in boosts:
+    msg += f"\n**{type_.title()}: ** \n" # boosts[type_] = [{mult: duration}, {x: y}]
+    if boosts[type_] in ([], [{}]):
+      msg += f"You do not have any active boosts! \n"
+    else:
+      for boost in boosts[type_]: # boosts[type_][boost] = {mult: duration}
+        msg += f"- **{list(boost.keys())[0]}x** boost ends in **{list(boost.values())[0]} hour(s)** \n"
+    
+
+  embed = discord.Embed(
+    title = "Active Boosts",
+    description = msg,
+    color = blurple
+  )
+  await itx.response.send_message(embed=embed, view=BackButton())
