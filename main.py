@@ -144,12 +144,12 @@ class MyBot(commands.Bot):
     personal_mult = 0
     boosts = bot.db["economy"][str(user)]["boosts"]
     type_ = "xp"
-    for user in bot.db["economy"]:
-      for boost in range(len(boosts[type_])): # boost = {mult: duration}
-        for k in boosts[type_][boost]:
-          personal_mult += float(k)
+    for boost in range(len(boosts[type_])): # boost = {mult: duration}
+      for k in boosts[type_][boost]:
+        personal_mult += float(k)
     total_mult = round(amt * (xp_mult + personal_mult))
     updated_xp = round(xp + total_mult) # + guild mult
+    print(xp, xp_mult, personal_mult, total_mult, updated_xp, user)
     #await bot.guild_xp(ctx, round(amt * (xp_mult + guild_mult)))
     xp_needed = math.floor(xp_needed_base*1.5*(level**1.2))
     xp = updated_xp
@@ -176,7 +176,9 @@ class MyBot(commands.Bot):
         msg = f"You have earned **{reward} {coin}**!"
       return f"\nYou leveled up! You are now level **{level}** \n{msg}"
     else:
+      print("test 1", bot.db["economy"][str(user)]["levels"]["xp"])
       bot.db["economy"][str(user)]["levels"]["xp"] = updated_xp
+      print("test 2", bot.db["economy"][str(user)]["levels"]["xp"])
       return f"\nXp Earned: **{total_mult} 🔹** `{updated_xp} / {xp_needed}`"
 
   async def get_income(self, userid):

@@ -459,14 +459,15 @@ Cost: **{items[item]} {ticket}**
         if cost > self.bot.db["economy"][str(itx.user.id)]["golden_ticket"]:
           msg = f"You don't have enough money to buy this item! \nYou need **{cost} {ticket}** to buy it."
         else:
-          if item.split(" ")[1] == "global" and self.bot.dbo["others"]["global_income_boost"] == {}:
+          if item.split(" ")[1] == "global" and self.bot.dbo["others"]["global_income_boost"] != {}:
+            msg = "There is already a global income boost active! Wait until the boost finishes before buying another global boost!"
+          else:
             self.bot.db["economy"][str(itx.user.id)]["golden_ticket"] -= cost
             self.bot.db["economy"][str(itx.user.id)]["bought_from_shop"].append(item)
             await buy_item(itx, item)
             msg = f"You have bought **{item}** from the shop! \nUse `{prefix}shop` to check out your shop offers again."
             color = green
-          else:
-            msg = "There is already a global income boost active! Wait until the boost finishes before buying another global boost!"
+            
     else:
       msg = f"That item is not available! \nUse `{prefix}shop` to check out your shop offers again."
     embed = discord.Embed(
