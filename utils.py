@@ -6,6 +6,7 @@ import discord
 import asyncio
 import random
 import math
+import copy
 from vars import *
 
 def fetch_stats_page(itx: discord.Interaction, user: int=None, page: Optional[Literal["Main Stats", "Command Stats", "Guild Stats", "Pet Stats"]]="Main Stats"): # game stats?
@@ -568,9 +569,9 @@ async def get_upgrade(itx: discord.Interaction, type: str, name: str):
   while upgrade_again:
     upgrade_again = False
     upgrades = {}
-    upgrades.update(itx.client.db["economy"][str(itx.user.id)]["upgrades"]["farm"])
-    upgrades.update(itx.client.db["economy"][str(itx.user.id)]["upgrades"]["factory"])
-    upgrades.update(itx.client.db["economy"][str(itx.user.id)]["upgrades"]["distribution_center"])
+    upgrades.update(copy.deepcopy(itx.client.db["economy"][str(itx.user.id)]["upgrades"]["farm"]))
+    upgrades.update(copy.deepcopy(itx.client.db["economy"][str(itx.user.id)]["upgrades"]["factory"]))
+    upgrades.update(copy.deepcopy(itx.client.db["economy"][str(itx.user.id)]["upgrades"]["distribution_center"]))
     # IGNORE COORDS (OLD FEATURE)
     #Farm
     upgrades["farmer"]["income"] = 10

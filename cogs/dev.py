@@ -291,11 +291,14 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       await ctx.send("updated games db")
     elif arg1 == "updateusers":
       for user in self.bot.db["economy"]:
-        self.bot.db["economy"][user]["last_work"] = 1
-        try:
-          self.bot.db["economy"][user].pop("last_sold")
-        except:
-          pass
+        for upgrade in self.bot.db["economy"][user]["upgrades"]: #farm/fact/dist
+          for type_ in self.bot.db["economy"][user]["upgrades"][upgrade]: #name_of_up
+            try:
+              self.bot.db["economy"][user]["upgrades"][upgrade][type_].pop("coords")
+              self.bot.db["economy"][user]["upgrades"][upgrade][type_].pop("cost")
+              self.bot.db["economy"][user]["upgrades"][upgrade][type_].pop("income")
+            except Exception as e:
+              print(e)
       await ctx.send("updated users db (income)")
     elif arg1 == "resetdaily":
       if arg2 is None:
@@ -329,6 +332,16 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     elif arg1 == "addglobalboost":
       self.bot.dbo["others"]["global_income_boost"] = {"2": 24}
       await ctx.send("Global boost added (2x, 1d)")
+    elif arg1 == "getdata":
+      if arg2 is not None and arg2.isdigit():
+        userdata = self.bot.db["economy"][arg2]
+        with open("dump/userdata.txt", "w") as data:
+          data.truncate(0)
+          data.write("User Data: \n" + str(userdata) + f"\n[{int(time.time())}]")
+        await ctx.send(file=discord.File("dump/userdata.txt"))
+        os.remove("dump/userdata.txt")
+      else:
+        await ctx.send("arg2 is not a number!")
 
 
 

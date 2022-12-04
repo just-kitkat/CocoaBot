@@ -171,7 +171,6 @@ Command used: {ctx.message.content}```
         u async for u in lottery_msg.reactions[0].users()
         if u != self.bot.user
       ]
-      print(user_list)
       user_list_copy = user_list.copy()
       for i in user_list_copy:
         if self.bot.db["economy"][str(i.id)]["balance"] >= price:
@@ -195,7 +194,6 @@ Command used: {ctx.message.content}```
         
         await lottery_msg.edit(embed = new_embed)
       else:
-        print(user_list)
         if users <= 1:
           await lottery_msg.reply("Not enough people joined the lottery.")
         else:
