@@ -640,12 +640,14 @@ async def get_upgrade(itx: discord.Interaction, type: str, name: str):
       msg = ""
       for upgrade in upgrades_map[upgrade_type]:
         maxed = upgrades[upgrade]['level'] >= upgrades[upgrade]['max']
+        cost = f"{upgrades[upgrade]['cost']:,}"
         msg += f"""
 {upgrades[upgrade]['name']} | `{upgrades[upgrade]['level']}/{upgrades[upgrade]['max']}` 
 Income: **{upgrades[upgrade]['income']} {coin} / hr** 
-Cost: **{upgrades[upgrade]['cost'] if not maxed else 'Maxed!'} {coin if not maxed else ''}** \n
+Cost: **{cost if not maxed else 'Maxed!'} {coin if not maxed else ''}** \n
 """
-      msg += f"\nView more upgrades using `{prefix}upgrades view <location>` \nUpgrade using `{prefix}upgrades buy <upgrade>`"
+      balance = itx.client.db["economy"][str(itx.user.id)]["balance"]
+      msg += f"Balance: **{balance:,} {coin}** \nView more upgrades using `{prefix}upgrades view <location>` \nUpgrade using `{prefix}upgrades buy <upgrade>`"
       embed = discord.Embed(title = f"{name} Upgrades", description = msg, color = color)
       #embed.set_image(url="attachment://temp.png")
       view = BackButton()
