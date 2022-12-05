@@ -808,6 +808,10 @@ async def get_work(itx: discord.Interaction):
 
     income = itx.client.db["economy"][str(itx.user.id)]["income"]
     amt_sold = random.randint(income//6, income*3)
+    latest_location = itx.client.db["economy"][str(itx.user.id)]["unlocked_upgrades"][-1]
+    if latest_location == "farm": item_sold = "cocoa beans"
+    if latest_location == "factory": item_sold = "chocolate bars"
+    if latest_location == "distribution_center": item_sold = "boxes of chocolate bars"
 
     itx.client.db["economy"][str(itx.user.id)]["balance"] += amt_sold
     itx.client.db["economy"][str(itx.user.id)]["last_work"] = int(time.time())
@@ -815,7 +819,7 @@ async def get_work(itx: discord.Interaction):
     balance = itx.client.db["economy"][str(itx.user.id)]["balance"]
     quest_msg = await get_quest_rewards(itx, "income", True) 
     xp_msg = await itx.client.check_xp(itx.user.id, random.randint(1, 4))
-    msg = f"You worked hard and earned **{amt_sold}{coin}** \nBalance: **{balance:,}{coin}** {xp_msg}" # add chocolates sold -> therefore amt earned
+    msg = f"You sold some **{item_sold}** and earned **{amt_sold}{coin}** \nBalance: **{balance:,}{coin}** {xp_msg}" # add chocolates sold -> therefore amt earned
   else:
     cooldown_msg = get_counter(last_work, cooldown)
     msg = f"You cannot work so soon! \nCooldown: `{cooldown_msg}`" # cooldown based on level/patreon
