@@ -348,6 +348,30 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         for name in files:
             print(os.path.join(path, name))
 
+  @app_commands.command(name="givereward")
+  @is_owner()
+  async def givereward(
+    self, 
+    itx: discord.Interaction, 
+    user: discord.Member, 
+    type_: Literal["balance", "diamonds", "golden_ticket"],
+    amount: int
+  ) -> None:
+    """
+    Give users a reward
+    """
+    rep = {
+      "balance": coin,
+      "diamonds": diamond,
+      "golden_ticket": ticket
+    }
+    self.bot.db["economy"][str(user.id)][type_] += amount
+    embed = discord.Embed(
+      title = "Reward Given",
+      description = f"**{user.name}** has been given **{amount} {rep[type_]}**!",
+      color = green
+    )
+    await itx.response.send_message(embed=embed)
 
 
 
