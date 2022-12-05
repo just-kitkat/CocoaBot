@@ -3,6 +3,7 @@ import discord
 import asyncio
 
 bot_name = "CocoaBot"
+owner = 915156033192734760
 
 cross = "❌"
 tick = "✅"

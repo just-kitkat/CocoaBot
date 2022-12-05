@@ -173,18 +173,20 @@ async def view_inv(itx: discord.Interaction, button: discord.ui.Button=None):
 async def craft_rod_(itx: discord.Interaction, button: discord.ui.Button):
   materials_needed = [
     None, #index based on level
-    {"description": "decreases rod cooldown", "tuna": 20, "grouper": 8, "snapper": 3},
-    {"description": "unlocks a new fish", "tuna": 30, "grouper": 15, "snapper": 8},
-    {"description": "decreases rod cooldown", "tuna": 40, "grouper": 25, "snapper": 15, "salmon": 6},
-    {"description": "unlocks a new fish", "tuna": 50, "grouper": 40, "snapper": 28, "salmon": 20}
+    {"description": "decreases rod cooldown", "tuna": 30, "grouper": 20, "snapper": 12, "coins": 2500},
+    {"description": "unlocks a new fish", "tuna": 45, "grouper": 32, "snapper": 20, "coins": 6_000},
+    {"description": "decreases rod cooldown", "tuna": 60, "grouper": 45, "snapper": 36, "salmon": 20, "coins": 20_000},
+    {"description": "unlocks a new fish", "tuna": 80, "grouper": 60, "snapper": 48, "salmon": 30, "coins": 50_000}
   ]
   fishdb = itx.client.db["economy"][str(itx.user.id)]["fish"]
+  balance = itx.client.db["economy"][str(itx.user.id)]["balance"]
   fishes = {
     "tuna": fishdb["tuna"],
     "grouper": fishdb["grouper"],
     "snapper": fishdb["snapper"],
     "salmon": fishdb["salmon"],
-    "cod": fishdb["cod"]
+    "cod": fishdb["cod"],
+    "coins": balance
   }
   rod_level = fishdb["rod_level"]
   msg = ""
@@ -194,7 +196,10 @@ async def craft_rod_(itx: discord.Interaction, button: discord.ui.Button):
     can_upgrade = True
     for fish_needed in materials_needed[rod_level]:
       if fish_needed == "description": continue
-      msg += f"**{materials_needed[rod_level][fish_needed]}x {fish_needed}** `{fishes[fish_needed]} / {materials_needed[rod_level][fish_needed]}` \n"
+      if fish_needed == "coins":
+        msg += f"**{materials_needed[rod_level]['coins']:,} {coin}** `{balance:,} / {materials_needed[rod_level]['coins']:,}` \n"
+      else:
+        msg += f"**{materials_needed[rod_level][fish_needed]}x {fish_needed}** `{fishes[fish_needed]} / {materials_needed[rod_level][fish_needed]}` \n"
       if fishes[fish_needed] < materials_needed[rod_level][fish_needed]:
         can_upgrade = False
     msg += f"\n*This new rod {materials_needed[rod_level]['description']} and increases your odds to catch more rare fish!*"
@@ -212,7 +217,10 @@ async def craft_rod_(itx: discord.Interaction, button: discord.ui.Button):
     if view.value:
       for fish in materials_needed[rod_level]:
         if fish == "description": continue
-        itx.client.db["economy"][str(itx.user.id)]["fish"][fish] -= materials_needed[rod_level][fish]
+        if fish == "coins":
+          itx.client.db["economy"][str(itx.user.id)]["balance"] -= materials_needed[rod_level][fish]
+        else:
+          itx.client.db["economy"][str(itx.user.id)]["fish"][fish] -= materials_needed[rod_level][fish]
         
       itx.client.db["economy"][str(itx.user.id)]["fish"]["rod_level"] += 1
       msg = "Your rod cooldown has decreased!" if materials_needed[rod_level]["description"].startswith("decreases") else "You have unlocked a new fish!"
@@ -736,6 +744,8 @@ async def get_fish(itx: discord.Interaction):
       if 90 <= odds < 100: fish = "salmon"
       if odds >= 100: fish = "cod" if random.randint(0, 1) else "tuna"
     #cooldown = 1 # uncomment for testing
+    if itx.user.id == owner: cooldown = 1
+    
     if first_loop:
       embed = discord.Embed(
         title="Fishing Stats",
