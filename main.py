@@ -172,7 +172,7 @@ class MyBot(commands.Bot):
         reward = level*500
         bot.db["economy"][str(user)]["balance"] += reward
         msg = f"You have earned **{reward} {coin}**!"
-        await itx.client.log_action("Level up", f"**{bot.get_user(user)}** is now **level {level}**! \n[{user}]")
+        await bot.log_action("Level up", f"**{bot.get_user(user)}** is now **level {level}**! \n[{user}]")
       return f"\nYou leveled up! You are now level **{level}** \n{msg}"
     else:
       bot.db["economy"][str(user)]["levels"]["xp"] = updated_xp

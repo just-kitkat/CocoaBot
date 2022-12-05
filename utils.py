@@ -173,10 +173,10 @@ async def view_inv(itx: discord.Interaction, button: discord.ui.Button=None):
 async def craft_rod_(itx: discord.Interaction, button: discord.ui.Button):
   materials_needed = [
     None, #index based on level
-    {"description": "decreases rod cooldown", "tuna": 30, "grouper": 20, "snapper": 12, "coins": 2500},
-    {"description": "unlocks a new fish", "tuna": 45, "grouper": 32, "snapper": 20, "coins": 6_000},
-    {"description": "decreases rod cooldown", "tuna": 60, "grouper": 45, "snapper": 36, "salmon": 20, "coins": 20_000},
-    {"description": "unlocks a new fish", "tuna": 80, "grouper": 60, "snapper": 48, "salmon": 30, "coins": 50_000}
+    {"description": "decreases rod cooldown", "tuna": 30, "grouper": 20, "snapper": 8, "coins": 2500},
+    {"description": "unlocks a new fish", "tuna": 45, "grouper": 32, "snapper": 18, "coins": 6_000},
+    {"description": "decreases rod cooldown", "tuna": 60, "grouper": 45, "snapper": 32, "salmon": 20, "coins": 20_000},
+    {"description": "unlocks a new fish", "tuna": 80, "grouper": 60, "snapper": 45, "salmon": 30, "coins": 50_000}
   ]
   fishdb = itx.client.db["economy"][str(itx.user.id)]["fish"]
   balance = itx.client.db["economy"][str(itx.user.id)]["balance"]
