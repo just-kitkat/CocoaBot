@@ -1,3 +1,4 @@
+import os
 import discord
 import time
 import math
@@ -40,6 +41,18 @@ class Info(commands.Cog, name = "Information Commands"):
     ram = psutil.virtual_memory()[2]
     cpu = psutil.cpu_percent()
     cmds_ran = self.bot.dbo["others"]["total_commands_ran"]
+
+    lines_of_code = 0
+    cog_files = os.listdir("cogs")
+    files = cog_files + ["main.py", "utils.py", "errors.py", "vars.py"]
+    for file in files:
+      if not file.endswith(".py"): continue
+      if file in cog_files: file = f"cogs/{file}"
+      with open(file, 'r') as fp:
+          for count, line in enumerate(fp):
+              pass
+          lines_of_code += count + 1
+    
     embed = discord.Embed(
       title = f"{bot_name} Information",
       description = adv_msg,
@@ -53,7 +66,7 @@ class Info(commands.Cog, name = "Information Commands"):
     
     embed.add_field(name = "**🤖 Commands ran**", value = f"∟ {cmds_ran:,}", inline = True)
     embed.add_field(name = "**🕙 Uptime**", value = f"∟ {uptime}", inline = True)
-    embed.add_field(name = "**👨‍💻 Code**", value = f"∟ Over 3,600 lines", inline = True)
+    embed.add_field(name = "**👨‍💻 Code**", value = f"∟ {lines_of_code:,} lines", inline = True)
     await ctx.reply(embed = embed, mention_author = False)
 
   @app_commands.command(name="alert")
