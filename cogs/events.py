@@ -247,10 +247,10 @@ Command used: {ctx.message.content}```
 
               if self.bot.db["economy"][user]["boosts"][type_][boost][k] <= 0:
                 self.bot.db["economy"][user]["boosts"][type_].pop(boost)
-          for k in self.bot.dbo["others"]["global_income_boost"]:
-            self.bot.dbo["others"]["global_income_boost"][k] -= 1
-            if self.bot.dbo["others"]["global_income_boost"][k] <= 0:
-              self.bot.dbo["others"]["global_income_boost"] = {}
+        for k in self.bot.dbo["others"]["global_income_boost"]:
+          self.bot.dbo["others"]["global_income_boost"][k] -= 1
+          if self.bot.dbo["others"]["global_income_boost"][k] <= 0:
+            self.bot.dbo["others"]["global_income_boost"] = {}
       boosts = self.bot.db["economy"][user]["boosts"]
       type_ = "xp"
       for boost in range(len(boosts[type_])): # boost = {mult: duration}
@@ -259,6 +259,7 @@ Command used: {ctx.message.content}```
 
           if self.bot.db["economy"][user]["boosts"][type_][boost][k] <= 0:
             self.bot.db["economy"][user]["boosts"][type_].pop(boost)
+            
       """ this is for global xp boost reduction, which has not been implemented yet!
       for k in self.bot.dbo["others"]["global_income_boost"]:
         self.bot.dbo["others"]["global_income_boost"][k] -= 1
