@@ -718,23 +718,23 @@ async def get_fish(itx: discord.Interaction):
       if odds >= 85: fish = "snapper"
     if level == 3:
       cooldown = 10
+      if odds < 55: fish = "tuna"
+      if 55 <= odds < 80: fish = "grouper"
+      if 80 <= odds < 99: fish = "snapper"
+      if odds >= 99: fish = "salmon" # 2% chance
+    if level == 4:
+      cooldown = 5
       if odds < 50: fish = "tuna"
       if 50 <= odds < 75: fish = "grouper"
       if 75 <= odds < 90: fish = "snapper"
       if odds >= 90: fish = "salmon"
-    if level == 4:
+    if level == 5:
       cooldown = 5
       if odds < 40: fish = "tuna"
       if 40 <= odds < 65: fish = "grouper"
-      if 65 <= odds < 85: fish = "snapper"
-      if odds >= 85: fish = "salmon"
-    if level == 5:
-      cooldown = 5
-      if odds < 30: fish = "tuna"
-      if 30 <= odds < 60: fish = "grouper"
-      if 60 <= odds < 85: fish = "snapper"
-      if 85 <= odds < 100: fish = "salmon"
-      if odds >= 100: fish = "cod"
+      if 65 <= odds < 90: fish = "snapper"
+      if 90 <= odds < 100: fish = "salmon"
+      if odds >= 100: fish = "cod" if random.randint(0, 1) else "tuna"
     #cooldown = 1 # uncomment for testing
     if first_loop:
       embed = discord.Embed(
@@ -774,6 +774,7 @@ async def get_fish(itx: discord.Interaction):
           description = f"You went fishing and caught a **{'LEGENDARY ' if fish == 'cod' else ''}{fish}**! {xp_msg}", 
           color = discord.Color.green()
         )
+        await itx.client.log_action("Cod Obtained", f"**{itx.user}** went fishing and got a **LEGENDARY COD**!")
       else:
         money = random.randint(100*level, 1000*level)
         itx.client.db["economy"][str(itx.user.id)]["balance"] -= money

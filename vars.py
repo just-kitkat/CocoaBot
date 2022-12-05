@@ -49,8 +49,8 @@ fish_values = {
   "tuna": 100,
   "grouper": 500,
   "snapper": 2500,
-  "salmon": 250000,
-  "cod": 1000000
+  "salmon": 25_000,
+  "cod": 250_000
 }
 chest_rewards = {
       "normal": {
