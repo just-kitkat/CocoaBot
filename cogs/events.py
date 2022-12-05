@@ -169,11 +169,11 @@ Command used: {ctx.message.content}```
       lottery_msg = await channel_posted.fetch_message(lottery_msg)
       user_list = [
         u async for u in lottery_msg.reactions[0].users()
-        if u != self.bot.user
+        if u != self.bot.user and str(u) in self.bot.db["economy"]
       ]
       user_list_copy = user_list.copy()
       for i in user_list_copy:
-        if self.bot.db["economy"][str(i.id)]["balance"] >= price:
+        if str(i.id) in self.bot.db["economy"] and self.bot.db["economy"][str(i.id)]["balance"] >= price:
           users += 1
           user_list.remove(i)
       if int(time.time()) < self.bot.dbo["others"]["lottery"]["end"]:

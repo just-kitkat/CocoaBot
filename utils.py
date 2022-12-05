@@ -640,7 +640,8 @@ async def get_upgrade(itx: discord.Interaction, type: str, name: str):
       msg = ""
       for upgrade in upgrades_map[upgrade_type]:
         maxed = upgrades[upgrade]['level'] >= upgrades[upgrade]['max']
-        cost = f"{upgrades[upgrade]['cost']:,}"
+        cost = upgrades[upgrade]['cost']
+        if cost != "Maxed!": cost = f"{upgrades[upgrade]['cost']:,}"
         msg += f"""
 {upgrades[upgrade]['name']} | `{upgrades[upgrade]['level']}/{upgrades[upgrade]['max']}` 
 Income: **{upgrades[upgrade]['income']} {coin} / hr** 

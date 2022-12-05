@@ -342,6 +342,11 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         os.remove("dump/userdata.txt")
       else:
         await ctx.send("arg2 is not a number!")
+    elif arg1 == "filedata":
+      root = "cogs"
+      for path, subdirs, files in os.walk(root):
+        for name in files:
+            print(os.path.join(path, name))
 
 
 

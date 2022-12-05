@@ -275,18 +275,22 @@ This pets system is currently under development and will more than likely be res
   async def hunt(self, itx: discord.Interaction):
     """Go hunting and find some amazing rewards!"""
     quest_msg = await get_quest_rewards(itx, "hunt")
-    last_hunt = self.bot.db["economy"][str(itx.user.id)]["pets"]["last_hunt"]
-    cooldown = 60*10 # 10 mins
-    if last_hunt + cooldown < int(time.time()):
-      quest_msg = await get_quest_rewards(itx, "hunt", True)
-      income = self.bot.db["economy"][str(itx.user.id)]["income"]
-      amt = random.randint(income//2, income*3)
-      msg = f"You went hunting and earned **{amt} {coin}**"
-      color = green
-      self.bot.db["economy"][str(itx.user.id)]["pets"]["last_hunt"] = int(time.time())
-    else:
-      msg = f"You cannot go hunting again so soon! \nCooldown: `{get_counter(last_hunt, cooldown)}`"
+    if self.bot.db["economy"][str(itx.user.id)]["levels"]["level"] < 3:
+      msg = f"{cross} You need to be level 3 and above to go hunting!"
       color = red
+    else:
+      last_hunt = self.bot.db["economy"][str(itx.user.id)]["pets"]["last_hunt"]
+      cooldown = 60*10 # 10 mins
+      if last_hunt + cooldown < int(time.time()):
+        quest_msg = await get_quest_rewards(itx, "hunt", True)
+        income = self.bot.db["economy"][str(itx.user.id)]["income"]
+        amt = random.randint(income//2, income*3)
+        msg = f"You went hunting and earned **{amt} {coin}**"
+        color = green
+        self.bot.db["economy"][str(itx.user.id)]["pets"]["last_hunt"] = int(time.time())
+      else:
+        msg = f"You cannot go hunting again so soon! \nCooldown: `{get_counter(last_hunt, cooldown)}`"
+        color = red
     msg += f"\n{quest_msg}"
     embed = discord.Embed(
       title = "Hunting", 
@@ -294,7 +298,7 @@ This pets system is currently under development and will more than likely be res
       color = color
     )
     embed.set_footer(text="This hunting feature is a placeholder. Hunting is a pet feature and will be properly implemented once pets have been added!")
-    await itx.response.send_message(embed=embed)
+    await itx.response.send_message(embed=embed, view=BackButton())
     
     """ CODE FOR WHEN PETS RELEASE
     
