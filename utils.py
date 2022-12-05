@@ -774,7 +774,7 @@ async def get_fish(itx: discord.Interaction):
           description = f"You went fishing and caught a **{'LEGENDARY ' if fish == 'cod' else ''}{fish}**! {xp_msg}", 
           color = discord.Color.green()
         )
-        await itx.client.log_action("Cod Obtained", f"**{itx.user}** went fishing and got a **LEGENDARY COD**!")
+        if fish == "cod": await itx.client.log_action("Cod Obtained", f"**{itx.user}** went fishing and got a **LEGENDARY COD**!")
       else:
         money = random.randint(100*level, 1000*level)
         itx.client.db["economy"][str(itx.user.id)]["balance"] -= money
