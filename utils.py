@@ -114,9 +114,11 @@ async def get_quest_rewards(itx: discord.Interaction, type_: Optional[Literal["f
     done_all = True
     for q in itx.client.db["economy"][str(itx.user.id)]["quest"]:
       if not itx.client.db["economy"][str(itx.user.id)]["quest"][q]["completed"]: done_all = False
+    if itx.user.id == 915156033192734760: done_all = True # FOR TESTING
     if done_all and not itx.client.db["economy"][str(itx.user.id)]["claimed_ticket"]:
       itx.client.db["economy"][str(itx.user.id)]["golden_ticket"] += 1
       itx.client.db["economy"][str(itx.user.id)]["claimed_ticket"] = True
+      await itx.client.log_action("Quests", f"**{itx.user}** claimed a golden ticket! \n[{itx.user.id}]")
       xp_msg = await itx.client.check_xp(itx.user.id, random.randint(8, 20))
       return f"You have recieved **1 {ticket}** for completing all the daily quests! Check `{prefix}shop` to view available items. \n{xp_msg}"
     return f"To claim a {ticket}, complete all daily quests!"
@@ -216,6 +218,7 @@ async def craft_rod_(itx: discord.Interaction, button: discord.ui.Button):
       msg = "Your rod cooldown has decreased!" if materials_needed[rod_level]["description"].startswith("decreases") else "You have unlocked a new fish!"
       embed = discord.Embed(title="New Rod Aquired", description=f"You have successfully crafted a new rod! \n**{msg}**", color=green)
       await itx.edit_original_response(embed=embed, view=None)
+      await itx.client.log_action("New Rod", f"**{itx.user}** has crafted a new rod (level {itx.client.db['economy'][str(itx.user.id)]['fish']['rod_level']}! \n[{itx.user.id}]")
 
 async def complete_quest_(itx: discord.Interaction, button: discord.ui.Button):
   if not itx.client.db["economy"][str(itx.user.id)]["quest"]["fish"]["completed"]:
@@ -442,9 +445,9 @@ class QuestsButton(discord.ui.View):
     msg = await get_quest_rewards(itx, "all")
     if (claimed := itx.client.db["economy"][str(self.userID)]["claimed_ticket"]):
       button.disabled = True
-      await itx.edit_original_response(view=self)
+      await itx.response.edit_message(view=self)
     embed = discord.Embed(title="Quests", description=msg, color=blurple)
-    await itx.response.send_message(embed=embed, ephemeral=not claimed)
+    await itx.followup.send(embed=embed, ephemeral=not claimed)
 
   async def interaction_check(self, itx: discord.Interaction):
     if self.userID == itx.user.id:

@@ -172,6 +172,7 @@ class MyBot(commands.Bot):
         reward = level*500
         bot.db["economy"][str(user)]["balance"] += reward
         msg = f"You have earned **{reward} {coin}**!"
+        await itx.client.log_action("Level up", f"**{itx.user}** is now **level {level}**! \n[{itx.user.id}]")
       return f"\nYou leveled up! You are now level **{level}** \n{msg}"
     else:
       bot.db["economy"][str(user)]["levels"]["xp"] = updated_xp
@@ -197,6 +198,17 @@ class MyBot(commands.Bot):
           personal_mult += float(k)
     income = income * (income_boost + global_boost + personal_mult)
     return income, (income_boost, global_boost, personal_mult)
+
+  async def log_action(self, type: str, action: str) -> None:
+    """
+    Logs actions to a discord channel
+    """
+    embed = discord.Embed(
+      title = type,
+      description = action,
+      color = blurple
+    )
+    await bot.get_channel(log_channel).send(embed=embed)
   
   #async def setup_hook(self):
 

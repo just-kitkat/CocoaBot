@@ -186,6 +186,7 @@ Legendary Chest: **200{diamond}**
     )
     
     await itx.followup.send(embed = embed)
+    await itx.client.log_action("Chest Opening", f"**{itx.user}** spent **{self.types[self.chosen]} {diamond}** and opened a **{self.chosen.title()} Chest** and got **{reward}** ({luck.title()})! \n[{itx.user.id}]")
     
 
   async def interaction_check(self, itx: discord.Interaction):
@@ -257,6 +258,7 @@ class Economy(commands.Cog, name = "General Commands"):
         color = discord.Color.green()
       )
       await itx.response.send_message(embed = embed)
+      await itx.client.log_action("New User", f"**{itx.user}** Started a farm! \n[{itx.user.id}]")
     else:
       await itx.response.send_message(f"You already own a farm! Do `{self.bot.prefix}tutorial` to get started!", ephemeral=True)
 
@@ -416,6 +418,7 @@ Benefits:
       msg = f"You have unlocked the **{next_location}** and recieved your rewards! \nUse `{prefix}upgrades view` to see your new upgrades!"
       embed = discord.Embed(title="New Location Unlocked", description=msg, color=green)
       await itx.followup.send(embed=embed)
+      await itx.client.log_action("New Location Unlocked", f"**{itx.user}** unlocked the **{next_location}**! \n[{itx.user.id}]")
 
 
   # Shop
@@ -467,6 +470,7 @@ Cost: **{items[item]} {ticket}**
             await buy_item(itx, item)
             msg = f"You have bought **{item}** from the shop! \nUse `{prefix}shop` to check out your shop offers again."
             color = green
+            await itx.client.log_action("Item purchased from shop", f"**{itx.user}** bought **{item}** from the shop! \n[{itx.user.id}]")
             
     else:
       msg = f"That item is not available! \nUse `{prefix}shop` to check out your shop offers again."
