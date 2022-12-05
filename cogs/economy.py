@@ -359,21 +359,25 @@ Benefits:
   async def location(self, itx: discord.Interaction):
     """Unlock different locations for more upgrades!"""
     locations = {
-      "farm": {"perks": [None], "requirements": [None]}, 
+      "farm": {"perks": [None], "requirements": [None], "description": "Start farming Cocoa beans to make chocolates"}, 
       "factory": {
         "perks": [
           "0.5x income boost", "0.25x XP boost", "More upgrades", f"20 {diamond}"
           ], 
         "requirements": [
           f"500,000 {coin}", f"3 {ticket}", "Level 25"
-          ]}, 
+          ],
+        "description": "Start manufacturing chocolates with this shiny new factory!"
+      }, 
       "distribution center": {
         "perks": [
           "0.75x income boost", "0.5x XP boost", "More upgrades", f"50 {diamond}"
           ],
         "requirements": [
           f"2,500,000 {coin}", f"8 {ticket}", "Level 50"
-          ]}
+          ],
+        "description": "Start distributing your chocolates all over the world!"
+      }
     }
     unlocked = self.bot.db["economy"][str(itx.user.id)]["unlocked_upgrades"]
     next_location = None if unlocked[-1] == "distribution center" else list(locations)[list(locations).index(unlocked[-1]) + 1]
@@ -392,7 +396,8 @@ Benefits:
     
     msg = ""
     if next_location is not None:
-      msg += f"\nNext location: **{next_location.title()}** \n**Perks:** \n"
+      description = locations[next_location]["description"]
+      msg += f"\nNext location: **{next_location.title()}** \nDescription: **{description}** \n**Perks:** \n"
       for perk in locations[next_location]["perks"]:
         msg += f"- **{perk}**\n"
       msg += "\n**Requirements:** \n"
