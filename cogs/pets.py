@@ -287,7 +287,7 @@ This pets system is currently under development and will more than likely be res
         amt = random.randint(income//2, income*3)
         unlocked_fragments = len(itx.client.db["economy"][str(itx.user.id)]["unlocked_upgrades"]) > 1
         fragment_msg = ""
-        if random.randint(1, 101) > 75 and unlocked_fragments:
+        if random.randint(1, 3) == 1 and unlocked_fragments:
           fragment_msg = "\n" + await itx.client.add_fragment(itx)
         msg = f"You went hunting and earned **{amt} {coin}** {fragment_msg}"
         color = green

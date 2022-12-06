@@ -435,22 +435,25 @@ Benefits:
     """
     See all the recipes you own
     """
-    fragments_needed = 20
-    recipedb = self.bot.db["economy"][str(itx.user.id)]["recipes"]["fragments"]
-    recipes_owned = [rec for rec in recipedb if recipedb[rec] >= fragments_needed]
-    fragments = self.bot.db["economy"][str(itx.user.id)]["recipes"]["fragments"]
-    msg = "Chocolate recipes allows you to sell a wider variety of chocolates, helping you gain more reputation and earn more money when working! \n\n"
-    msg += "**Recipes owned:** \n"
-    for rec in recipes_owned:
-      level = fragments[rec]//fragments_needed
-      msg += f"- {rec.title()} [{self.bot.convert_roman(level)}] \n"
-
-    msg += "\n**Fragments obtained:** \n"
-    for frag in fragments:
-      if fragments[frag] > 0:
-        msg += f"- {frag.title()}: `{fragments[frag]}`\n"
-
-    msg += "\nGet recipe fragments from working, fishing, and more! \n Unlock a better recipe for every 20 recipe fragments you find!"
+    if len(self.bot.db["economy"][str(itx.user.id)]["unlocked_upgrades"]) > 1:
+      fragments_needed = 20
+      recipedb = self.bot.db["economy"][str(itx.user.id)]["recipes"]["fragments"]
+      recipes_owned = [rec for rec in recipedb if recipedb[rec] >= fragments_needed]
+      fragments = self.bot.db["economy"][str(itx.user.id)]["recipes"]["fragments"]
+      msg = "Chocolate recipes allows you to sell a wider variety of chocolates, helping you gain more reputation and earn more money when working! \n\n"
+      msg += "**Recipes owned:** \n"
+      for rec in recipes_owned:
+        level = fragments[rec]//fragments_needed
+        msg += f"- {rec.title()} [{self.bot.convert_roman(level)}] \n"
+  
+      msg += "\n**Fragments obtained:** \n"
+      for frag in fragments:
+        if fragments[frag] > 0:
+          msg += f"- {frag.title()}: `{fragments[frag]}`\n"
+  
+      msg += "\nGet recipe fragments from working, fishing, and more! \n Unlock a better recipe for every 20 recipe fragments you find!"
+    else:
+      msg = f"{cross} You need to unlock the **Factory** to start getting chocolate recipes! \nUse `{prefix}location` for more information on how to unlock the Factory."
     embed = discord.Embed(
       title = f"{recipe_fragment} Recipes",
       description = msg,
