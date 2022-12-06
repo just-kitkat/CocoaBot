@@ -602,7 +602,7 @@ async def get_upgrade(itx: discord.Interaction, type: str, name: str):
 
   base_upgrades = {
     "farmer": 50, "store": 250, "van": 4500, "storage_tank": 10000, "warehouse": 40000,
-    "bean_grinder": 12000, "chocolate_moulder": 25000, "chocolate_freezer": 38000, "workers": 45000, "chocolate_packager": 36_000, "fork_lifts": 50_000, "packaging_machine": 90_000, "storage_shelves": 220_000, "trucks": 350_000, "managers": 400_000
+    "bean_grinder": 15000, "chocolate_moulder": 30000, "chocolate_freezer": 42000, "workers": 52000, "chocolate_packager": 60_000, "fork_lifts": 50_000, "packaging_machine": 90_000, "storage_shelves": 220_000, "trucks": 350_000, "managers": 400_000
   }
   upgrade_again = True
   while upgrade_again:
@@ -679,7 +679,7 @@ Cost: **{cost if not maxed else 'Maxed!'} {coin if not maxed else ''}** \n
         income = itx.client.db["economy"][str(itx.user.id)]["income"]
         level = itx.client.db["economy"][str(itx.user.id)]["upgrades"][upgrade_type][name]["level"]
         xp_msg = await itx.client.check_xp(itx.user.id, math.floor(level**(4/5)))
-        msg, color, ephemeral = f"You have upgraded your **{name}** to **level {level}** \nBalance: **{balance} {coin}** \nIncome: **{income} {coin} / hr** {xp_msg}", green, False 
+        msg, color, ephemeral = f"You have upgraded your **{name.replace('_', ' ')}** to **level {level}** \nBalance: **{balance} {coin}** \nIncome: **{income} {coin} / hr** {xp_msg}", green, False 
         upgrade_again = True
         view = UpgradesButton(itx.user.id)
       elif upgrades[name]["level"] >= upgrades[name]["max"]:
@@ -821,26 +821,52 @@ async def get_work(itx: discord.Interaction):
   last_work = itx.client.db["economy"][str(itx.user.id)]["last_work"]
   time_diff = int(time.time()) - last_work
   cooldown = 60*10
-  if time_diff >= cooldown: 
+  if time_diff >= cooldown:  
 
+    # Selling stuff
+    prices = {"normal": 2, "dark": 3, "milk": 4, "almond": 6, "white": 8, "caramel": 12, "peanut butter": 15, "strawberry": 20}
+    fragments = itx.client.db["economy"][str(itx.user.id)]["recipes"]["fragments"]
+    unlocked_fragments = len(itx.client.db["economy"][str(itx.user.id)]["unlocked_upgrades"]) > 1
+    recipes = [rec for rec in fragments if fragments[rec] >= 20]
     income = itx.client.db["economy"][str(itx.user.id)]["income"]
-    amt_sold = random.randint(income//6, income*3)
+    if not unlocked_fragments: 
+      amt_sold = random.randint(income//2, income*3)
+    else:
+      amt_sold = {recipe: random.randint(income//75, income//10) for recipe in recipes}
+    total = 0
+    if unlocked_fragments:
+      for rec in amt_sold:
+        total += amt_sold[rec]*prices[rec]*fragments[rec]//20
+    else:
+      total = amt_sold
+    
     latest_location = itx.client.db["economy"][str(itx.user.id)]["unlocked_upgrades"][-1]
     if latest_location == "farm": item_sold = "cocoa beans"
     if latest_location == "factory": item_sold = "chocolate bars"
-    if latest_location == "distribution_center": item_sold = "boxes of chocolate bars"
+    if latest_location == "distribution_center": item_sold = "boxes of chocolate"
 
-    itx.client.db["economy"][str(itx.user.id)]["balance"] += amt_sold
+    itx.client.db["economy"][str(itx.user.id)]["balance"] += total
     itx.client.db["economy"][str(itx.user.id)]["last_work"] = int(time.time())
     itx.client.db["economy"][str(itx.user.id)]["counting"]["work"] += 1
+    
     balance = itx.client.db["economy"][str(itx.user.id)]["balance"]
-    unlocked_fragments = len(itx.client.db["economy"][str(itx.user.id)]["unlocked_upgrades"]) > 1
     fragment_msg = ""
     if random.randint(1, 101) > 75 and unlocked_fragments:
       fragment_msg = "\n" + await itx.client.add_fragment(itx)
     quest_msg = await get_quest_rewards(itx, "income", True) 
     xp_msg = await itx.client.check_xp(itx.user.id, random.randint(1, 4))
-    msg = f"You sold some **{item_sold}** and earned **{amt_sold}{coin}** \nBalance: **{balance:,}{coin}** {xp_msg} {fragment_msg}" # add chocolates sold -> therefore amt earned
+    tip = "\n*Tip: Unlock new chocolate recipes to earn more money!*" if unlocked_fragments and random.randint(1,3) == 1 else "" #33% chance of getting a suggestion (tip)
+
+    tail = f"\nBalance: **{balance:,}{coin}** {xp_msg} {fragment_msg} {tip}"
+    if not unlocked_fragments:
+      msg = f"You sold some **{item_sold}** and earned **{amt_sold}{coin}** {tail}" # add chocolates sold -> therefore amt earned
+    else:
+      msg = f"**You sold some {item_sold} and earned {total} {coin}** \n"
+      for sold in amt_sold:
+        msg += f"{amt_sold[sold]}x {sold} {item_sold} - {amt_sold[sold]*prices[sold]} {coin} \n"
+      
+      msg += tail 
+    
   else:
     cooldown_msg = get_counter(last_work, cooldown)
     msg = f"You cannot work so soon! \nCooldown: `{cooldown_msg}`" # cooldown based on level/patreon

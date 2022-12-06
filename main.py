@@ -75,6 +75,7 @@ class MyBot(commands.Bot):
         color = green
       )
       await itx.channel.send(itx.user.mention, embed=embed)
+      await self.log_action("New Recipe Unlocked", f"{itx.user} unlocked **{fragment} [{level_roman}] chocolate recipe**")
     return f"{recipe_fragment} You have received **1 {fragment} chocolate recipe fragment**! \nUse `{prefix}recipe` to view your unlocked recipes."
 
   async def check_quests(self, itx: discord.Interaction) -> str:
