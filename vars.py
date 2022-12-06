@@ -13,6 +13,7 @@ ticket = "<:golden_ticket:1036538363139850270>"
 prefix = "/"
 red_square, yellow_square, green_square = "🟥", "🟨", "🟩"
 trashcan = "🗑️"
+recipe_fragment = "📃"
 diamond = "<:diamond:1017435757616570409>"
 xp_needed_base = 10
 unix_day = 1661788800

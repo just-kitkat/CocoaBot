@@ -114,7 +114,6 @@ async def get_quest_rewards(itx: discord.Interaction, type_: Optional[Literal["f
     done_all = True
     for q in itx.client.db["economy"][str(itx.user.id)]["quest"]:
       if not itx.client.db["economy"][str(itx.user.id)]["quest"][q]["completed"]: done_all = False
-    if itx.user.id == 915156033192734760: done_all = True # FOR TESTING
     if done_all and not itx.client.db["economy"][str(itx.user.id)]["claimed_ticket"]:
       itx.client.db["economy"][str(itx.user.id)]["golden_ticket"] += 1
       itx.client.db["economy"][str(itx.user.id)]["claimed_ticket"] = True
@@ -539,7 +538,11 @@ async def get_daily(itx):
       itx.client.db["economy"][str(itx.user.id)]["last_daily"] = time.time()
       itx.client.db["economy"][str(itx.user.id)]["balance"] += total_coins
       updated_bal = balance + total_coins
-      msg = f"Daily reward: **{daily_coins}{coin}** \nStreak Bonus: **{streak_coins}{coin}** \nTotal Reward: **{total_coins}{coin}** \n\nCurrent Balance: **{updated_bal}{coin}** \nDaily Streak: `{daily_streak}` {xp_msg}\n{streak_msg}"
+      unlocked_fragments = len(itx.client.db["economy"][str(itx.user.id)]["unlocked_upgrades"]) > 1
+      fragment_msg = ""
+      if unlocked_fragments:
+        fragment_msg = "\n" + await itx.client.add_fragment(itx)
+      msg = f"Daily reward: **{daily_coins}{coin}** \nStreak Bonus: **{streak_coins}{coin}** \nTotal Reward: **{total_coins}{coin}** \n\nCurrent Balance: **{updated_bal}{coin}** \nDaily Streak: `{daily_streak}` {xp_msg}\n{streak_msg} {fragment_msg}"
       
     else:
       td = timedelta(seconds=86400-currenttime+last_daily)
@@ -774,14 +777,18 @@ async def get_fish(itx: discord.Interaction):
       view = BackButton()
       await itx.response.send_message(embed=embed, view=view)
     elif time.time() >= itx.client.db["economy"][str(itx.user.id)]["fish"]["last_fish"] + cooldown:
-      luck = random.randint(1,100)
+      luck = random.randint(1,101)
       if luck > 10:
         itx.client.db["economy"][str(itx.user.id)]["fish"][fish] += 1
         itx.client.db["economy"][str(itx.user.id)]["fish"]["last_fish"] = int(time.time())
         xp_msg = await itx.client.check_xp(itx.user.id, 1)
+        unlocked_fragments = len(itx.client.db["economy"][str(itx.user.id)]["unlocked_upgrades"]) > 1
+        fragment_msg = ""
+        if random.randint(1, 101) > 95 and unlocked_fragments:
+          fragment_msg = "\n" + await itx.client.add_fragment(itx)
         embed = discord.Embed(
           title = "Fishing", 
-          description = f"You went fishing and caught a **{'LEGENDARY ' if fish == 'cod' else ''}{fish}**! {xp_msg}", 
+          description = f"You went fishing and caught a **{'LEGENDARY ' if fish == 'cod' else ''}{fish}**! {xp_msg} {fragment_msg}", 
           color = discord.Color.green()
         )
         if fish == "cod": await itx.client.log_action("Cod Obtained", f"**{itx.user}** went fishing and got a **LEGENDARY COD**!")
@@ -827,9 +834,13 @@ async def get_work(itx: discord.Interaction):
     itx.client.db["economy"][str(itx.user.id)]["last_work"] = int(time.time())
     itx.client.db["economy"][str(itx.user.id)]["counting"]["work"] += 1
     balance = itx.client.db["economy"][str(itx.user.id)]["balance"]
+    unlocked_fragments = len(itx.client.db["economy"][str(itx.user.id)]["unlocked_upgrades"]) > 1
+    fragment_msg = ""
+    if random.randint(1, 101) > 75 and unlocked_fragments:
+      fragment_msg = "\n" + await itx.client.add_fragment(itx)
     quest_msg = await get_quest_rewards(itx, "income", True) 
     xp_msg = await itx.client.check_xp(itx.user.id, random.randint(1, 4))
-    msg = f"You sold some **{item_sold}** and earned **{amt_sold}{coin}** \nBalance: **{balance:,}{coin}** {xp_msg}" # add chocolates sold -> therefore amt earned
+    msg = f"You sold some **{item_sold}** and earned **{amt_sold}{coin}** \nBalance: **{balance:,}{coin}** {xp_msg} {fragment_msg}" # add chocolates sold -> therefore amt earned
   else:
     cooldown_msg = get_counter(last_work, cooldown)
     msg = f"You cannot work so soon! \nCooldown: `{cooldown_msg}`" # cooldown based on level/patreon

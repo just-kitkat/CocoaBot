@@ -237,6 +237,9 @@ class Economy(commands.Cog, name = "General Commands"):
             "managers": {"name": f"Managers", "max": 10, "level": 1},
           }
         }, 
+        "recipes": {
+          "fragments": {"normal": 20, "dark": 0, "milk": 0, "almond": 0, "white": 0, "caramel": 0, "peanut butter": 0, "strawberry": 0}
+        },
         "fish": {
           "last_fish": 0, "rod_level": 1, "tuna": 0, "grouper": 0, "snapper": 0, "salmon": 0, "cod": 0
         }, 
@@ -362,7 +365,7 @@ Benefits:
       "farm": {"perks": [None], "requirements": [None], "description": "Start farming Cocoa beans to make chocolates"}, 
       "factory": {
         "perks": [
-          "0.5x income boost", "0.25x XP boost", "More upgrades", f"20 {diamond}"
+          "Unlock different chocolate recipes", "0.5x income boost", "0.25x XP boost", "More upgrades", f"20 {diamond}"
           ], 
         "requirements": [
           f"500,000 {coin}", f"3 {ticket}", "Level 25"
@@ -425,9 +428,38 @@ Benefits:
       await itx.followup.send(embed=embed)
       await itx.client.log_action("New Location Unlocked", f"**{itx.user}** unlocked the **{next_location}**! \n[{itx.user.id}]")
 
+  @app_commands.command(name="recipe")
+  @app_commands.guilds(discord.Object(id=923013388966166528))
+  @factory_check()
+  async def recipe(self, itx: discord.Interaction):
+    """
+    See all the recipes you own
+    """
+    fragments_needed = 20
+    recipedb = self.bot.db["economy"][str(itx.user.id)]["recipes"]["fragments"]
+    recipes_owned = [rec for rec in recipedb if recipedb[rec] >= fragments_needed]
+    fragments = self.bot.db["economy"][str(itx.user.id)]["recipes"]["fragments"]
+    msg = "Chocolate recipes allows you to sell a wider variety of chocolates, helping you gain more reputation and earn more money when working! \n\n"
+    msg += "**Recipes owned:** \n"
+    for rec in recipes_owned:
+      level = fragments[rec]//fragments_needed
+      msg += f"- {rec.title()} [{self.bot.convert_roman(level)}] \n"
+
+    msg += "\n**Fragments obtained:** \n"
+    for frag in fragments:
+      if fragments[frag] > 0:
+        msg += f"- {frag.title()}: `{fragments[frag]}`\n"
+
+    msg += "\nGet recipe fragments from working, fishing, and more! \n Unlock a better recipe for every 20 recipe fragments you find!"
+    embed = discord.Embed(
+      title = f"{recipe_fragment} Recipes",
+      description = msg,
+      color = blurple
+    )
+    await itx.response.send_message(embed=embed, view=BackButton())
 
   # Shop
-  @app_commands.command(name = "shop")
+  @app_commands.command(name="shop")
   @factory_check()
   async def shop(self, itx: discord.Interaction):
     """

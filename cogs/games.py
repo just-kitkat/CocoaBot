@@ -245,15 +245,21 @@ class Puzzle8Button(discord.ui.Button):
       if view.check_win():
         for child in view.children:
           child.disabled = True
-        pet_msg = ""
-        if str(itx.user.id) in itx.client.db["economy"] and itx.client.db["economy"][str(itx.user.id)]["pets"]["tier"] != 0:
-          pet_food = random.randint(1,4)
-          itx.client.db["economy"][str(itx.user.id)]["pets"]["food"] += pet_food
-          pet_msg = f"\nYou have recieved **{pet_food} pet food**!"
         time_taken = round(time.time() - view.time_taken, 2)
-        if time_taken < itx.client.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_time"]: itx.client.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_time"] = time_taken
-        if view.moves < itx.client.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_moves"]: itx.client.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_moves"] = view.moves
-        embed = discord.Embed(title = "Sliding Puzzle 8", description = f"You win! \nMoves: **{view.moves}** \nTime taken: **{time_taken}s** {pet_msg}", color = blurple)
+        
+        pet_msg = ""
+        warning = ""
+        if str(itx.user.id) in itx.client.db["economy"]:
+          if itx.client.db["economy"][str(itx.user.id)]["pets"]["tier"] != 0:
+            pet_food = random.randint(1,4)
+            itx.client.db["economy"][str(itx.user.id)]["pets"]["food"] += pet_food
+            pet_msg = f"\nYou have recieved **{pet_food} pet food**!"
+          
+          if time_taken < itx.client.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_time"]: itx.client.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_time"] = time_taken
+          if view.moves < itx.client.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_moves"]: itx.client.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_moves"] = view.moves
+        else:
+          warning = f"\nTo save your highscores, do `{prefix}start`"
+        embed = discord.Embed(title = "Sliding Puzzle 8", description = f"You win! \nMoves: **{view.moves}** \nTime taken: **{time_taken}s** {pet_msg} {warning}", color = blurple)
         await itx.edit_original_response(embed = embed, view = view)
         view.stop()
     else:
@@ -431,15 +437,20 @@ class Games(commands.Cog):
   @app_commands.command(name = "slidingpuzzle")
   async def slidingpuzzle(self, itx: discord.Interaction):
     """Play a quick sliding puzzle game!"""
-    fewest_moves = self.bot.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_moves"]
-    best_time = self.bot.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_time"]
+    warning = ""
+    if str(itx.user.id) in self.bot.db["economy"]:
+      fewest_moves = self.bot.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_moves"]
+      best_time = self.bot.db["economy"][str(itx.user.id)]["games"]["sliding_puzzle_8_time"]
+    else:
+      best_time = -1
+      warning = f"\n\nTo save your highscore, use `{prefix}start`"
     if best_time == -1: fewest_moves, best_time = "No games yet", "No games yet"
-    embed = discord.Embed(title = "Sliding Puzzle 8", description = f"Slide the number tiles into numerical order with the blank tile at the bottom right. \nBest Time: {best_time} \nFewest Moves: {fewest_moves} \n**Note: 5x5 does not work for mobile!**\nGood luck!", color = blurple)
+    embed = discord.Embed(title = "Sliding Puzzle 8", description = f"Slide the number tiles into numerical order with the blank tile at the bottom right. \nBest Time: {best_time} \nFewest Moves: {fewest_moves} \n**Note: 5x5 does not work for mobile!**\nGood luck! {warning}", color = blurple)
     view = Puzzle8Start(itx.user.id)
     await itx.response.send_message(embed = embed, view = view)
     await view.wait()
     if view.value != False:
-      embed = discord.Embed(title = "Sliding Puzzle 8", description = "Slide the number tiles into numerical order with the blank tile at the bottom right. \nBest Time: WIP \nGood luck!", color = blurple)
+      embed = discord.Embed(title = "Sliding Puzzle 8", description = f"Slide the number tiles into numerical order with the blank tile at the bottom right. \nBest Time: {best_time} \nGood luck!", color = blurple)
       view = Puzzle8Game(itx.user.id, view.value)
       await itx.edit_original_response(embed = embed, view = view)
 

@@ -342,11 +342,11 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         os.remove("dump/userdata.txt")
       else:
         await ctx.send("arg2 is not a number!")
-    elif arg1 == "filedata":
-      root = "cogs"
-      for path, subdirs, files in os.walk(root):
-        for name in files:
-            print(os.path.join(path, name))
+    elif arg1 == "updaterecipes":
+      for user in self.bot.db["economy"]:
+        self.bot.db["economy"][user]["recipes"] = {
+          "fragments": {"normal": 20, "dark": 0, "milk": 0, "almond": 0, "white": 0, "caramel": 0, "peanut butter": 0, "strawberry": 0}
+        }
 
   @app_commands.command(name="givereward")
   @is_owner()

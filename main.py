@@ -55,6 +55,28 @@ class MyBot(commands.Bot):
       return False
     return True
 
+  async def add_fragment(self, itx):
+    rng = random.randint(1, 1001)
+    fragment_chances = {300: "normal", 500: "dark", 680: "milk", 750: "almond", 850: "milk", 940: "caramel", 995: "peanut butter", 1000: "strawberry"}
+    for num in fragment_chances:
+      if rng <= num:
+        fragment = fragment_chances[num]
+        break
+
+    bot.db["economy"][str(itx.user.id)]["recipes"]["fragments"][fragment] += 1
+    fragments = bot.db["economy"][str(itx.user.id)]["recipes"]["fragments"][fragment]
+    level = fragments//20 + 1
+    if fragments % 20 == 0:
+      new = fragments == 20
+      level_roman = self.convert_roman(level)
+      embed = discord.Embed(
+        title = "New Recipe Unlocked" if new else "Recipe Upgrade",
+        description = f"You have unlocked the **{fragment} [{level_roman}] chocolate recipe**",
+        color = green
+      )
+      await itx.channel.send(itx.user.mention, embed=embed)
+    return f"{recipe_fragment} You have received **1 {fragment} chocolate recipe fragment**! \nUse `{prefix}recipe` to view your unlocked recipes."
+
   async def check_quests(self, itx: discord.Interaction) -> str:
     quest = bot.db["economy"][str(itx.user.id)]["quest"]
     new_q = False # is a new quest being generated?
@@ -209,7 +231,32 @@ class MyBot(commands.Bot):
       color = blurple
     )
     await bot.get_channel(log_channel).send(embed=embed)
-  
+
+  def convert_roman(self, num: int) -> str:
+    """
+    Converts an integer to a roman numeral: str
+    """
+    val = [
+      1000, 900, 500, 400,
+      100, 90, 50, 40,
+      10, 9, 5, 4,
+      1
+      ]
+    syb = [
+      "M", "CM", "D", "CD",
+      "C", "XC", "L", "XL",
+      "X", "IX", "V", "IV",
+      "I"
+      ]
+    roman_num = ""
+    i = 0
+    while  num > 0:
+        for _ in range(num // val[i]):
+            roman_num += syb[i]
+            num -= val[i]
+        i += 1
+    return roman_num
+    
   #async def setup_hook(self):
 
 

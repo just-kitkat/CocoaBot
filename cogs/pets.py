@@ -285,7 +285,11 @@ This pets system is currently under development and will more than likely be res
         quest_msg = await get_quest_rewards(itx, "hunt", True)
         income = self.bot.db["economy"][str(itx.user.id)]["income"]
         amt = random.randint(income//2, income*3)
-        msg = f"You went hunting and earned **{amt} {coin}**"
+        unlocked_fragments = len(itx.client.db["economy"][str(itx.user.id)]["unlocked_upgrades"]) > 1
+        fragment_msg = ""
+        if random.randint(1, 101) > 75 and unlocked_fragments:
+          fragment_msg = "\n" + await itx.client.add_fragment(itx)
+        msg = f"You went hunting and earned **{amt} {coin}** {fragment_msg}"
         color = green
         self.bot.db["economy"][str(itx.user.id)]["pets"]["last_hunt"] = int(time.time())
       else:
