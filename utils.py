@@ -830,7 +830,7 @@ async def get_work(itx: discord.Interaction):
     recipes = [rec for rec in fragments if fragments[rec] >= 20]
     income = itx.client.db["economy"][str(itx.user.id)]["income"]
     if not unlocked_fragments: 
-      amt_sold = random.randint(income//2, income*3)
+      amt_sold = random.randint(income//2, income*4)
     else:
       amt_sold = {recipe: random.randint(income//75, income//10) for recipe in recipes}
     total = 0
