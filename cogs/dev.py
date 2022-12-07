@@ -100,7 +100,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
     await channel.send(embed = embed)
     self.bot.dbo["others"]["code"][code] = amount
     await ctx.reply(f"Code created!")
-    channel = bot.get_guild(923013388966166528).get_channel(968460468505153616)
+    channel = self.bot.get_channel(968460468505153616)
     embed = discord.Embed(title = f"A code has been created.", description = f"Code: `{code}` \nAmount: **{amount} {coin}**", color = discord.Color.green())
     await channel.send(embed = embed)
   @dropcode.error
@@ -231,9 +231,9 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
           "lottery": {
             "cost": 1,
             "msgid": None,
-            "end": 1
+            "end": 1,
           },
-          "total_commands_ran": 0,
+          "total_commands_ran": 1057,
           "global_income_boost": {}, # {mult: duration (h)} 
           "global_xp_boost": 0, # XP BOOST NOT IMPLEMENTED
           "maintenancemode": False,
@@ -242,7 +242,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
           "user_blacklist": {},
           "server_blacklists": {},
           "last_income": int(time.time()) - (int(time.time()%3600)), # makes it the nearest hour
-          "error_count": 1
+          "error_count": 1,
+          "code": {}
         }
       }
       await ctx.send("DBO reset! \nTotal commands ran: " + str(total_cmds_ran))

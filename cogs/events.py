@@ -67,7 +67,7 @@ class Events(commands.Cog):
         raise error
       except Exception as e:
         error_count = self.bot.dbo["others"]["error_count"]
-        message = f"Oops, something went wrong while running this command! Please report this by creating a ticket in the official {bot_name} server! Thank you! \nError id: **{error_count}** \n{adv_msg}"
+        message = f"Oops, something went wrong while running this command! Try running this command again if possible! \nIf this error persists, please report this in the official {bot_name} server! Thank you! \nError id: **{error_count}** \n{adv_msg}"
         error_msg = f"""
 ```{traceback.format_exc()}
 Logs: 
@@ -159,64 +159,6 @@ Command used: {ctx.message.content}```
   @tasks.loop(seconds = 30, reconnect = True) # loop for hourly income
   async def tasksloop(self): # RElOADING DOES NOT UPDATE TASK LOOPS
     guild = self.bot.get_guild(923013388966166528)
-
-    if self.bot.dbo["others"]["lottery"]["msgid"] is not None:
-      users = 0
-      lottery_msg = self.bot.dbo["others"]["lottery"]["msgid"]
-      end = self.bot.dbo["others"]["lottery"]["end"]
-      price = self.bot.dbo["others"]["lottery"]["cost"]
-      channel_posted = self.bot.get_channel(lottery_channel)
-      lottery_msg = await channel_posted.fetch_message(lottery_msg)
-      user_list = [
-        u async for u in lottery_msg.reactions[0].users()
-        if u != self.bot.user and str(u) in self.bot.db["economy"]
-      ]
-      user_list_copy = user_list.copy()
-      for i in user_list_copy:
-        if str(i.id) in self.bot.db["economy"] and self.bot.db["economy"][str(i.id)]["balance"] >= price:
-          users += 1
-          user_list.remove(i)
-      if int(time.time()) < self.bot.dbo["others"]["lottery"]["end"]:
-        if users <= 1:
-          new_embed = discord.Embed(
-          title=f"Lottery",
-          description=
-          f"React with :tickets: to purchase a lottery ticket! The cost will be deducted from your balance right before the lottery ends! \nEnds: <t:{end}:R> | <t:{end}> \nCurrent prize pool: `Not enough tickets purchased!` \nCost: {price}{coin} \nNumber of tickets bought: `{users}`",
-          color=discord.Color.green())
-          new_embed.set_footer(text = "If you do not have enough money, your entry will not be registered!")
-        else:
-          new_embed = discord.Embed(
-          title=f"Lottery",
-          description=
-          f"React with :tickets: to purchase a lottery ticket! The cost will be deducted from your balance right before the lottery ends! \nEnds: <t:{end}:R> | <t:{end}> \nCurrent prize pool: **{users * price}{coin}** \nCost: **{price}{coin}** \nNumber of tickets bought: `{users}`",
-          color=discord.Color.green())
-          new_embed.set_footer(text = "If you do not have enough money, your entry will not be registered!")
-        
-        await lottery_msg.edit(embed = new_embed)
-      else:
-        if users <= 1:
-          await lottery_msg.reply("Not enough people joined the lottery.")
-        else:
-          user_list = user_list_copy
-          winner = random.choice(user_list)
-          for user in user_list:
-            self.bot.db["economy"][str(user.id)]["balance"] -= price
-          prize = len(user_list) * price
-          await lottery_msg.reply(f"{winner.mention} has won **{prize}{coin}**! (Tickets purchased: {len(user_list)})")
-          self.bot.db["economy"][str(winner.id)]["balance"] += prize
-          channel_posted = self.bot.get_channel(lottery_channel)
-          final_embed = discord.Embed(
-          title=f"Lottery",
-          description=
-          f"The lottery ended <t:{end}:R> | <t:{end}>! \nPrize pool: **{users * price}{coin}** \nWinner: `{winner}` \nNumber of tickets bought: `{users}`",
-          color=discord.Color.green())
-          await lottery_msg.edit(embed = final_embed)
-        self.bot.dbo["others"]["lottery"] = {
-          "msgid": None,
-          "end": 1,
-          "cost": 1
-        }
-    
     last_income = self.bot.dbo["others"]["last_income"]
     if int(time.time()) - last_income >= 3600:
       #await self.bot.check_blacklists()
@@ -297,6 +239,64 @@ Command used: {ctx.message.content}```
       } # item: price
       resets_missed = (int(time.time()) - last_shop_reset) // (3600*24)
       self.bot.dbo["others"]["last_shop_reset"] = last_shop_reset + resets_missed*3600*24
+
+    if self.bot.dbo["others"]["lottery"]["msgid"] is not None:
+      users = 0
+      lottery_msg = self.bot.dbo["others"]["lottery"]["msgid"]
+      end = self.bot.dbo["others"]["lottery"]["end"]
+      price = self.bot.dbo["others"]["lottery"]["cost"]
+      channel_posted = self.bot.get_channel(lottery_channel)
+      lottery_msg = await channel_posted.fetch_message(lottery_msg)
+      user_list = [
+        u async for u in lottery_msg.reactions[0].users()
+        if u != self.bot.user and str(u.id) in self.bot.db["economy"]
+      ]
+      user_list_copy = user_list.copy()
+      for i in user_list_copy:
+        if str(i.id) in self.bot.db["economy"] and self.bot.db["economy"][str(i.id)]["balance"] >= price:
+          users += 1
+          user_list.remove(i)
+      if int(time.time()) < self.bot.dbo["others"]["lottery"]["end"]:
+        if users <= 1:
+          new_embed = discord.Embed(
+          title=f"Lottery",
+          description=
+          f"React with :tickets: to purchase a lottery ticket! The cost will be deducted from your balance right before the lottery ends! \nEnds: <t:{end}:R> | <t:{end}> \nCurrent prize pool: `Not enough tickets purchased!` \nCost: {price}{coin} \nNumber of tickets bought: `{users}`",
+          color=discord.Color.green())
+          new_embed.set_footer(text = "If you do not have enough money, your entry will not be registered!")
+        else:
+          new_embed = discord.Embed(
+          title=f"Lottery",
+          description=
+          f"React with :tickets: to purchase a lottery ticket! The cost will be deducted from your balance right before the lottery ends! \nEnds: <t:{end}:R> | <t:{end}> \nCurrent prize pool: **{users * price}{coin}** \nCost: **{price}{coin}** \nNumber of tickets bought: `{users}`",
+          color=discord.Color.green())
+          new_embed.set_footer(text = "If you do not have enough money, your entry will not be registered!")
+        
+        await lottery_msg.edit(embed = new_embed)
+      else:
+        if users <= 1:
+          await lottery_msg.reply("Not enough people joined the lottery.")
+        else:
+          user_list = user_list_copy
+          winner = random.choice(user_list)
+          for user in user_list:
+            self.bot.db["economy"][str(user.id)]["balance"] -= price
+          prize = len(user_list) * price
+          await lottery_msg.reply(f"{winner.mention} has won **{prize}{coin}**! (Tickets purchased: {len(user_list)})")
+          self.bot.db["economy"][str(winner.id)]["balance"] += prize
+          channel_posted = self.bot.get_channel(lottery_channel)
+          final_embed = discord.Embed(
+          title=f"Lottery",
+          description=
+          f"The lottery ended <t:{end}:R> | <t:{end}>! \nPrize pool: **{users * price}{coin}** \nWinner: `{winner}` \nNumber of tickets bought: `{users}`",
+          color=discord.Color.green())
+          await lottery_msg.edit(embed = final_embed)
+        self.bot.dbo["others"]["lottery"] = {
+          "msgid": None,
+          "end": 1,
+          "cost": 1
+        }
+    
     await self.bot.save_db()
 
 async def setup(bot):

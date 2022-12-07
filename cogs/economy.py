@@ -128,11 +128,11 @@ Legendary Chest: **200{diamond}**
     # Handle coins
     if reward.endswith("Coins"):
       amt = -1 # will display this if it didnt get a reward (error)
-      if reward.startswith("Small"): amt = random.randint(1000, 20000)
-      if reward.startswith("Medium"): amt = random.randint(10000, 50000)
-      if reward.startswith("Large"): amt = random.randint(500000, 1000000)
+      if reward.startswith("Small"): amt = random.randint(1000, 10000)
+      if reward.startswith("Medium"): amt = random.randint(5000, 20000)
+      if reward.startswith("Large"): amt = random.randint(20000, 200000)
       if reward.startswith("Cart"): amt = random.randint(1000000, 5000000)
-      if reward.startswith("House"): amt = random.randint(2500000, 10000000)
+      if reward.startswith("House"): amt = random.randint(2_500_000, 10_000_000)
       itx.client.db["economy"][str(itx.user.id)]["balance"] += amt
       msg = f"You have gained **{amt} {coin}**"
 
@@ -146,15 +146,15 @@ Legendary Chest: **200{diamond}**
     if reward.endswith("Pet Food"):
       amt = int(reward.split("x")[0])
       msg = f"You have gained **{amt} Pet Food** (WIP)"
-
+    """
     if reward.endswith("Upgrade"):
-      """
+      
       if reward[5:].startswith("Worker"): amt = "workers"
       if reward[5:].startswith("Machine"): amt = "machine_level"
       itx.client.db["economy"][str(itx.user.id)][amt] += 1
       msg = f"Your **{amt.replace('_', ' ')}** has increased by 1"
-      """
-      msg = "This reward has been disabled, please create a support ticket to recieve compensation. reward: " + reward
+      
+      msg = "This reward has been disabled, please create a support ticket to recieve compensation. reward: " + reward"""
 
     if reward.endswith(diamond):
       amt = int(reward.split(" ")[0])
@@ -368,7 +368,7 @@ Benefits:
           "Unlock different chocolate recipes", "0.5x income boost", "0.25x XP boost", "More upgrades", f"20 {diamond}"
           ], 
         "requirements": [
-          f"500,000 {coin}", f"3 {ticket}", "Level 25"
+          f"500,000 {coin}", f"5 {ticket}", "Level 20"
           ],
         "description": "Start manufacturing chocolates with this shiny new factory!"
       }, 
@@ -377,7 +377,7 @@ Benefits:
           "0.75x income boost", "0.5x XP boost", "More upgrades", f"50 {diamond}"
           ],
         "requirements": [
-          f"2,500,000 {coin}", f"8 {ticket}", "Level 50"
+          f"5,000,000 {coin}", f"20 {ticket}", "Level 50"
           ],
         "description": "Start distributing your chocolates all over the world!"
       }
@@ -429,7 +429,6 @@ Benefits:
       await itx.client.log_action("New Location Unlocked", f"**{itx.user}** unlocked the **{next_location}**! \n[{itx.user.id}]")
 
   @app_commands.command(name="recipe")
-  @app_commands.guilds(discord.Object(id=923013388966166528))
   @factory_check()
   async def recipe(self, itx: discord.Interaction):
     """
@@ -460,6 +459,33 @@ Benefits:
       color = blurple
     )
     await itx.response.send_message(embed=embed, view=BackButton())
+
+  @app_commands.command(name="give")
+  @factory_check()
+  async def give(self, itx: discord.Interaction, user: discord.Member, amt: app_commands.Range[int, 1]):
+    """
+    Give tickets to your friends!
+    """
+    color = red
+    # Check if user has account
+    if str(user.id) in self.bot.db["economy"]:
+      tickets = self.bot.db["economy"][str(itx.user.id)]["golden_ticket"]
+      if tickets >= amt:
+        self.bot.db["economy"][str(itx.user.id)]["golden_ticket"] -= amt
+        self.bot.db["economy"][str(str(user.id))]["golden_ticket"] += amt
+        msg = f"{tick} You have given **{amt} {ticket}** to **{user.name}**"
+        color = green
+      else:
+        msg = f"{cross} Debt is not an option! You can only give away tickets you have!"
+    else:
+      msg = f"{cross} This user does not own a farm!"
+
+    embed = discord.Embed(
+      title = f"{ticket} Tickets",
+      description = msg,
+      color = color
+    )
+    await itx.response.send_message(embed=embed)
 
   # Shop
   @app_commands.command(name="shop")
@@ -682,7 +708,7 @@ Cost: **{items[item]} {ticket}**
         color = discord.Color.blurple()
       )
       await itx.response.send_message(embed = embed)
-      channel = bot.get_guild(923013388966166528).get_channel(968460468505153616)
+      channel = self.bot.get_channel(968460468505153616)
       embed = discord.Embed(title = f"{itx.user} has claimed a code.", description = f"Code: `{code}` \nAmount: **{money} {coin}**", color = discord.Color.blurple())
       await channel.send(embed = embed)
     elif str(itx.user.id) not in self.bot.db["economy"]:

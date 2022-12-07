@@ -96,6 +96,8 @@ class MyBot(commands.Bot):
         
       if fish == "tuna": 
         fish_times = random.randint(5, 50)
+      elif fish == "salmon":
+        fish_times = random.randint(2, 8)
       elif fish == "cod":
         fish_times = random.randint(1,5)
       else:
@@ -219,7 +221,10 @@ class MyBot(commands.Bot):
       for boost in range(len(boosts[type_])): # boost = {mult: duration}
         for k in boosts[type_][boost]:
           personal_mult += float(k)
-    income = income * (income_boost + global_boost + personal_mult)
+    total_boosts = income_boost + global_boost + personal_mult
+    if total_boosts == 0:
+      total_boosts = 1
+    income = income*total_boosts
     return income, (income_boost, global_boost, personal_mult)
 
   async def log_action(self, type: str, action: str) -> None:

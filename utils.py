@@ -613,29 +613,29 @@ async def get_upgrade(itx: discord.Interaction, type: str, name: str):
     upgrades.update(copy.deepcopy(itx.client.db["economy"][str(itx.user.id)]["upgrades"]["distribution_center"]))
     # IGNORE COORDS (OLD FEATURE)
     #Farm
-    upgrades["farmer"]["income"] = 10
+    upgrades["farmer"]["income"] = 25
     upgrades["farmer"]["coords"] = (250, 200)
-    upgrades["store"]["income"] = 25
+    upgrades["store"]["income"] = 40
     upgrades["store"]["coords"] = (800, 200)
-    upgrades["van"]["income"] = 40
+    upgrades["van"]["income"] = 60
     upgrades["van"]["coords"] = (860, 300)
-    upgrades["storage_tank"]["income"] = 75
+    upgrades["storage_tank"]["income"] = 85
     upgrades["storage_tank"]["coords"] = (1000, 500)
-    upgrades["warehouse"]["income"] = 90
+    upgrades["warehouse"]["income"] = 120
     upgrades["warehouse"]["coords"] = (400, 500)
     # Factory 
     upgrades["bean_grinder"]["income"] = 80
     upgrades["bean_grinder"]["coords"] = (250, 200)
     upgrades["chocolate_moulder"]["income"] = 100
     upgrades["chocolate_moulder"]["coords"] = (800, 200)
-    upgrades["chocolate_freezer"]["income"] = 125
+    upgrades["chocolate_freezer"]["income"] = 135
     upgrades["chocolate_freezer"]["coords"] = (800, 350)
     upgrades["workers"]["income"] = 250 #workers more = less mechenical breakdown
     upgrades["workers"]["coords"] = (800, 450)
     upgrades["chocolate_packager"]["income"] = 320
     upgrades["chocolate_packager"]["coords"] = (250, 450)
     # Distribution center
-    upgrades["fork_lifts"]["income"] = 120
+    upgrades["fork_lifts"]["income"] = 125
     upgrades["fork_lifts"]["coords"] = (800, 200)
     upgrades["packaging_machine"]["income"] = 180
     upgrades["packaging_machine"]["coords"] = (800, 500)
@@ -712,6 +712,7 @@ async def get_fish(itx: discord.Interaction):
   view = "placeholder"
   fishdb = itx.client.db["economy"][str(itx.user.id)]["fish"]
   fishes = ["tuna", "grouper", "snapper", "salmon", "cod"]
+  fish_xp = {"tuna": 1, "grouper": 1, "snapper": 3, "salmon": 10, "cod": 15}
   
   loop, first_loop = True, True
   while loop:
@@ -743,11 +744,11 @@ async def get_fish(itx: discord.Interaction):
       cooldown = 5
       if odds < 40: fish = "tuna"
       if 40 <= odds < 65: fish = "grouper"
-      if 65 <= odds < 90: fish = "snapper"
-      if 90 <= odds < 100: fish = "salmon"
+      if 65 <= odds < 88: fish = "snapper"
+      if 88 <= odds < 100: fish = "salmon"
       if odds >= 100: fish = "cod" if random.randint(0, 1) else "tuna"
     #cooldown = 1 # uncomment for testing
-    if itx.user.id == owner: cooldown = 1
+    #if itx.user.id == owner: cooldown = 1
     
     if first_loop:
       embed = discord.Embed(
@@ -781,7 +782,7 @@ async def get_fish(itx: discord.Interaction):
       if luck > 10:
         itx.client.db["economy"][str(itx.user.id)]["fish"][fish] += 1
         itx.client.db["economy"][str(itx.user.id)]["fish"]["last_fish"] = int(time.time())
-        xp_msg = await itx.client.check_xp(itx.user.id, 1)
+        xp_msg = await itx.client.check_xp(itx.user.id, fish_xp[fish])
         unlocked_fragments = len(itx.client.db["economy"][str(itx.user.id)]["unlocked_upgrades"]) > 1
         fragment_msg = ""
         if random.randint(1, 101) > 95 and unlocked_fragments:
@@ -819,6 +820,7 @@ async def get_work(itx: discord.Interaction):
   color = blurple
   quest_msg = await get_quest_rewards(itx, "income")
   last_work = itx.client.db["economy"][str(itx.user.id)]["last_work"]
+  level = itx.client.db["economy"][str(itx.user.id)]["levels"]["level"]
   time_diff = int(time.time()) - last_work
   cooldown = 60*10
   if time_diff >= cooldown:  
@@ -830,7 +832,7 @@ async def get_work(itx: discord.Interaction):
     recipes = [rec for rec in fragments if fragments[rec] >= 20]
     income = itx.client.db["economy"][str(itx.user.id)]["income"]
     if not unlocked_fragments: 
-      amt_sold = random.randint(income//2, income*4)
+      amt_sold = random.randint(income//5, int(income*1.5))*level
     else:
       amt_sold = {recipe: random.randint(income//75, income//10) for recipe in recipes}
     total = 0
@@ -872,7 +874,7 @@ async def get_work(itx: discord.Interaction):
     msg = f"You cannot work so soon! \nCooldown: `{cooldown_msg}`" # cooldown based on level/patreon
     color = red
 
-  msg += quest_msg
+  msg += "\n" + quest_msg
   embed = discord.Embed(title = bot_name, description = msg, color = color)
   view = BackButton()
   await itx.response.send_message(embed=embed, view=view)
