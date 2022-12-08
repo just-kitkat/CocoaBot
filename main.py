@@ -8,6 +8,7 @@ from errors import *
 import pymongo
 import dns
 from pymongo import MongoClient
+from typing import Optional
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
@@ -54,6 +55,9 @@ class MyBot(commands.Bot):
       await itx.response.send_message(f"{msg}", ephemeral = True)
       return False
     return True
+
+  def increment_command_counter(self, times: Optional[int]=1) -> None:
+    bot.dbo["others"]["total_commands_ran"] += times
 
   async def add_fragment(self, itx):
     rng = random.randint(1, 1001)
@@ -286,8 +290,10 @@ Dm me `.info` to join the support server!"""
       else:
         itx.client.dbo["others"]["user_blacklist"].pop(str(itx.user.id))
       
-    
-    itx.client.dbo["others"]["total_commands_ran"] += 1
+    manually_handled = ["fish"]
+    if itx.command.name not in manually_handled:
+      bot.increment_command_counter()
+      
     if itx.client.dbo["others"]["maintenancemode"] and itx.user.id != 915156033192734760:
       await itx.response.send_message("I am currently on maintenance mode! Join my support server for more info. \nDm me `.info` to join the support server!")
       return False

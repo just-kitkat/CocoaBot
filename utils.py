@@ -788,6 +788,7 @@ async def get_fish(itx: discord.Interaction):
   
   loop, first_loop = True, True
   while loop:
+    itx.client.increment_command_counter()
     odds = random.randint(1, 101)
     level = itx.client.db["economy"][str(itx.user.id)]["fish"]["rod_level"]
     if level == 1:
