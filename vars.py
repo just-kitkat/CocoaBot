@@ -15,6 +15,8 @@ red_square, yellow_square, green_square = "🟥", "🟨", "🟩"
 trashcan = "🗑️"
 recipe_fragment = "📃"
 diamond = "<:diamond:1017435757616570409>"
+
+server_voter_role = 1027762825059381308
 xp_needed_base = 10
 unix_day = 1661788800
 eco_prestige = [0, 1000000, 2500000, 5000000, 10000000, 20000000]

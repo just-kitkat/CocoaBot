@@ -235,6 +235,24 @@ async def complete_quest_(itx: discord.Interaction, button: discord.ui.Button):
     await itx.response.send_message("This quest has already been completed", ephemeral=True)
 
 
+class DailyButton(discord.ui.View):
+  def __init__(self, userID: int):
+    self.userID = userID
+    self.value = False
+    super().__init__(timeout=None)
+
+  @discord.ui.button(label="Claim Daily Reward", emoji="🎁", style=discord.ButtonStyle.success)
+  async def claim_daily(self, itx: discord.Interaction, button: discord.ui.Button):
+    self.value = True
+    button.disabled = True
+    self.stop()
+    await itx.response.edit_message(view=self)
+
+  async def interaction_check(self, itx: discord.Interaction):
+    if self.userID == itx.user.id:
+      return True
+    return await itx.client.itx_check(itx)
+
 class StatsDropdown(discord.ui.Select):
   def __init__(self, user):
     self.user = user
@@ -511,6 +529,24 @@ class UpgradesButton(discord.ui.View):
     return await itx.client.itx_check(itx)
 
 async def get_daily(itx):
+
+  def get_streak_emoji(streak: int, voted: bool=False):
+    reward = 5 # how many daily streak do you need to recieve reward?
+    emoji, streak_emoji, no_streak_emoji = "", "🟡", "⚫"
+    streak_msg = ""
+    
+    for number in range(streak % reward):
+      emoji += streak_emoji
+    for number in range(reward - streak % reward):
+      emoji += no_streak_emoji
+
+    if streak%reward == 0:
+      earned = 1 if not voted else 2
+      itx.client.db["economy"][str(itx.user.id)]["golden_ticket"] += earned
+      streak_msg = f"\nYou earned **{earned} {ticket}**"
+      
+    return emoji + streak_msg
+  
   if itx.client.db["economy"][str(itx.user.id)]["levels"]["level"] >= 5:
     color = green
     streak_msg = ""
@@ -522,7 +558,26 @@ async def get_daily(itx):
     daily_streak = itx.client.db["economy"][str(itx.user.id)]["daily_streak"]
     
     if currenttime >= (last_daily + 86400):
+      embed = discord.Embed(
+        title = "Claim Daily Reward",
+        description = f"""
+Click the button below to claim your daily reward!
+
+Tip: Vote for the **{bot_name} discord server** to earn double daily rewards, including golden tickets!
+{adv_msg} (voting is not enabled yet!)
+""",
+        color = blurple
+      )
+      view = DailyButton(itx.user.id)
+      await itx.response.send_message(embed=embed, view=view)
+      await view.wait()
+      # Recheck in case of exploits
+      last_daily = itx.client.db["economy"][str(itx.user.id)]["last_daily"]
+      currenttime = int(time.time())
+      if not view.value or not currenttime >= (last_daily + 86400):
+        return
       streak_bonus = 500
+      voted = discord.utils.get(itx.user.roles, id=server_voter_role)
       if currenttime >= (last_daily + 86400*2) and daily_streak != 0:
         itx.client.db["economy"][str(itx.user.id)]["daily_streak"] = 1
         streak_msg = f"*You lost your **{daily_streak} days** daily streak!*"
@@ -530,9 +585,11 @@ async def get_daily(itx):
         itx.client.db["economy"][str(itx.user.id)]["daily_streak"] += 1
       daily_streak = itx.client.db["economy"][str(itx.user.id)]["daily_streak"]
       streak_coins = itx.client.db["economy"][str(itx.user.id)]["daily_streak"] * streak_bonus if daily_streak != 1 else 0
+      vote_bonus = daily_coins + streak_coins if voted else 0
         
       daily_streak = itx.client.db["economy"][str(itx.user.id)]["daily_streak"]
-      total_coins = daily_coins + streak_coins
+      streak_emoji = get_streak_emoji(daily_streak, voted)
+      total_coins = daily_coins + streak_coins + vote_bonus
       xp_msg = await itx.client.check_xp(itx.user.id, 5)
   
       itx.client.db["economy"][str(itx.user.id)]["last_daily"] = time.time()
@@ -542,7 +599,19 @@ async def get_daily(itx):
       fragment_msg = ""
       if unlocked_fragments:
         fragment_msg = "\n" + await itx.client.add_fragment(itx)
-      msg = f"Daily reward: **{daily_coins}{coin}** \nStreak Bonus: **{streak_coins}{coin}** \nTotal Reward: **{total_coins}{coin}** \n\nCurrent Balance: **{updated_bal}{coin}** \nDaily Streak: `{daily_streak}` {xp_msg}\n{streak_msg} {fragment_msg}"
+      msg = f"""
+Daily reward: **{daily_coins:,}{coin}** 
+Streak Bonus: **{streak_coins:,}{coin}** 
+Vote Bonus: **{vote_bonus:,} {coin}**
+Total Reward: **{total_coins:,}{coin}** 
+
+Current Balance: **{updated_bal:,}{coin}** 
+
+Daily Streak: `{daily_streak}`  
+{streak_emoji} 
+*Get a {ticket} for every 5 daily streaks!* 
+{xp_msg}
+{streak_msg} {fragment_msg}"""
       
     else:
       td = timedelta(seconds=86400-currenttime+last_daily)
@@ -560,7 +629,10 @@ async def get_daily(itx):
       color = color
     )
   view = BackButton()
-  await itx.response.send_message(embed=embed, view=view)
+  if not itx.response.is_done():
+    await itx.response.send_message(embed=embed, view=view)
+  else:
+    await itx.followup.send(embed=embed, view=view)
 
 async def get_stats(itx, user=None):
   if user is None:
@@ -687,9 +759,9 @@ Cost: **{cost if not maxed else 'Maxed!'} {coin if not maxed else ''}** \n
       else:
         msg, color, ephemeral = f"You do not have enough money for this upgrade! \nBalance: **{balance} {coin}** \nAmount needed: **{cost} {coin}**", red, True
       embed = discord.Embed(title = "Upgrade", description = msg, color = color)
-      try: #itx.response.is_done
+      if not itx.response.is_done():
         await itx.response.send_message(embed=embed, ephemeral=ephemeral, view=view)
-      except Exception:
+      else:
         await itx.followup.send(embed=embed, ephemeral=ephemeral, view=view)
       if view is discord.utils.MISSING: 
         break
@@ -712,7 +784,7 @@ async def get_fish(itx: discord.Interaction):
   view = "placeholder"
   fishdb = itx.client.db["economy"][str(itx.user.id)]["fish"]
   fishes = ["tuna", "grouper", "snapper", "salmon", "cod"]
-  fish_xp = {"tuna": 1, "grouper": 1, "snapper": 3, "salmon": 10, "cod": 15}
+  fish_xp = {"tuna": 1, "grouper": 1, "snapper": 3, "salmon": 10, "cod": 25}
   
   loop, first_loop = True, True
   while loop:
