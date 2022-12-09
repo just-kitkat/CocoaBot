@@ -244,8 +244,8 @@ Command used: {ctx.message.content}```
       resets_missed = (int(time.time()) - last_shop_reset) // (3600*24)
       self.bot.dbo["others"]["last_shop_reset"] = last_shop_reset + resets_missed*3600*24
 
-    # Create a backup daily
-    await self.bot.create_backup()
+      # Create a backup daily within the daily shop reset check
+      await self.bot.create_backup()
     
     # Lottery Logic
     if self.bot.dbo["others"]["lottery"]["msgid"] is not None:
