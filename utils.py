@@ -508,6 +508,24 @@ class StatsButtons(discord.ui.View):
   async def to_boosts(self, itx: discord.Interaction, button: discord.ui.Button):
     await get_boosts(itx)
 
+  async def interaction_check(self, itx: discord.Interaction):
+    blacklist = itx.client.dbo["others"]["user_blacklist"]
+    if str(itx.user.id) in blacklist:
+      if int(time.time()) < blacklist[str(itx.user.id)]["time"]:
+        duration = blacklist[str(itx.user.id)]["time"]
+        reason = blacklist[str(itx.user.id)]["reason"]
+        await itx.response.send_message(
+          f"""
+You are currently blacklisted! 
+Reason: {reason}
+Blacklist ends <t:{duration}:R>
+Dm me `.info` to join the support server!
+""",
+          ephemeral = True
+  )
+        return False
+    return True
+
 class UpgradesButton(discord.ui.View):
   def __init__(self, userID):
     self.userID = userID
