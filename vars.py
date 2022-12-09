@@ -74,6 +74,17 @@ chest_rewards = {
       }
     }
 
+tips = [
+  f"Earn tickets from quests, chests and leveling up rewards! You can spend them in `{prefix}shop`",
+  f"Buy xp and income boosts in `{prefix}shop`!",
+  f"You get income every hour! Spend it wisely!",
+  f"Remember to vote for our {bot_name} discord server before running `{prefix}daily` to get double rewards!",
+  f"View your current boosts using `{prefix}boosts`",
+  f"Unlock different locations to increase upgrades and multipliers!",
+  f"Complete all 3 daily quests to get a {ticket}",
+  f"Join our support server for lotteries, giveaways and many more!"
+]
+
 whitespace = "\u200b"
 is_ready = False
 online_since = int(time.time())

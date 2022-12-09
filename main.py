@@ -313,6 +313,9 @@ Dm me `.info` to join the support server!"""
     if itx.user.id not in itx.client.dbo["others"]["read_alert"] and itx.client.dbo["others"]["alert_ping"]:
       await itx.channel.send(f"{itx.user.mention}, there is an important alert! \nUse `{prefix}alert` to view it!")
 
+    if random.randint(1, 20) == 10: # rarely show tips
+      await itx.channel.send("**Fun fact:** " + random.choice(tips))
+
     # cleanliness warning
     if str(itx.user.id) in itx.client.db["economy"] and itx.client.db["economy"][str(itx.user.id)]["cleanliness"] <= 25:
       await itx.channel.send(f"{itx.user.mention}, you have not cleaned your farm for a long time... This impacts your hourly income! \nUse `{prefix}clean` to clean your farm!")
