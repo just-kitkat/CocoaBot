@@ -5,6 +5,7 @@ import random
 import math
 from vars import *
 from errors import *
+from datetime import date
 import pymongo
 import dns
 from pymongo import MongoClient
@@ -47,6 +48,18 @@ class MyBot(commands.Bot):
       embed = discord.Embed(title="DB Error", description=f"{e}")
       await log_channel.send(embed=embed)
       exec(stop_bot)
+
+  async def create_backup(self, type_: str="db"):
+    db_channel = bot.get_channel(926098991953870930)
+    today = date.today()
+    timestamp = today.strftime("%d %B %Y, %A")
+    data = bot.db["economy"]
+    data2 = bot.dbo["others"]
+    with open("dump/backup.txt", "w") as backup:
+      backup.truncate(0)
+      backup.write("Economy: \n" + str(data) + "\nOthers: \n" + str(data2) + f"\n[{int(time.time())}]")
+    await db_channel.send(file=discord.File("dump/backup.txt"))
+    os.remove("dump/backup.txt")
 
   async def itx_check(self, itx: discord.Interaction, msg: str=None, failed: bool = True):
     if failed:

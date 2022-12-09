@@ -1,4 +1,7 @@
-import discord, os, sys, asyncio
+import discord
+import os
+import sys
+import asyncio
 from datetime import date
 from vars import *
 from utils import *
@@ -379,16 +382,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   @commands.command()
   @commands.is_owner()
   async def backup(self, ctx):
-    today = date.today()
-    timestamp = today.strftime("%d %B %Y, %A")
     await ctx.message.delete()
-    data = self.bot.db["economy"]
-    data2 = self.bot.dbo["others"]
-    with open("dump/backup.txt", "w") as backup:
-      backup.truncate(0)
-      backup.write("Economy: \n" + str(data) + "\nOthers: \n" + str(data2) + f"\n[{int(time.time())}]")
-    await ctx.send(file=discord.File("dump/backup.txt"))
-    os.remove("dump/backup.txt")
+    await self.bot.create_backup()
 
   @commands.command()
   @commands.is_owner()
