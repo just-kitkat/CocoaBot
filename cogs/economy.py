@@ -66,9 +66,9 @@ class ChestButtons(discord.ui.View):
     self.diamonds = diamonds
     self.value = False
     super().__init__(timeout=120)
-    types = {"normal":5, "rare":25, "legendary":200}
-    for type in types:
-      self.add_item(OpenChest(userID, type, types, diamonds < types[type]))
+    self.types = {"normal":5, "rare":25, "legendary":200}
+    for type_ in self.types:
+      self.add_item(OpenChest(userID, type_, self.types, diamonds < self.types[type_]))
 
   @discord.ui.button(label = "View Possible Loot", emoji = "🎁", style = discord.ButtonStyle.blurple, row = 4)
   async def view_loot(self, itx: discord.Interaction, button: discord.ui.Button):
@@ -103,9 +103,14 @@ class OpenChest(discord.ui.Button):
 
   async def callback(self, itx: discord.Interaction):
     view: ChestButtons = self.view
+    # Check for amt in case of multi-instances
+    diamonds = itx.client.db["economy"][str(itx.user.id)]["diamonds"]
+    if diamonds < self.types[self.chosen]:
+      return await itx.response.send_message("You do not have enough diamonds to open this chest!", ephemeral=True)
     itx.client.db["economy"][str(itx.user.id)]["diamonds"] -= self.types[self.chosen]
     view = ChestButtons(itx, itx.user.id, itx.client.db["economy"][str(itx.user.id)]["diamonds"])
     diamonds = itx.client.db["economy"][str(itx.user.id)]["diamonds"]
+    
     embed = discord.Embed(
         title = "Chests",
         description = f"""
@@ -145,7 +150,10 @@ Legendary Chest: **200{diamond}**
     # Handle Pet Food
     if reward.endswith("Pet Food"):
       amt = int(reward.split("x")[0])
-      msg = f"You have gained **{amt} Pet Food** (WIP)"
+      # add coins since pets not implemented yet
+      coin_amt = amt*2000
+      itx.client.db["economy"][str(itx.user.id)]["balance"] += coin_amt
+      msg = f"You have won **{amt} pet food**\nPets have not been added yet, you have gotten **{coin_amt:,} {coin}** instead."
     """
     if reward.endswith("Upgrade"):
       
@@ -417,7 +425,12 @@ Benefits:
     view = LocationButtons(itx.user.id, next_location, check_req(next_location))
     await itx.response.send_message(embed=embed, view=view)
     await view.wait()
-    if view.value:
+    if view.value and next_location not in self.bot.db["economy"][str(itx.user.id)]["unlocked_upgrades"]: #check for exploits
+      for req in locations[next_location]["requirements"]:
+        if req.endswith(coin):
+          self.bot.db["economy"][str(itx.user.id)]["balance"] -= int(req.split(" ")[0].replace(",", ""))
+        if req.endswith(ticket):
+          self.bot.db["economy"][str(itx.user.id)]["golden_ticket"] -= int(req.split(" ")[0].replace(",", ""))
       self.bot.db["economy"][str(itx.user.id)]["unlocked_upgrades"].append(next_location.replace(" ", "_"))
       for reward in locations[next_location]["perks"]:
         if reward.endswith("income boost"): self.bot.db["economy"][str(itx.user.id)]["income_boost"] += float(reward.split("x")[0])
@@ -740,9 +753,6 @@ Legendary Chest: **200{diamond}**
       )
       view = ChestButtons(itx, itx.user.id, diamonds)
       await itx.response.send_message(embed = embed, view = view)
-      await view.wait()
-      if view.value:
-        pass
           
 async def setup(bot):
   await bot.add_cog(Economy(bot))

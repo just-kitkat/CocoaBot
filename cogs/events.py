@@ -29,7 +29,11 @@ class Events(commands.Cog):
 
   @commands.Cog.listener()
   async def on_app_command_completion(self, itx: discord.Interaction, command):
-    print(f"slash after_invoke ({command.name})")
+    print(f"""
+A slash command was invoked! 
+User: {itx.user} 
+Id: {itx.user.id}
+Command: {itx.command.name}""")
     await self.bot.save_db()
     
     if self.bot.dbo["others"]["last_income"] + 3600 < int(time.time()):
@@ -249,7 +253,7 @@ Command used: {ctx.message.content}```
       lottery_msg = await channel_posted.fetch_message(lottery_msg)
       user_list = [
         u async for u in lottery_msg.reactions[0].users()
-        if u != self.bot.user and str(u.id) in self.bot.db["economy"]
+        if u != self.bot.user and str(u.id) in self.bot.db["economy"] and self.bot.db["economy"][str(u.id)]["balance"] >= price
       ]
       user_list_copy = user_list.copy()
       for i in user_list_copy:

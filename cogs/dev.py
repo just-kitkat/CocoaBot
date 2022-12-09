@@ -513,7 +513,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   @app_commands.command(name="lottery")
   @is_owner()
   async def lottery(self, itx: discord.Interaction, duration: str, *, price : int):
-    lottery_role = 924492846550114365
+    lottery_role = "" #924492846550114365
     time_convert = {"s": 1, "m": 60, "h": 3600, "d": 86400}
     lottery_time = int(duration[:-1]) * time_convert[duration
     [-1]]

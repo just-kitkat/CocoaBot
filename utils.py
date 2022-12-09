@@ -575,10 +575,10 @@ Tip: Vote for the **{bot_name} discord server** to earn double daily rewards, in
       last_daily = itx.client.db["economy"][str(itx.user.id)]["last_daily"]
       currenttime = int(time.time())
       if not view.value or not currenttime >= (last_daily + 86400):
-        return
+        return await itx.followup.send("You already claimed your daily reward :/", ephemeral=True)
       streak_bonus = 500
       voted = discord.utils.get(itx.user.roles, id=server_voter_role)
-      if currenttime >= (last_daily + 86400*2) and daily_streak != 0:
+      if currenttime >= (last_daily + 86400*4) and daily_streak != 0:
         itx.client.db["economy"][str(itx.user.id)]["daily_streak"] = 1
         streak_msg = f"*You lost your **{daily_streak} days** daily streak!*"
       else:
@@ -599,6 +599,7 @@ Tip: Vote for the **{bot_name} discord server** to earn double daily rewards, in
       fragment_msg = ""
       if unlocked_fragments:
         fragment_msg = "\n" + await itx.client.add_fragment(itx)
+      await itx.client.log_action("Daily Reward", f"**{itx.user}** has claimed their daily reward! \nDaily, Streak bonus, vote bonus, total: {daily_coins:,}, {streak_coins:,}, {vote_bonus:,}, {total_coins:,} \nStreak: `{daily_streak}` \n[{itx.user.id}]")
       msg = f"""
 Daily reward: **{daily_coins:,}{coin}** 
 Streak Bonus: **{streak_coins:,}{coin}** 
@@ -849,7 +850,6 @@ async def get_fish(itx: discord.Interaction):
       )
       loop = False
       view = BackButton()
-      await itx.response.send_message(embed=embed, view=view)
     elif time.time() >= itx.client.db["economy"][str(itx.user.id)]["fish"]["last_fish"] + cooldown:
       luck = random.randint(1,101)
       if luck > 10:
@@ -879,10 +879,10 @@ async def get_fish(itx: discord.Interaction):
       itx.client.cache["fishing_cooldown"]["users"][str(itx.user.id)] = int(time.time())
       itx.client.db["economy"][str(itx.user.id)]["counting"]["fish"] += 1
       view = FishButtons(itx.user.id, cooldown) if view is not None else None
-      try:
-        await itx.response.send_message(embed = embed, view = view)
-      except:
-        await itx.followup.send(embed = embed, view = view)
+    if not itx.response.is_done():
+      await itx.response.send_message(embed = embed, view = view)
+    else:
+      await itx.followup.send(embed = embed, view = view)
     if view is not None:
       await view.wait()
       if not view.value:
