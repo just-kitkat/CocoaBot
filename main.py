@@ -24,7 +24,7 @@ logging.basicConfig(level=logging.INFO)
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
-activity = discord.Game(name=f"This is {bot_name}! | Type / to get started!")
+activity = discord.Game(name=f"This is {bot_name}! | Ping me to get started!")
 
 stop_bot = os.environ["STOP_BOT"]
 
@@ -143,6 +143,7 @@ class MyBot(commands.Bot):
       }
       
       bot.db["economy"][str(itx.user.id)]["last_quest"] = int(time.time())
+      bot.db["economy"][str(itx.user.id)]["claimed_ticket"] = False
     else:
       fish_times = quest["fish"]["times"]
       fish = quest["fish"]["name"]
@@ -206,9 +207,9 @@ class MyBot(commands.Bot):
         msg = f"\nYou have unlocked guilds! To join a guild, use `{prefix}guild join <name>` \n**NOTE: Guilds are a work in progress and have not been added yet.**"
       elif level == 15:
         msg = f"\nYou have unlocked **expeditions**! Use `{prefix}expedition help` for more info. \n**NOTE: Expeditions are a work in progress and have not been added yet.**"
-      elif level == 20:
-        msg = f"\nYou have unlocked the `{prefix}weekly` command!"
-      elif level == 30:
+      #elif level == 20:
+        #msg = f"\nYou have unlocked the `{prefix}weekly` command!"
+      elif level == 25:
         msg = f"\nYou have unlocked the `{prefix}monthly` command!"
       else:
         reward = level*500
@@ -330,6 +331,7 @@ bot = MyBot(
   strip_after_prefix = True,
   tree_cls = MyTree
 )
+bot.remove_command("help")
 bot.db, bot.dbo = {}, {}
 bot.cache = {
   "fishing_cooldown" : {"users" : {}},

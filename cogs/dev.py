@@ -228,7 +228,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       self.bot.dbo = {
         "others":
         {
-          "alert_msg": "Hello there! \nIf you see this, I probably made a mistake somewhere... (oops) \nPlease pretend this doesn't exist :)",
+          "alert_msg": "Hello there! \nUse `/help` for help!!",
           "read_alert": [], # list of user IDs
           "alert_ping": False,
           "lottery": {
@@ -334,8 +334,8 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
         self.bot.db["economy"][user]["boosts"].pop("global")
       await ctx.send("Global income boost removed (from user db)")
     elif arg1 == "addglobalboost":
-      self.bot.dbo["others"]["global_income_boost"] = {"2": 24}
-      await ctx.send("Global boost added (2x, 1d)")
+      self.bot.dbo["others"]["global_income_boost"] = {"2": 24*7}
+      await ctx.send("Global boost added (2x, 7d)")
     elif arg1 == "getdata":
       if arg2 is not None and arg2.isdigit():
         userdata = self.bot.db["economy"][arg2]

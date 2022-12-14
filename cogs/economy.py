@@ -66,7 +66,7 @@ class ChestButtons(discord.ui.View):
     self.diamonds = diamonds
     self.value = False
     super().__init__(timeout=120)
-    self.types = {"normal":5, "rare":25, "legendary":200}
+    self.types = {"normal":10, "rare":25, "legendary":200}
     for type_ in self.types:
       self.add_item(OpenChest(userID, type_, self.types, diamonds < self.types[type_]))
 
@@ -212,12 +212,12 @@ class Economy(commands.Cog, name = "General Commands"):
     """Start your chocolate journey here!"""
     if str(itx.user.id) not in self.bot.db["economy"]:
       self.bot.db["economy"][str(itx.user.id)] = {
-        "balance": 100, "last_work": 1, "last_quest": int(time.time()), "last_clean": 1,
+        "balance": 2000, "last_work": 1, "last_quest": int(time.time()), "last_clean": 1,
         "last_daily": 1, "last_weekly": 1, "last_monthly": 1, "daily_streak": 0, 
         "last_cf": 1, "cleanliness": 100,
         "golden_ticket": 0, "claimed_ticket": False, "account_age": int(time.time()),
         "bought_from_shop": [],
-        "sponsor": 0, "diamonds": 0, "income_boost": 0, "income": 100, "bugs_found": 0,
+        "sponsor": 0, "diamonds": 5, "income_boost": 0, "income": 100, "bugs_found": 0,
         "unlocked_upgrades": ["farm"],
         "counting": {"work": 0, "hunt": 0, "fish": 0},
         "levels": {"xp" : 0, "xp_mult" : 1, "level" : 1, "xp_needed" : 20}, 
@@ -265,7 +265,11 @@ class Economy(commands.Cog, name = "General Commands"):
       }
       embed = discord.Embed(
         title = "Your brand new farm is now in business!", 
-        description = f"Use `{self.bot.prefix}tutorial` to get started!", 
+        description = f"""
+You now own a **cocoa bean farm**. 
+
+Use `{self.bot.prefix}tutorial` for a more detailed guide!
+""", 
         color = discord.Color.green()
       )
       await itx.response.send_message(embed = embed)
@@ -288,10 +292,9 @@ Hello {itx.user.mention}, it looks like you are lost! Do not worry, `{self.bot.p
 ➼ You can **work** for extra income! (`{self.bot.prefix}work`)
 ➼ Upgrade your farm using `{self.bot.prefix}upgrade`, which will increase your hourly income.
 ➼ Unlock new locations with `{self.bot.prefix}location`
-➼ Make sure to `{self.bot.prefix}clean` your shop often to keep your customers happy!
+➼ Make sure to `{self.bot.prefix}clean` your equipment often to keep your customers happy!
 ➼ Work on daily quests to earn amazing prizes.
 ➼ Collect your **daily**, **weekly** and **monthly** rewards!
-➼ Adopt your very own pet with `{self.bot.prefix}pets list`. Having a pet gives you access to the `{self.bot.prefix}hunt` command and many other perks!
 ➼ Be the most successful farm and climb up the leaderboards! (`{self.bot.prefix}leaderboard`). 
 
 ➼ [Click Here]({disc_invite}) to join our discord server! 
@@ -303,7 +306,7 @@ Benefits:
 """, 
       color = discord.Color.green()
     )
-    await itx.response.send_message(embed = embed, ephemeral=True)
+    await itx.response.send_message(embed = embed)
 
   @factory_check()
   @app_commands.command(name = "work")
@@ -376,7 +379,7 @@ Benefits:
           "Unlock different chocolate recipes", "0.5x income boost", "0.25x XP boost", "More upgrades", f"20 {diamond}"
           ], 
         "requirements": [
-          f"500,000 {coin}", f"5 {ticket}", "Level 20"
+          f"500,000 {coin}", f"8 {ticket}", "Level 20"
           ],
         "description": "Start manufacturing chocolates with this shiny new factory!"
       }, 
@@ -385,7 +388,7 @@ Benefits:
           "0.75x income boost", "0.5x XP boost", "More upgrades", f"50 {diamond}"
           ],
         "requirements": [
-          f"5,000,000 {coin}", f"20 {ticket}", "Level 50"
+          f"5,000,000 {coin}", f"25 {ticket}", "Level 50"
           ],
         "description": "Start distributing your chocolates all over the world!"
       }
@@ -601,6 +604,8 @@ Cost: **{items[item]} {ticket}**
     await get_daily(itx)
 
   @factory_check()
+  # to be changed to voter only
+  @is_owner()
   @app_commands.command(name = "weekly")
   async def weekly(self, itx: discord.Interaction):
     """Collect your weekly reward!"""
@@ -631,6 +636,16 @@ Cost: **{items[item]} {ticket}**
   @app_commands.command(name = "monthly")
   async def monthly(self, itx: discord.Interaction):
     """Collect your monthly reward!"""
+    level = self.bot.db["economy"][str(itx.user.id)]["levels"]["level"]
+    if level < 25:
+      return await itx.response.send_message(
+        embed=discord.Embed(
+          title="Monthly reward",
+          description=f"{cross} You need to be level 25 or more to claim your monthly reward!",
+          color=red
+
+        )
+      )
     income = self.bot.db["economy"][str(itx.user.id)]["income"]
     balance = self.bot.db["economy"][str(itx.user.id)]["balance"]
     last_monthly = self.bot.db["economy"][str(itx.user.id)]["last_monthly"]
@@ -660,7 +675,7 @@ Cost: **{items[item]} {ticket}**
   # Leaderboards
   @factory_check()
   @app_commands.command(name = "leaderboard")
-  async def leaderboard(self, itx: discord.Interaction, type: Optional[Literal["balance", "levels", "bugs", "sponsors"]]="balance"):
+  async def leaderboard(self, itx: discord.Interaction, type: Optional[Literal["balance", "levels", "tickets", "sponsors"]]="balance"):
     """View the various leaderboards here!"""
     note = ""
     lb_dump = {}
@@ -685,8 +700,12 @@ Cost: **{items[item]} {ticket}**
         note = f"A total of **{count:,} {coin}** has been sponsored!"
       elif type == "levels":
         lb_dump[user] = self.bot.db["economy"][user]["levels"]["level"]
-        emoji = " levels placeholder"
+        emoji = ":zap:"
         note = f"There are currently `{len(self.bot.db['economy'])}` users producing chocolates!"
+      elif type == "tickets":
+        lb_dump[user] = self.bot.db["economy"][user]["golden_ticket"]
+        emoji = ticket
+        note = f"There are currently `{len(self.bot.db['economy'])}` users competing for a position on the leaderboards!"
         
     lb = {users: balance for users, balance in reversed(sorted(lb_dump.items(), key=lambda item: item[1]))}
     
@@ -745,7 +764,7 @@ Cost: **{items[item]} {ticket}**
         description = f"""
 You currently have **{diamonds} {diamond}**
 
-Normal Chest: **5 {diamond}**
+Normal Chest: **10 {diamond}**
 Rare Chest: **25 {diamond}**
 Legendary Chest: **200{diamond}**
 """,

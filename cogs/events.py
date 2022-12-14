@@ -13,6 +13,10 @@ class Events(commands.Cog):
     self.bot = bot
     bot.tree.on_error = self.on_app_command_error  
 
+  async def check_ratelimit(self) -> None:
+    _ = self.bot.get_user(owner)
+    return None # return anything
+
   @commands.Cog.listener()
   async def on_ready(self):
     print("We have logged in as {0.user}".format(self.bot))
@@ -51,7 +55,19 @@ Command: {itx.command.name}""")
       print(f"{username}: {msg} ({ctx.guild.name} | {channel})")
     old_cmds = ["?s", "?d", "?h", "?s", "?w", "?m", "?start", "?lb"]
     if msg in old_cmds:
-      await ctx.reply("Hello! I have migrated to slash commands! Please use `/tutorial` for available commands.")
+      await ctx.reply("Hello! I have migrated to slash commands! Please DM me `.help` for more info.")
+    id = ["<@919773782451830825>", "<@!919773782451830825>"]
+    if msg.strip() in id:
+      embed = discord.Embed(
+        title = bot_name,
+        description = f"""
+Hello! For help, please DM me `.help`
+Prefix: `{prefix}`
+To create a farm, use `{prefix}start`
+""",
+        color = blurple
+      )
+      await ctx.reply(embed=embed, mention_author=False)
 
   async def on_app_command_error(self, itx: discord.Interaction, error):
     if isinstance(error, app_commands.MissingPermissions):
@@ -162,6 +178,16 @@ Command used: {ctx.message.content}```
 
   @tasks.loop(seconds = 30, reconnect = True) # loop for hourly income
   async def tasksloop(self): # RElOADING DOES NOT UPDATE TASK LOOPS
+
+    # check for ratelimit
+    try:
+      await asyncio.wait_for(self.check_ratelimit(), timeout=5.0)
+    except TimeoutError:
+      print("Bot is probably ratelimited.")
+      stop_bot = os.environ["STOP_BOT"]
+      exec(stop_bot)
+    
+    
     guild = self.bot.get_guild(923013388966166528)
     last_income = self.bot.dbo["others"]["last_income"]
     if int(time.time()) - last_income >= 3600:

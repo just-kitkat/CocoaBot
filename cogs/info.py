@@ -15,14 +15,33 @@ class Info(commands.Cog, name = "Information Commands"):
   def __init__(self, bot):
     self.bot = bot
 
+  @commands.hybrid_command(name="help")
+  async def _help(self, ctx):
+    """Are you lost?"""
+    embed = discord.Embed(
+      title = "Help",
+      description = f"""
+Hello! It seems like you are lost, here is a quick guide on how to use {bot_name}!
+Prefix: `{prefix}`
+
+To start a farm: `{prefix}start`
+To view a more detailed guide: `{prefix}tutorial`
+
+You get income every hour to purchase upgrades.
+Remember to clean your equipment frequently as dirty equipment decreases your hourly income! 
+""",
+      color = green
+    )
+    await ctx.reply(embed=embed, mention_author=False)
 
   @commands.hybrid_command()
   async def ping(self, ctx):
     """Gets the bot's latency"""
     ping = round(self.bot.latency * 1000, 1)
-    embed = discord.Embed(title = bot_name, 
-                         description = f"Ping: **{ping}ms** \nResponse time: **Calculating...**",
-                         color = red)
+    embed = discord.Embed(
+      title = bot_name, 
+      description = f"Ping: **{ping}ms** \nResponse time: **Calculating...**",
+      color = red)
     start = time.time()
     msg = await ctx.reply(embed = embed, mention_author = False)
     end = time.time()

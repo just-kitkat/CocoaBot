@@ -472,7 +472,7 @@ class QuestsButton(discord.ui.View):
       button.disabled = True
       await itx.response.edit_message(view=self)
     embed = discord.Embed(title="Quests", description=msg, color=blurple)
-    await itx.followup.send(embed=embed, ephemeral=not claimed)
+    await itx.response.send_message(embed=embed, ephemeral=not claimed)
 
   async def interaction_check(self, itx: discord.Interaction):
     if self.userID == itx.user.id:
@@ -582,7 +582,7 @@ async def get_daily(itx):
 Click the button below to claim your daily reward!
 
 Tip: Vote for the **{bot_name} discord server** to earn double daily rewards, including golden tickets!
-{adv_msg} (voting is not enabled yet!)
+{adv_msg}
 """,
         color = blurple
       )
@@ -592,10 +592,9 @@ Tip: Vote for the **{bot_name} discord server** to earn double daily rewards, in
       # Recheck in case of exploits
       last_daily = itx.client.db["economy"][str(itx.user.id)]["last_daily"]
       currenttime = int(time.time())
-      if not view.value or not currenttime >= (last_daily + 86400):
+      if (not view.value or not currenttime >= (last_daily + 86400)):
         return await itx.followup.send("You already claimed your daily reward :/", ephemeral=True)
       streak_bonus = 500
-      voted = discord.utils.get(itx.user.roles, id=server_voter_role)
       if currenttime >= (last_daily + 86400*4) and daily_streak != 0:
         itx.client.db["economy"][str(itx.user.id)]["daily_streak"] = 1
         streak_msg = f"*You lost your **{daily_streak} days** daily streak!*"
@@ -603,6 +602,9 @@ Tip: Vote for the **{bot_name} discord server** to earn double daily rewards, in
         itx.client.db["economy"][str(itx.user.id)]["daily_streak"] += 1
       daily_streak = itx.client.db["economy"][str(itx.user.id)]["daily_streak"]
       streak_coins = itx.client.db["economy"][str(itx.user.id)]["daily_streak"] * streak_bonus if daily_streak != 1 else 0
+      upd_user = itx.guild.get_member(itx.user.id)
+      voted = upd_user.get_role(server_voter_role)
+      print(voted)
       vote_bonus = daily_coins + streak_coins if voted else 0
         
       daily_streak = itx.client.db["economy"][str(itx.user.id)]["daily_streak"]
