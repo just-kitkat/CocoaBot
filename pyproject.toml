@@ -18,6 +18,8 @@ discord = "^2.0.0"
 scikit-image = "^0.19.3"
 opencv-python = "^4.6.0"
 pilmoji = "^2.0.2"
+jishaku = "^2.5.1"
+topggpy = "^1.4.0"
 
 [tool.poetry.dev-dependencies]
 

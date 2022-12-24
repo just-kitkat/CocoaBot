@@ -14,8 +14,21 @@ class Events(commands.Cog):
     bot.tree.on_error = self.on_app_command_error  
 
   async def check_ratelimit(self) -> None:
-    _ = self.bot.get_user(owner)
-    return None # return anything
+    task_log = self.bot.get_channel(1053862128198623304)
+    msg = task_log.get_partial_message(1053864154055843980)
+    #msg = await task_log.fetch_message(1053864154055843980)
+    embed = discord.Embed(
+        title = "Bot Status",
+        description = f"""
+Ping: `{round(self.bot.latency*1000, 2)}`
+Last pinged: <t:{int(time.time())}:R>
+
+Task is up and running!
+""",
+        color = blurple
+    )
+    await msg.edit(embed=embed)
+    return True
 
   @commands.Cog.listener()
   async def on_ready(self):
@@ -29,7 +42,10 @@ class Events(commands.Cog):
       await self.bot.get_channel(restart_log_channel).send(embed=embed)
       self.bot.cache["logged_restart"] = True
 
-    await self.tasksloop.start()
+    try:
+      await self.tasksloop.start()
+    except RuntimeError:
+      pass
 
   @commands.Cog.listener()
   async def on_app_command_completion(self, itx: discord.Interaction, command):
@@ -45,6 +61,11 @@ Command: {itx.command.name}""")
 
   @commands.Cog.listener()
   async def on_message(self, ctx):
+    try:
+      await self.tasksloop.start()
+      print("started task again (on msg)")
+    except Exception:
+      print("on msg task alr running")
     username = ctx.author.name
     msg = ctx.content
     try:
@@ -178,11 +199,13 @@ Command used: {ctx.message.content}```
 
   @tasks.loop(seconds = 30, reconnect = True) # loop for hourly income
   async def tasksloop(self): # RElOADING DOES NOT UPDATE TASK LOOPS
+    print("task is running")
 
     # check for ratelimit
     try:
       await asyncio.wait_for(self.check_ratelimit(), timeout=5.0)
-    except TimeoutError:
+      print("debugging (not ratelimited)")
+    except Exception:
       print("Bot is probably ratelimited.")
       stop_bot = os.environ["STOP_BOT"]
       exec(stop_bot)
@@ -249,7 +272,7 @@ Command used: {ctx.message.content}```
       except Exception as e:
         embed = discord.Embed(
           title = f"Hourly Income",
-          description = f"__**{users}**__ have received their hourly income! \n<t:{int(time.time())}:R> \nMissed: {income_missed - 1} \nLOG FAILED, ERROR: {E}"
+          description = f"__**{users}**__ have received their hourly income! \n<t:{int(time.time())}:R> \nMissed: {income_missed - 1} \nLOG FAILED, ERROR: {e}"
         )
         await income_channel.send(embed = embed)
 

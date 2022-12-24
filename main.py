@@ -3,6 +3,7 @@ import asyncio
 import time
 import random
 import math
+import jishaku
 from vars import *
 from errors import *
 from datetime import date
@@ -342,6 +343,7 @@ bot.prefix = "/"
 bot.giving_income = False
 
 
+
 # MC Connection
 mcs = os.getenv("mcs")
 cluster = pymongo.MongoClient(mcs)
@@ -374,6 +376,12 @@ async def main():
           print(f"{tick} Loaded {file}")
         except Exception as e:
           print(f"{cross} Failed to load {file} \nERROR: {e}")
+    try:
+      await bot.load_extension("jishaku")
+      print(f"{tick} Loaded jishaku")
+    except Exception as e:
+      print(f"{cross} Failed to load jishaku \nERROR: {e}")
+      
     await bot.start(os.getenv("TOKEN"))
 
 if __name__ == "__main__":

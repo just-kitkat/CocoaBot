@@ -116,7 +116,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   @commands.command(name="reload")
   @commands.is_owner()
   async def _reload(self, ctx, name = None):
-    others = ["errors", "vars", "utils"]
+    others = ["errors", "vars", "utils", "keep_alive"]
     if name is None:
       for _ in range(2): # Need to reload modules 2 times for changes to show
         message = ""

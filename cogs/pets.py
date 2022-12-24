@@ -289,6 +289,7 @@ This pets system is currently under development and will more than likely be res
         fragment_msg = ""
         if random.randint(1, 3) == 1 and unlocked_fragments:
           fragment_msg = "\n" + await itx.client.add_fragment(itx)
+        self.bot.db["economy"][str(itx.user.id)]["balance"] += amt
         msg = f"You went hunting and earned **{amt} {coin}** {fragment_msg}"
         color = green
         self.bot.db["economy"][str(itx.user.id)]["pets"]["last_hunt"] = int(time.time())

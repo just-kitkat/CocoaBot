@@ -1,0 +1,31 @@
+from discord.ext import commands
+import os
+import topgg
+
+
+class TopGG(commands.Cog):
+  """
+  Handles bot votes relating to top.gg
+  """
+  def __init__(self, bot):
+    self.bot = bot
+    self.token = os.getenv("TOPGG_TOKEN")
+    self.dblpy = topgg.DBLClient(self.bot, self.token, webhook_path='/webhook', webhook_auth=os.getenv("DBLHOOK_PASS"), webhook_port=5000)
+
+  @commands.Cog.listener()
+  async def on_dbl_vote(self, data):
+    """
+    An event that is called whenever someone votes for the bot on top.gg.
+    """
+    print("Received an upvote:", "\n", data, sep="")
+
+  @commands.Cog.listener()
+  async def on_dbl_test(self, data):
+    """
+    An event that is called whenever someone tests the webhook system for your bot on top.gg.
+    """
+    print("Received a test upvote:", "\n", data, sep="")
+
+
+async def setup(bot):
+  await bot.add_cog(TopGG(bot))
