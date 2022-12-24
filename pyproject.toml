@@ -20,6 +20,7 @@ opencv-python = "^4.6.0"
 pilmoji = "^2.0.2"
 jishaku = "^2.5.1"
 topggpy = "^1.4.0"
+dblpy = "^0.4.0"
 
 [tool.poetry.dev-dependencies]
 
