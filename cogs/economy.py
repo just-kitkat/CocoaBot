@@ -377,19 +377,19 @@ Benefits:
       "farm": {"perks": [None], "requirements": [None], "description": "Start farming Cocoa beans to make chocolates"}, 
       "factory": {
         "perks": [
-          "Unlock different chocolate recipes", "0.5x income boost", "0.25x XP boost", "More upgrades", f"20 {diamond}"
+          "Unlock different chocolate recipes", "0.5x income boost", "0.25x XP boost", "More upgrades", f"100 {diamond}"
           ], 
         "requirements": [
-          f"500,000 {coin}", f"8 {ticket}", "Level 20"
+          f"2,500,000 {coin}", f"10 {ticket}", "Level 12"
           ],
         "description": "Start manufacturing chocolates with this shiny new factory!"
       }, 
       "distribution center": {
         "perks": [
-          "0.75x income boost", "0.5x XP boost", "More upgrades", f"50 {diamond}"
+          "0.75x income boost", "0.5x XP boost", "More upgrades", f"250 {diamond}"
           ],
         "requirements": [
-          f"5,000,000 {coin}", f"25 {ticket}", "Level 50"
+          f"10,000,000 {coin}", f"100 {ticket}", "Level 50"
           ],
         "description": "Start distributing your chocolates all over the world!"
       }

@@ -174,7 +174,7 @@ async def craft_rod_(itx: discord.Interaction, button: discord.ui.Button):
     None, #index based on level
     {"description": "decreases rod cooldown", "tuna": 30, "grouper": 20, "snapper": 8, "coins": 10_000},
     {"description": "unlocks a new fish", "tuna": 45, "grouper": 32, "snapper": 18, "coins": 20_000},
-    {"description": "decreases rod cooldown", "tuna": 60, "grouper": 45, "snapper": 32, "salmon": 20, "coins": 50_000},
+    {"description": "decreases rod cooldown", "tuna": 60, "grouper": 45, "snapper": 32, "salmon": 12, "coins": 50_000},
     {"description": "unlocks a new fish", "tuna": 80, "grouper": 60, "snapper": 45, "salmon": 30, "coins": 100_000}
   ]
   fishdb = itx.client.db["economy"][str(itx.user.id)]["fish"]
@@ -695,7 +695,7 @@ async def get_upgrade(itx: discord.Interaction, type: str, name: str):
 
   base_upgrades = {
     "farmer": 50, "store": 250, "van": 4500, "storage_tank": 10000, "warehouse": 40000,
-    "bean_grinder": 15000, "chocolate_moulder": 30000, "chocolate_freezer": 42000, "workers": 52000, "chocolate_packager": 60_000, "fork_lifts": 50_000, "packaging_machine": 90_000, "storage_shelves": 220_000, "trucks": 350_000, "managers": 400_000
+    "bean_grinder": 15000, "chocolate_moulder": 30000, "chocolate_freezer": 50000, "workers": 58000, "chocolate_packager": 72_000, "fork_lifts": 52_000, "packaging_machine": 120_000, "storage_shelves": 220_000, "trucks": 350_000, "managers": 400_000
   }
   upgrade_again = True
   while upgrade_again:
@@ -950,7 +950,7 @@ async def get_work(itx: discord.Interaction):
       fragment_msg = "\n" + await itx.client.add_fragment(itx)
     quest_msg = await get_quest_rewards(itx, "income", True) 
     xp_msg = await itx.client.check_xp(itx.user.id, random.randint(1, 4))
-    tip = "\n*Tip: Unlock new chocolate recipes to earn more money!*" if unlocked_fragments and random.randint(1,3) == 1 else "" #33% chance of getting a suggestion (tip)
+    tip = "\n*Tip: Unlock new chocolate recipes to earn more money!*" #if unlocked_fragments and random.randint(1,3) == 1 else "" #33% chance of getting a suggestion (tip)
 
     tail = f"\nBalance: **{balance:,}{coin}** {xp_msg} {fragment_msg} {tip}"
     if not unlocked_fragments:

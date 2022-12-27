@@ -27,11 +27,14 @@ class TopGG(commands.Cog):
       return self.bot.dispatch('dbl_test', data)
       
     print("Received an upvote:", "\n", data)
-    channel = self.bot.get_channel(923013388966166532) # announce vote to #general
-    user = self.bot.get_user(int(data["user"]))
-    if user is None: user = "Someone"
-    await channel.send(f"{user} upvoted CocoaBot! Thank you! :D")
-    await self.bot.log_action("Vote", f"{user} voted for CocoaBot!")
+    try:
+      channel = self.bot.get_channel(923013388966166532) # announce vote to #general
+      user = self.bot.get_user(int(data["user"]))
+      if user is None: user = "Someone"
+      await channel.send(f"{user} upvoted CocoaBot! Thank you! :D")
+      await self.bot.log_action("Vote", f"{user} voted for CocoaBot!")
+    except Exception as err:
+      print(f"Failed to get vote info: {err}")
     
     if str(user.id) in self.bot.db["economy"]:
       if self.bot.db["economy"][str(user.id)]["vote"]["last_vote"] + 3600*24*3 >= int(time.time()):
@@ -40,6 +43,7 @@ class TopGG(commands.Cog):
         self.bot.db["economy"][str(user.id)]["vote"]["streak"] = 1
         
       self.bot.db["economy"][str(user.id)]["vote"]["last_vote"] = int(time.time())
+      self.bot.db["economy"][str(user.id)]["vote"]["count"] += 1
       streak = self.bot.db["economy"][str(user.id)]["vote"]["streak"]
       
       rewards = {
