@@ -212,13 +212,14 @@ class Economy(commands.Cog, name = "General Commands"):
     """Start your chocolate journey here!"""
     if str(itx.user.id) not in self.bot.db["economy"]:
       self.bot.db["economy"][str(itx.user.id)] = {
-        "balance": 2000, "last_work": 1, "last_quest": int(time.time()), "last_clean": 1,
+        "balance": 500, "last_work": 1, "last_quest": int(time.time()), "last_clean": 1,
         "last_daily": 1, "last_weekly": 1, "last_monthly": 1, "daily_streak": 0, 
         "last_cf": 1, "cleanliness": 100,
         "golden_ticket": 0, "claimed_ticket": False, "account_age": int(time.time()),
         "bought_from_shop": [],
-        "sponsor": 0, "diamonds": 5, "income_boost": 0, "income": 100, "bugs_found": 0,
+        "sponsor": 0, "diamonds": 0, "income_boost": 0, "income": 100, "bugs_found": 0,
         "unlocked_upgrades": ["farm"],
+        "vote": {"last_vote": 1, "count": 0, "streak": 0},
         "counting": {"work": 0, "hunt": 0, "fish": 0},
         "levels": {"xp" : 0, "xp_mult" : 1, "level" : 1, "xp_needed" : 20}, 
         "boosts": {"income": [], "xp": []}, # "income": [{mult: duration (s)}]

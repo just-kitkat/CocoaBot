@@ -91,8 +91,9 @@ online_since = int(time.time())
 red, green, blurple = discord.Color.red(), discord.Color.green(), discord.Color.blurple()
 disc_invite = "https://discord.gg/PmAbwpCqDD"
 bot_invite = "https://discord.com/api/oauth2/authorize?client_id=919773782451830825&permissions=277092781120&scope=bot%20applications.commands"
-vote_link = "https://top.gg/servers/923013388966166528"
-adv_msg = f"Useful Links: [Invite me]({bot_invite}) | [Support server]({disc_invite}) | [Vote for me]({vote_link})"
+server_vote = "https://top.gg/servers/923013388966166528"
+bot_vote = "https://top.gg/bot/919773782451830825"
+adv_msg = f"Useful Links: [Invite me]({bot_invite}) | [Support server]({disc_invite}) | [Vote for me]({bot_vote})"
 
 # 947474270991310891
 

@@ -51,6 +51,18 @@ Remember to clean your equipment frequently as dirty equipment decreases your ho
                                  color = green)
     await msg.edit(embed = updated_embed)
 
+  @commands.hybrid_command()
+  async def vote(self, ctx):
+    """
+    Get the link to vite for CocoaBot!
+    """
+    embed = discord.Embed(
+      title = "Vote",
+      description = f"Vote for me and recieve some goodies: \n{bot_vote} \n\n*Voting really helps me a lot, thank you!*",
+      color = green
+    )
+    await ctx.reply(embed=embed)
+
   @commands.hybrid_command(aliases = ["about"])
   async def info(self, ctx):
     "Get bot's statistics"

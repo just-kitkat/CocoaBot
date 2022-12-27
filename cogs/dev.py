@@ -77,6 +77,21 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
 
     await ctx.send(f"Synced the tree to {ret}/{len(guilds)}.")
 
+  @commands.command()
+  async def getguilds(self, ctx):
+    count = 0
+    bot_guilds = ""
+    embed = discord.Embed(title = "KitkatBot Guilds", description = "Getting guilds...", color = discord.Color.blue())
+    msg = await ctx.send(embed = embed)
+    for guild in self.bot.guilds:
+      count = count + 1
+      #  Shard ID: {guild.shard_id}, Chunked: {guild.chunked}, 
+      bot_guilds += f"{count}: {guild.name}, ID: {guild.id}, Member count: {guild.member_count} \n \n"
+    new_embed = discord.Embed(title="KitkatBot Guilds",
+                          description=bot_guilds,
+                          color=discord.Color.green())
+    await msg.edit(embed = new_embed)
+  
   @app_commands.command()
   @is_owner()
   async def addmoney(self, itx: discord.Interaction, amount: int, user: Optional[discord.Member] = None):
@@ -295,14 +310,11 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       await ctx.send("updated games db")
     elif arg1 == "updateusers":
       for user in self.bot.db["economy"]:
-        for upgrade in self.bot.db["economy"][user]["upgrades"]: #farm/fact/dist
-          for type_ in self.bot.db["economy"][user]["upgrades"][upgrade]: #name_of_up
-            try:
-              self.bot.db["economy"][user]["upgrades"][upgrade][type_].pop("coords")
-              self.bot.db["economy"][user]["upgrades"][upgrade][type_].pop("cost")
-              self.bot.db["economy"][user]["upgrades"][upgrade][type_].pop("income")
-            except Exception as e:
-              print(e)
+        self.bot.db["economy"][user]["vote"] = {
+          "last_vote": 1,
+          "count": 0,
+          "streak": 0
+        }
       await ctx.send("updated users db (income)")
     elif arg1 == "resetdaily":
       if arg2 is None:
