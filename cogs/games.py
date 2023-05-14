@@ -240,7 +240,7 @@ class Puzzle8Button(discord.ui.Button):
       #(row_index * row_length) + col_index
       for y_index, y in enumerate(view.board):
         for x_index, x in enumerate(y):
-          view.children[(y_index * view.type_) + x_index].label = x if x != -1 else " "
+          view.children[(y_index * view.type_) + x_index].label = x if x != -1 else "\u200b"
       await itx.response.edit_message(view = view)  
       if view.check_win():
         for child in view.children:
