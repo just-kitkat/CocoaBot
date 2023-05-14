@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.config/
+cogs/__pycache__
+venv/
+.breakpoints
+.replit
+replit.nix
+other\ stuff/
+dump/__pycache__
