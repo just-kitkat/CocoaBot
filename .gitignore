@@ -1,10 +1,13 @@
-__pycache__/
+__pycache__
 *.pyc
 .config/
-cogs/__pycache__/
+cogs/__pycache__
 venv/
 .breakpoints
 .replit
 replit.nix
 other\ stuff/
 dump/__pycache__
+poetry.lock
+pyproject.toml
+fonts
