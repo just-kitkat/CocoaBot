@@ -565,7 +565,7 @@ async def get_daily(itx):
       
     return emoji + streak_msg
   
-  if itx.client.db["economy"][str(itx.user.id)]["levels"]["level"] >= 5:
+  if itx.client.db["economy"][str(itx.user.id)]["levels"]["level"] >= 3:
     color = green
     streak_msg = ""
     income = itx.client.db["economy"][str(itx.user.id)]["income"]
@@ -642,7 +642,7 @@ Daily Streak: `{daily_streak}`
       msg, color = f"You can claim your daily gift in `{hours_left}h {mins_left}m {secs_left}s`. \nDaily Streak: `{daily_streak}`", red
     
   else:
-    msg = "You need to be level 5 and above to claim your daily reward!"
+    msg = "You need to be level 3 and above to claim your daily reward!"
     color = red
   embed = discord.Embed(
       title = "Daily Reward",
@@ -924,19 +924,19 @@ async def get_work(itx: discord.Interaction):
     unlocked_fragments = len(itx.client.db["economy"][str(itx.user.id)]["unlocked_upgrades"]) > 1
     recipes = [rec for rec in fragments if fragments[rec] >= 20]
     income = itx.client.db["economy"][str(itx.user.id)]["income"]
-    if not unlocked_fragments: 
-      amt_sold = random.randint(income//5, int(income*1.5))*level
-    else:
-      amt_sold = {recipe: random.randint(income//75, income//10) for recipe in recipes}
-    total = 0
-    if unlocked_fragments:
-      for rec in amt_sold:
-        total += amt_sold[rec]*prices[rec]*fragments[rec]//20
-    else:
-      total = amt_sold
+    amt_sold = random.randint(income//5, int(income*1.5))*(level//4 if level//4 > 1 else 1)
+    recipes_amt_sold = {}
+    
+    if unlocked_fragments: 
+      recipes_amt_sold = {recipe: random.randint(income//75, income//10) for recipe in recipes}
+      
+    total = amt_sold
+    if recipes_amt_sold != {}:
+      for rec in recipes_amt_sold:
+        total += recipes_amt_sold[rec]*prices[rec]*fragments[rec]//20
     
     latest_location = itx.client.db["economy"][str(itx.user.id)]["unlocked_upgrades"][-1]
-    if latest_location == "farm": item_sold = "cocoa beans"
+    if latest_location == "farm": item_sold = "bags of cocoa beans"
     if latest_location == "factory": item_sold = "chocolate bars"
     if latest_location == "distribution_center": item_sold = "boxes of chocolate"
 
@@ -953,14 +953,13 @@ async def get_work(itx: discord.Interaction):
     tip = "\n*Tip: Unlock new chocolate recipes to earn more money!*" #if unlocked_fragments and random.randint(1,3) == 1 else "" #33% chance of getting a suggestion (tip)
 
     tail = f"\nBalance: **{balance:,}{coin}** {xp_msg} {fragment_msg} {tip}"
-    if not unlocked_fragments:
-      msg = f"You sold some **{item_sold}** and earned **{amt_sold}{coin}** {tail}" # add chocolates sold -> therefore amt earned
-    else:
-      msg = f"**You sold some {item_sold} and earned {total} {coin}** \n"
-      for sold in amt_sold:
-        msg += f"{amt_sold[sold]}x {sold} {item_sold} - {amt_sold[sold]*prices[sold]} {coin} \n"
+    msg = f"You sold some **{item_sold}** and earned **{total}{coin}** \n" 
+    msg += f"{amt_sold//5}x bags of Cocoa Beans - {amt_sold} {coin} \n"
+    if unlocked_fragments:
+      for sold in recipes_amt_sold:
+        msg += f"{recipes_amt_sold[sold]}x {sold} {item_sold} - {recipes_amt_sold[sold]*prices[sold]} {coin} \n"
       
-      msg += tail 
+    msg += tail 
     
   else:
     cooldown_msg = get_counter(last_work, cooldown)
