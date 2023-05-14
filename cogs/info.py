@@ -23,6 +23,7 @@ class Info(commands.Cog, name = "Information Commands"):
       description = f"""
 Hello! It seems like you are lost, here is a quick guide on how to use {bot_name}!
 Prefix: `{prefix}`
+{adv_msg}
 
 To start a farm: `{prefix}start`
 To view a more detailed guide: `{prefix}tutorial`
