@@ -1,4 +1,5 @@
 import discord
+import os
 import asyncio
 import traceback
 import random
@@ -6,6 +7,7 @@ from vars import *
 import time
 from discord import app_commands
 from discord.ext import commands, tasks
+import openai
 
 class Events(commands.Cog):
 
@@ -41,12 +43,61 @@ Task is up and running!
       )
       await self.bot.get_channel(restart_log_channel).send(embed=embed)
       self.bot.cache["logged_restart"] = True
+      openai.api_key = os.getenv("GPT_KEY")
 
     try:
       await self.tasksloop.start()
     except RuntimeError:
       pass
 
+  async def get_openai_response(self, prompt):
+    """
+    This function uses OpenAi's api to get a response. Free trial, expires June
+    """
+    #return "This feature is still a work in progress!"
+    context = """
+You are a feature-rich economy discord bot named CocoaBot, created by kitkat3141. You manage a chocolate economy game and have many features such as quests, leaderboards and different locations. Users can create a farm using `/start` and get more info on your features using `/help`.
+"""
+    while True:
+      model = "gpt-3.5-turbo"
+      retry = 0
+      while retry < 5:
+        try:
+          response = await openai.ChatCompletion.acreate(
+              model=model,
+              messages=[
+                {"role": "system", "content": context},
+                {"role": "user", "content": prompt}
+               ],
+              max_tokens=1024
+          )
+          
+          break
+        except Exception as e:
+          print(f"Attempt to make openai API request failed, retrying in 3 seconds \n{e}")
+          await asyncio.sleep(3)
+          retry += 1
+
+      if retry < 5:
+        res = response.choices[0].message.content
+        token_data = f"{response.usage.prompt_tokens} -- {response.usage.completion_tokens}"
+      else:
+        res, token_data = "A internal error occured, please try again later!", "0 -- 0"
+      print(f"""
+Prompt: {prompt}
+
+{res}
+
+_Token data: {token_data}_
+""")
+      backslash = "\n"
+      return f"""
+{res if len(res) < 1900 else res[:1900] + backslash + 'This response has been truncated!'}
+
+_Token data: {token_data}_
+"""
+    
+  
   @commands.Cog.listener()
   async def on_app_command_completion(self, itx: discord.Interaction, command):
     print(f"""
@@ -74,6 +125,12 @@ Command: {itx.command.name}""")
       channel = "DM CHANNEL"
     if not ctx.author.bot:
       print(f"{username}: {msg} ({ctx.guild.name} | {channel})")
+
+      # Check and respond to chatbot prompts
+      if ctx.channel.id == 1082617722933878885 and msg.startswith("<@919773782451830825>"):
+        m = await ctx.reply("_CocoaBot is thinking..._", allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=False), mention_author=False)
+        await m.edit(content=await self.get_openai_response(msg[21:]), allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=False))
+        
     old_cmds = ["?s", "?d", "?h", "?s", "?w", "?m", "?start", "?lb"]
     if msg in old_cmds:
       await ctx.reply("Hello! I have migrated to slash commands! Please DM me `.help` for more info.")
@@ -99,6 +156,7 @@ To create a farm, use `{prefix}start`
       message = error
       try:
         await itx.response.defer(thinking=False)
+        await itx.delete_original_response()
       except Exception:
         pass
     elif isinstance(error, KeyError):
@@ -128,7 +186,7 @@ Arguments: {itx.namespace}```
         description = message, 
         color = discord.Color.red()
       )
-    await itx.channel.send(embed=embed)
+    await itx.channel.send(itx.user.mention, embed=embed)
     try:
       error_embed = discord.Embed(
           title = f"Error ID: {error_count}",
