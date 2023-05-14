@@ -202,8 +202,10 @@ class MyBot(commands.Bot):
       if level == 2:
         msg = f"\nYou have earned **500 {coin}**!"
         bot.db["economy"][str(user)]["balance"] += 1000
-      elif level == 5:
+      if level == 3:
         msg = f"\nYou have unlocked the `{prefix}daily` command!"
+      elif level == 5:
+        msg = f"You have unlocked `{prefix}weekly`!"
       elif level == 10:
         msg = f"\nYou have unlocked guilds! To join a guild, use `{prefix}guild join <name>` \n**NOTE: Guilds are a work in progress and have not been added yet.**"
       elif level == 15:
