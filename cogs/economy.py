@@ -605,12 +605,11 @@ Cost: **{items[item]} {ticket}**
     await get_daily(itx)
 
   @factory_check()
-  # to be changed to voter only
-  @is_owner()
+  @has_voted()
   @app_commands.command(name = "weekly")
   async def weekly(self, itx: discord.Interaction):
     """Collect your weekly reward!"""
-    if self.bot.db["economy"][str(itx.user.id)]["levels"]["level"] >= 20:
+    if self.bot.db["economy"][str(itx.user.id)]["levels"]["level"] >= 5:
       income = self.bot.db["economy"][str(itx.user.id)]["income"]
       balance = self.bot.db["economy"][str(itx.user.id)]["balance"]
       last_weekly = self.bot.db["economy"][str(itx.user.id)]["last_weekly"]
@@ -629,7 +628,7 @@ Cost: **{items[item]} {ticket}**
         secs_left = td.seconds % 60
         msg, color = f"You can claim your weekly gift in `{days_left}d {hours_left}h {mins_left}m {secs_left}s`. ", red
     else:
-      msg, color = f"This command is for users above level 20!", red
+      msg, color = f"This command is for users above level 5!", red
     embed = discord.Embed(title = "Weekly Reward", description = msg, color = color)
     await itx.response.send_message(embed = embed)
 
