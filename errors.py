@@ -40,3 +40,17 @@ def is_owner():
 
 class OwnerCheck(app_commands.CheckFailure):
   pass
+
+
+def has_voted():
+  """
+  Check if user has voted for the bot
+  """
+  def pred(itx: discord.Interaction):
+    if itx.client.db["economy"][str(itx.user.id)]["vote"]["last_vote"] + 3600*24 >= int(time.time()):
+      return True
+    raise VoteCheck(f"{cross} You need to vote for me on top.gg in the last 24 hours before using this command! \nUse `{prefix}vote` to vote for me!")
+  return app_commands.check(pred)
+
+class VoteCheck(app_commands.CheckFailure):
+  pass
