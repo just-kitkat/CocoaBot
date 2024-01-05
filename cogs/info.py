@@ -92,7 +92,7 @@ Remember to clean your equipment frequently as dirty equipment decreases your ho
     )
     embed.add_field(name = "**👥 Users**", value = "∟ " + f"{users:,}", inline = True)
     embed.add_field(name = "**💳 Guilds**", value = "∟ " + f"{guilds:,}", inline = True)
-    embed.add_field(name = "**👑 Creator**", value = "∟ kitkat3141#0422" , inline = True)
+    embed.add_field(name = "**👑 Creator**", value = "∟ .justkitkat" , inline = True)
     #embed.add_field(name = "**💻 Memory used**", value = f"∟ {ram}MB", inline = True)
     #embed.add_field(name = "**📇 Cpu**", value = f"∟ {cpu}%", inline = True)
     

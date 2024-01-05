@@ -81,13 +81,13 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   async def getguilds(self, ctx):
     count = 0
     bot_guilds = ""
-    embed = discord.Embed(title = "KitkatBot Guilds", description = "Getting guilds...", color = discord.Color.blue())
+    embed = discord.Embed(title = "CocoaBot Guilds", description = "Getting guilds...", color = discord.Color.blue())
     msg = await ctx.send(embed = embed)
     for guild in self.bot.guilds:
       count = count + 1
       #  Shard ID: {guild.shard_id}, Chunked: {guild.chunked}, 
       bot_guilds += f"{count}: {guild.name}, ID: {guild.id}, Member count: {guild.member_count} \n \n"
-    new_embed = discord.Embed(title="KitkatBot Guilds",
+    new_embed = discord.Embed(title="CocoaBot Guilds",
                           description=bot_guilds,
                           color=discord.Color.green())
     await msg.edit(embed = new_embed)

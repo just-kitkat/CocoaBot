@@ -9,7 +9,7 @@ def factory_check():
   def pred(itx: discord.Interaction):
     if str(itx.user.id) in itx.client.db["economy"]:
       return True
-    raise FactoryCheck(f"{cross} You do not own a kitkat factory! Use `{itx.client.prefix}start` to build one.")
+    raise FactoryCheck(f"{cross} You do not own a chocolate farm! Use `{itx.client.prefix}start` to build one.")
   return app_commands.check(pred)
 
 class FactoryCheck(app_commands.CheckFailure):

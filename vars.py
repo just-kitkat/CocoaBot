@@ -4,6 +4,7 @@ import asyncio
 
 bot_name = "CocoaBot"
 owner = 915156033192734760
+owner_username = ".justkitkat"
 
 cross = "❌"
 tick = "✅"

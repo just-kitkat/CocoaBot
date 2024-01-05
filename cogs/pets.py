@@ -262,7 +262,7 @@ This pets system is currently under development and will more than likely be res
     """Give your pet a name!"""
     color = red
     if name in ("@everyone", "@here", "discord.gg"):
-      msg = "Nice try but KitkatBot cannot be fooled! Try naming your pet something else!"
+      msg = "Nice try but CocoaBot cannot be fooled! Try naming your pet something else!"
     else: 
       self.bot.db["economy"][str(itx.user.id)]["pets"]["name"] = name
       msg, color = f"You have successfully renamed your pet to `{name}`", green
