@@ -372,6 +372,7 @@ async def after_invoke(ctx):
 
 async def main():
   async with bot:
+    bot.tasksloop_running = False
     for file in os.listdir("./cogs"):
       if file.endswith(".py"):
         try:

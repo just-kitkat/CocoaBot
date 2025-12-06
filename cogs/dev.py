@@ -233,10 +233,10 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       os.execv(sys.executable, ['python'] + sys.argv)
     elif arg1 == "task":
       events = self.bot.get_cog("events")
-      try:
+      if not self.bot.tasksloop_running:
         await events.tasksloop()
         await ctx.send("Task has started")
-      except:
+      else:
         await ctx.send("Task already running")
     elif arg1 == "resetdbo":
       await ctx.send("Resetting dbo...")

@@ -46,7 +46,8 @@ Task is up and running!
       # openai.api_key = os.getenv("GPT_KEY")
 
     try:
-      await self.tasksloop.start()
+      if not self.bot.tasksloop_running:
+        await self.tasksloop.start()
     except RuntimeError:
       pass
 
@@ -109,15 +110,14 @@ Command: {itx.command.name}""")
     await self.bot.save_db()
     
     if self.bot.dbo["others"]["last_income"] + 3600 < int(time.time()):
-      await self.tasksloop.start()
+      if not self.bot.tasksloop_running: await self.tasksloop.start()
 
   @commands.Cog.listener()
   async def on_message(self, ctx):
-    try:
+    if not self.bot.tasksloop_running:
       await self.tasksloop.start()
       print("Started task again (on msg)")
-    except Exception:
-      pass
+
     username = ctx.author.name
     msg = ctx.content
     try:
@@ -259,6 +259,7 @@ Command used: {ctx.message.content}```
   @tasks.loop(seconds = 30, reconnect = True) # loop for hourly income
   async def tasksloop(self): # RElOADING DOES NOT UPDATE TASK LOOPS
     print("Task loop is running")
+    self.bot.tasksloop_running = True
 
     # check for ratelimit
     try:
