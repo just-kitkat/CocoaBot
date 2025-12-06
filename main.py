@@ -8,16 +8,12 @@ from vars import *
 from errors import *
 from datetime import date
 import pymongo
-import dns
 from pymongo import MongoClient
 from typing import Optional
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
-
-#import keep_alive
-#keep_alive.keep_alive()
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -27,8 +23,10 @@ intents.members = True
 intents.message_content = True
 activity = discord.Game(name=f"This is {bot_name}! | Ping me to get started!")
 
-stop_bot = os.environ["STOP_BOT"]
+# stop_bot = os.environ["STOP_BOT"]
 
+from dotenv import load_dotenv
+load_dotenv()
 
 
 class MyBot(commands.Bot):
@@ -41,14 +39,15 @@ class MyBot(commands.Bot):
   # Functions 
   async def save_db(self):
     try:
-      collection.replace_one({"_id" : 63}, {"_id" : 63, "economy" : bot.db["economy"]})
-      collection.replace_one({"_id" : 64}, {"_id" : 64, "others" : bot.dbo["others"]})
+      collection.replace_one({"_id" : "63"}, {"_id" : "63", "economy" : bot.db["economy"]})
+      collection.replace_one({"_id" : "64"}, {"_id" : "64", "others" : bot.dbo["others"]})
     except Exception as e:
       log_channel = bot.get_channel(1030104234278014976)
       #print(bot.db, bot.dbo)
       embed = discord.Embed(title="DB Error", description=f"{e}")
       await log_channel.send(embed=embed)
-      exec(stop_bot)
+      # exec(stop_bot)
+      exit(0)
 
   async def create_backup(self, type_: str="db"):
     db_channel = bot.get_channel(926098991953870930)
@@ -349,19 +348,21 @@ bot.giving_income = False
 # MC Connection
 mcs = os.getenv("mcs")
 cluster = pymongo.MongoClient(mcs)
-database = cluster["CocoaBot"]
+database = cluster["db"]
 collection = database["db"]
-results = collection.find({"_id" : 63})
+results = collection.find({"_id" : "63"})
 #create a conection to mongodb cluster 
 try:
   for result in results:
     bot.db = result
-  results = collection.find({"_id" : 64})
+  results = collection.find({"_id" : "64"})
   for result in results:
     bot.dbo = result
-except:
+except Exception as err:
+  print("An error occurred:", err)
   print("Could not connect to db, stopping code...")
-  exec(stop_bot)
+  exit(0)
+  # exec(stop_bot)
 
 
 @bot.after_invoke
@@ -392,4 +393,5 @@ if __name__ == "__main__":
   except Exception as e:
     print("Bot ran into error:", e)
     print("You are ratelimited! Stopping code...")
-    exec(stop_bot)
+    exit(0)
+    # exec(stop_bot)

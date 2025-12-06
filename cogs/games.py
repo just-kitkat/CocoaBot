@@ -187,41 +187,41 @@ class Puzzle8Game(discord.ui.View):
   # Python3 program to check if a given instance of N*N-1
   # puzzle is solvable or not
   def getInvCount(self, arr):
-  	arr1=[]
-  	for y in arr:
-  		for x in y:
-  			arr1.append(x)
-  	arr=arr1
-  	inv_count = 0
-  	for i in range(self.type_ * self.type_ - 1):
-  		for j in range(i + 1,self.type_ * self.type_):
-  			# count pairs(arr[i], arr[j]) such that
-  			# i < j and arr[i] > arr[j]
-  			if (arr[j] and arr[i] and arr[i] > arr[j]):
-  				inv_count+=1
-  	return inv_count
+    arr1=[]
+    for y in arr:
+      for x in y:
+        arr1.append(x)
+    arr=arr1
+    inv_count = 0
+    for i in range(self.type_ * self.type_ - 1):
+      for j in range(i + 1,self.type_ * self.type_):
+        # count pairs(arr[i], arr[j]) such that
+        # i < j and arr[i] > arr[j]
+        if (arr[j] and arr[i] and arr[i] > arr[j]):
+          inv_count+=1
+    return inv_count
   # find Position of blank from bottom
   def findXPosition(self, puzzle):
-  	# start from bottom-right corner of matrix
-  	for i in range(self.type_ - 1,-1,-1):
-  		for j in range(self.type_ - 1,-1,-1):
-  			if (puzzle[i][j] == -1):
-  				return self.type_ - i
+    # start from bottom-right corner of matrix
+    for i in range(self.type_ - 1,-1,-1):
+      for j in range(self.type_ - 1,-1,-1):
+        if (puzzle[i][j] == -1):
+          return self.type_ - i
   # This function returns true if given
   # instance of N*N - 1 puzzle is solvable
   def isSolvable(self, puzzle):
-  	# Count inversions in given puzzle
-  	invCount = self.getInvCount(puzzle)
-  	# If grid is odd, return true if inversion
-  	# count is even.
-  	if (self.type_ & 1):
-  		return ~(invCount & 1)
-  	else: # grid is even
-  		pos = self.findXPosition(puzzle)
-  		if (pos & 1):
-  			return ~(invCount & 1)
-  		else:
-  			return invCount & 1
+    # Count inversions in given puzzle
+    invCount = self.getInvCount(puzzle)
+    # If grid is odd, return true if inversion
+    # count is even.
+    if (self.type_ & 1):
+      return ~(invCount & 1)
+    else: # grid is even
+      pos = self.findXPosition(puzzle)
+      if (pos & 1):
+        return ~(invCount & 1)
+      else:
+        return invCount & 1
           
 class Puzzle8Button(discord.ui.Button):
   def __init__(self, userID, x: int, y: int, num: int):

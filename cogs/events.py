@@ -7,7 +7,7 @@ from vars import *
 import time
 from discord import app_commands
 from discord.ext import commands, tasks
-import openai
+# import openai
 
 class Events(commands.Cog):
 
@@ -43,7 +43,7 @@ Task is up and running!
       )
       await self.bot.get_channel(restart_log_channel).send(embed=embed)
       self.bot.cache["logged_restart"] = True
-      openai.api_key = os.getenv("GPT_KEY")
+      # openai.api_key = os.getenv("GPT_KEY")
 
     try:
       await self.tasksloop.start()
@@ -54,6 +54,7 @@ Task is up and running!
     """
     This function uses OpenAi's api to get a response. Free trial, expires June
     """
+    return "This feature has been removed for the forseeable future."
     #return "This feature is still a work in progress!"
     context = f"""
 You are a feature-rich economy discord bot named CocoaBot, created by {owner_username}. You manage a chocolate economy game and have many features such as quests, leaderboards and different locations. Users can create a farm using `/start` and get more info on your features using `/help`. Add a little bit of humour in your responses.
@@ -114,9 +115,9 @@ Command: {itx.command.name}""")
   async def on_message(self, ctx):
     try:
       await self.tasksloop.start()
-      print("started task again (on msg)")
+      print("Started task again (on msg)")
     except Exception:
-      print("on msg task alr running")
+      pass
     username = ctx.author.name
     msg = ctx.content
     try:
@@ -127,7 +128,7 @@ Command: {itx.command.name}""")
       print(f"{username}: {msg} ({ctx.guild.name} | {channel})")
 
       # Check and respond to chatbot prompts
-      if ctx.channel.id == 1082617722933878885 and msg.startswith("<@919773782451830825>"):
+      if ctx.channel.id == 1082617722933878885 and msg.startswith("<@919773782451830825>") and False: # Feature removed.
         m = await ctx.reply("_CocoaBot is thinking..._", allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=False), mention_author=False)
         await m.edit(content=await self.get_openai_response(msg[21:]), allowed_mentions=discord.AllowedMentions(everyone=False, roles=False, users=False))
         
@@ -257,16 +258,14 @@ Command used: {ctx.message.content}```
 
   @tasks.loop(seconds = 30, reconnect = True) # loop for hourly income
   async def tasksloop(self): # RElOADING DOES NOT UPDATE TASK LOOPS
-    print("task is running")
+    print("Task loop is running")
 
     # check for ratelimit
     try:
       await asyncio.wait_for(self.check_ratelimit(), timeout=5.0)
-      print("debugging (not ratelimited)")
     except Exception:
-      print("Bot is probably ratelimited.")
-      stop_bot = os.environ["STOP_BOT"]
-      exec(stop_bot)
+      print("Bot is probably ratelimited. Killing bot...")
+      exit()
     
     
     guild = self.bot.get_guild(923013388966166528)

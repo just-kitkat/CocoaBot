@@ -12,8 +12,6 @@ from datetime import timedelta
 from discord.ext import commands
 from discord.ext.commands import GroupCog
 from discord.app_commands import Choice, Group, command
-from PIL import ImageFont, ImageDraw, Image
-from pilmoji import Pilmoji
 
 async def buy_item(itx, item: str):
   """

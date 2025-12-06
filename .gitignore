@@ -1,3 +1,4 @@
+.env
 __pycache__
 *.pyc
 .config/
@@ -8,6 +9,7 @@ venv/
 replit.nix
 other\ stuff/
 dump/__pycache__
+dump/backup.txt
 poetry.lock
 pyproject.toml
 fonts
