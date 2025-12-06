@@ -158,13 +158,17 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       message = f"{tick} Cog reloaded!"
       
     elif name == "github": # pull updated code from github and fully restart bot
-      await ctx.reply("Pulling changes from github and restarting bot...")
+      msg = await ctx.reply("Pulling changes from github...")
       try:
         result = os.system("git pull")
-        await ctx.reply(result)
-        os.execv(sys.executable, ['python'] + sys.argv)
+        if result == 0:
+          await msg.edit(content="Pull from github successful, restarting now...")
+          os.execv(sys.executable, ['python'] + sys.argv)
+        else:
+          await msg.edit(content="Git pull unsuccessful.")
       except Exception as err:
         await ctx.reply("An error occured:", err)
+      return
 
     else:
       message = f"{cross} Cog not found!"
