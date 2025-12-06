@@ -80,7 +80,8 @@ Remember to clean your equipment frequently as dirty equipment decreases your ho
     for file in files:
       if not file.endswith(".py"): continue
       if file in cog_files: file = f"cogs/{file}"
-      with open(file, 'r') as fp:
+      print(file)
+      with open(file, 'r', encoding="utf-8") as fp:
           for count, line in enumerate(fp):
               pass
           lines_of_code += count + 1
@@ -93,12 +94,13 @@ Remember to clean your equipment frequently as dirty equipment decreases your ho
     embed.add_field(name = "**👥 Users**", value = "∟ " + f"{users:,}", inline = True)
     embed.add_field(name = "**💳 Guilds**", value = "∟ " + f"{guilds:,}", inline = True)
     embed.add_field(name = "**👑 Creator**", value = "∟ .justkitkat" , inline = True)
-    #embed.add_field(name = "**💻 Memory used**", value = f"∟ {ram}MB", inline = True)
-    #embed.add_field(name = "**📇 Cpu**", value = f"∟ {cpu}%", inline = True)
+    embed.add_field(name = "**💻 Memory used**", value = f"∟ {ram}MB", inline = True)
+    embed.add_field(name = "**📇 Cpu**", value = f"∟ {cpu}%", inline = True)
     
     embed.add_field(name = "**🤖 Commands ran**", value = f"∟ {cmds_ran:,}", inline = True)
     embed.add_field(name = "**🕙 Uptime**", value = f"∟ {uptime}", inline = True)
     embed.add_field(name = "**👨‍💻 Code**", value = f"∟ {lines_of_code:,} lines", inline = True)
+    embed.add_field(name = "", value = f"", inline = True)
     await ctx.reply(embed = embed, mention_author = False)
 
   @app_commands.command(name="alert")
