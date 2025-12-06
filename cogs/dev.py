@@ -157,6 +157,10 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
       await self.bot.reload_extension(f"cogs.{name}")
       message = f"{tick} Cog reloaded!"
       
+    elif name == "github": # pull updated code from github and fully restart bot
+      os.system("git pull")
+      os.execv(sys.executable, ['python'] + sys.argv)
+
     else:
       message = f"{cross} Cog not found!"
 
