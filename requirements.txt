@@ -1,0 +1,8 @@
+topggpy==1.4.0
+discord.py==2.3.2
+jishaku==2.5.1
+scikit-image==0.25.2
+pymongo==4.15.5
+setuptools==80.9.0
+python-dotenv==1.2.1
+psutil==7.1.3
