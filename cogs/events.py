@@ -5,6 +5,7 @@ import traceback
 import random
 from vars import *
 import time
+from datetime import datetime, timedelta
 from discord import app_commands
 from discord.ext import commands, tasks
 # import openai
@@ -258,7 +259,7 @@ Command used: {ctx.message.content}```
 
   @tasks.loop(seconds = 30, reconnect = True) # loop for hourly income
   async def tasksloop(self): # RElOADING DOES NOT UPDATE TASK LOOPS
-    print("Task loop is running")
+    print(f"[{(datetime.utcnow() + timedelta(hours=8)).strftime('%Y-%m-%d %H:%M:%S')}] Task loop is running")
     self.bot.tasksloop_running = True
 
     # check for ratelimit
