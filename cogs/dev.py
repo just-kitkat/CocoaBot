@@ -26,7 +26,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   @app_commands.command()
   @is_owner()
   async def slashtest(self, itx: discord.Interaction, test_arg: Optional[str]=None):
-    await itx.response.send_message("Raising an error...")
+    await itx.response.send_message("Raising an error... [1]")
     a
 
   @commands.command()
