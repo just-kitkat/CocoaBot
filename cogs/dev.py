@@ -20,8 +20,7 @@ class Dev(commands.Cog, command_attrs=dict(hidden=True)):
   @commands.command()
   @commands.is_owner()
   async def test(self, ctx):
-    await ctx.reply("Raising an error...", mention_author = False)
-    a
+    await self.bot.log_action("Test", "The `.test` command has been called.")
 
   @app_commands.command()
   @is_owner()

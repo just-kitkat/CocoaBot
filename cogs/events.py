@@ -257,7 +257,7 @@ Command used: {ctx.message.content}```
     except Exception:
       return
 
-  @tasks.loop(seconds = 30, reconnect = True) # loop for hourly income
+  @tasks.loop(seconds = 60, reconnect = True) # loop for hourly income
   async def tasksloop(self): # RElOADING DOES NOT UPDATE TASK LOOPS
     print(f"[{(datetime.utcnow() + timedelta(hours=8)).strftime('%Y-%m-%d %H:%M:%S')}] Task loop is running")
     self.bot.tasksloop_running = True
@@ -265,10 +265,11 @@ Command used: {ctx.message.content}```
     # check for ratelimit
     try:
       await asyncio.wait_for(self.check_ratelimit(), timeout=5.0)
-    except Exception:
-      print("Bot is probably ratelimited. Killing bot...")
-      exit()
-    
+    except Exception as err:
+      await self.bot.log_action(
+        "Ratelimited",
+        "Task loop faced a ratelimit. Some parts may not have been executed fully. \nError:", err
+      )
     
     guild = self.bot.get_guild(923013388966166528)
     last_income = self.bot.dbo["others"]["last_income"]
