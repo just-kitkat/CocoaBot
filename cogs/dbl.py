@@ -31,7 +31,8 @@ class TopGG(commands.Cog):
       channel = self.bot.get_channel(923013388966166532) # announce vote to #general
       user = self.bot.get_user(int(data["user"]))
       if user is None: user = "Someone"
-      await channel.send(f"{user} upvoted CocoaBot! Thank you! :D")
+      # Remove vote message from #general. will be added back if chat becomes more active
+      # await channel.send(f"{user} upvoted CocoaBot! Thank you! :D")
       await self.bot.log_action("Vote", f"{user} voted for CocoaBot!")
     except Exception as err:
       print(f"Failed to get vote info: {err}")
