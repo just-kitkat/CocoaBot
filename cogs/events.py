@@ -266,10 +266,14 @@ Command used: {ctx.message.content}```
     try:
       await asyncio.wait_for(self.check_ratelimit(), timeout=5.0)
     except Exception as err:
-      await self.bot.log_action(
-        "Ratelimited",
-        "Task loop faced a ratelimit. Some parts may not have been executed fully. \nError:", err
-      )
+      print(f"[{(datetime.utcnow() + timedelta(hours=8)).strftime('%Y-%m-%d %H:%M:%S')}] CocoaBot might be ratelimited [task loop ratelimit check failed] \nError:", err)
+      try:
+        await self.bot.log_action(
+          "Ratelimited",
+          "Task loop faced a ratelimit. Some parts may not have been executed fully. \nError:", err
+        )
+      except:
+        pass
     
     guild = self.bot.get_guild(923013388966166528)
     last_income = self.bot.dbo["others"]["last_income"]
