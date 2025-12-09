@@ -313,7 +313,7 @@ Dm me `.info` to join the support server!"""
     if itx.client.dbo["others"]["maintenancemode"] and itx.user.id != 915156033192734760:
       await itx.response.send_message("I am currently on maintenance mode! Join my support server for more info. \nDm me `.info` to join the support server!")
       return False
-    if itx.user.id not in itx.client.dbo["others"]["read_alert"] and itx.client.dbo["others"]["alert_ping"]:
+    if random.randint(1,10) == 5 and itx.user.id not in itx.client.dbo["others"]["read_alert"] and itx.client.dbo["others"]["alert_ping"]: # Show alert reminder once in a while
       await itx.channel.send(f"{itx.user.mention}, there is an important alert! \nUse `{prefix}alert` to view it!")
 
     if random.randint(1, 20) == 10: # rarely show tips
